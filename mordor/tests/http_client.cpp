@@ -1558,13 +1558,13 @@ static void firstRequest(BaseRequestBroker &requestBroker)
 
 MORDOR_UNITTEST(HTTPClient, pipelineTimeout)
 {
-    IOManager ioManager;
+    boost::scoped_ptr<IOManager> ioManager(IOManager::create());
 
     MockConnectionBroker server(boost::bind(&serverDelaysFirstResponse,
-        _1, _2, boost::ref(ioManager)), &ioManager, 100000, ~0ull);
+        _1, _2, boost::ref(*ioManager)), &*ioManager, 100000, ~0ull);
     BaseRequestBroker requestBroker(ConnectionBroker::ptr(&server, &nop<ConnectionBroker *>));
 
-    ioManager.schedule(boost::bind(&firstRequest, boost::ref(requestBroker)));
+    ioManager->schedule(boost::bind(&firstRequest, boost::ref(requestBroker)));
     Scheduler::yield();
 
     Request requestHeaders;
@@ -1573,7 +1573,7 @@ MORDOR_UNITTEST(HTTPClient, pipelineTimeout)
     requestHeaders.general.transferEncoding.push_back("chunked");
 
     ClientRequest::ptr request = requestBroker.request(requestHeaders, false,
-        boost::bind(&sendBodyForPointThreeSecond, _1, boost::ref(ioManager)));
+        boost::bind(&sendBodyForPointThreeSecond, _1, boost::ref(*ioManager)));
     MORDOR_TEST_ASSERT_EQUAL(request->response().status.status, HTTP::OK);
 }
 

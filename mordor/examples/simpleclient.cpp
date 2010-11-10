@@ -16,10 +16,10 @@ MORDOR_MAIN(int argc, char *argv[])
 {
     try {
         Config::loadFromEnvironment();
-        IOManager ioManager;
+        boost::scoped_ptr<IOManager> ioManager(IOManager::create());
         std::vector<Address::ptr> addresses =
             Address::lookup(argv[1], AF_UNSPEC, SOCK_STREAM);
-        Socket::ptr s(addresses[0]->createSocket(ioManager));
+        Socket::ptr s(addresses[0]->createSocket(*ioManager));
         s->connect(addresses[0]);
         size_t rc = s->send("hello\r\n", 7);
         char buf[8192];

@@ -170,6 +170,7 @@ private:
     error_t m_cancelledSend, m_cancelledReceive;
     boost::shared_ptr<Address> m_localAddress, m_remoteAddress;
 #ifdef WINDOWS
+    IOManagerIOCP *m_iocpIoManager;
     bool m_skipCompletionPortOnSuccess;
     // All this, just so a connect/accept can be cancelled on win2k
     bool m_unregistered;
@@ -177,7 +178,7 @@ private:
     boost::shared_ptr<Fiber> m_fiber;
     Scheduler *m_scheduler;
 
-    AsyncEvent m_sendEvent, m_receiveEvent;
+    IOManagerIOCP::AsyncEvent m_sendEvent, m_receiveEvent;
 #endif
     bool m_isConnected, m_isRegisteredForRemoteClose;
     boost::signals2::signal<void ()> m_onRemoteClose;

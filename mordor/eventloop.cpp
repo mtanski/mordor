@@ -63,11 +63,10 @@ EventLoop::~EventLoop()
 }
 
 bool
-EventLoop::stopping()
+EventLoop::stoppingInternal()
 {
     MSG msg;
-    return Scheduler::stopping() &&
-        !PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE) && nextTimer() == ~0ull;
+    return !PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE);
 }
 
 void

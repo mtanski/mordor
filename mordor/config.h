@@ -25,6 +25,7 @@ namespace Mordor {
 
 #ifdef WINDOWS
 class IOManager;
+class IOManagerIOCP;
 #endif
 
 class ConfigVarBase : public boost::noncopyable
@@ -150,7 +151,7 @@ public:
     public:
         typedef boost::shared_ptr<RegistryMonitor> ptr;
     private:
-        RegistryMonitor(IOManager &iomanager, HKEY hKey,
+        RegistryMonitor(IOManagerIOCP &iomanager, HKEY hKey,
             const std::wstring &subKey);
 
     public:
@@ -161,7 +162,7 @@ public:
         static void onRegistryChange(boost::weak_ptr<RegistryMonitor> self);
 
     private:
-        IOManager &m_ioManager;
+        IOManagerIOCP &m_ioManager;
         HKEY m_hKey;
         HANDLE m_hEvent;
     };

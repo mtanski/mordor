@@ -206,6 +206,12 @@
     <ClCompile Include="zip.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="timerscheduler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="iomanager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="anymap.h">
@@ -461,6 +467,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="zip.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="timerscheduler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

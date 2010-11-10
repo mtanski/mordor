@@ -212,7 +212,7 @@ static void loadFromRegistry(HKEY hKey)
     }
 }
 
-Config::RegistryMonitor::RegistryMonitor(IOManager &ioManager,
+Config::RegistryMonitor::RegistryMonitor(IOManagerIOCP &ioManager,
     HKEY hKey, const std::wstring &subKey)
     : m_ioManager(ioManager),
       m_hKey(NULL),
@@ -289,17 +289,20 @@ Config::RegistryMonitor::ptr
 Config::monitorRegistry(IOManager &ioManager, HKEY hKey,
     const std::string &subKey)
 {
-    return monitorRegistry(ioManager, hKey, toUtf16(subKey));
+    MORDOR_ASSERT(ioManager.implementation() == IOManager::IOCP);
+    return monitorRegistry(static_cast<IOManagerIOCP &>(ioManager), hKey, toUtf16(subKey));
 }
 
 Config::RegistryMonitor::ptr
 Config::monitorRegistry(IOManager &ioManager, HKEY hKey,
     const std::wstring &subKey)
 {
-    RegistryMonitor::ptr result(new RegistryMonitor(ioManager, hKey, subKey));
+    MORDOR_ASSERT(ioManager.implementation() == IOManager::IOCP);
+    IOManagerIOCP &iocpIoManager = static_cast<IOManagerIOCP &>(ioManager);
+    RegistryMonitor::ptr result(new RegistryMonitor(iocpIoManager, hKey, subKey));
     // Have to wait until after the object is constructed to get the weak_ptr
     // we need
-    ioManager.registerEvent(result->m_hEvent,
+    iocpIoManager.registerEvent(result->m_hEvent,
         boost::bind(&RegistryMonitor::onRegistryChange,
             boost::weak_ptr<RegistryMonitor>(result)), true);
     Mordor::loadFromRegistry(result->m_hKey);

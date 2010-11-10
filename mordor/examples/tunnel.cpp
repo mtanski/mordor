@@ -151,7 +151,7 @@ static void socketServer(Socket::ptr s, IOManager &ioManager,
 MORDOR_MAIN(int argc, char *argv[])
 {
     Config::loadFromEnvironment();
-    IOManager ioManager;
+    boost::scoped_ptr<IOManager> ioManager(IOManager::create());
     if (argc <= 2) {
         std::cerr << "Usage: (<listen> | -) <to> [-ssl] [<proxy> [<username> <password>]]"
             << std::endl;
@@ -175,11 +175,11 @@ MORDOR_MAIN(int argc, char *argv[])
             username = argv[4];
         if (argc > 3) {
             outgoing = boost::bind(&outgoingProxyConnection, _1,
-                boost::ref(ioManager), argv[3], username, password, to,
+                boost::ref(*ioManager), argv[3], username, password, to,
                 ssl);
         } else {
             outgoing = boost::bind(&outgoingConnection, _1,
-                boost::ref(ioManager), to, ssl);
+                boost::ref(*ioManager), to, ssl);
         }
 
         if (to == "-") {
@@ -194,12 +194,12 @@ MORDOR_MAIN(int argc, char *argv[])
             for (std::vector<Address::ptr>::const_iterator it(addresses.begin());
                 it != addresses.end();
                 ++it) {
-                Socket::ptr s = (*it)->createSocket(ioManager);
+                Socket::ptr s = (*it)->createSocket(*ioManager);
                 s->bind(*it);
                 Scheduler::getThis()->schedule(boost::bind(&socketServer, s,
-                    boost::ref(ioManager), outgoing));
+                    boost::ref(*ioManager), outgoing));
             }
-            ioManager.yieldTo();
+            ioManager->yieldTo();
         }
     } catch (...) {
         std::cerr << boost::current_exception_diagnostic_information()

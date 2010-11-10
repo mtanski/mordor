@@ -307,13 +307,12 @@ MORDOR_MAIN(int argc, char *argv[])
         NetBench bench(argc, argv);
 
         Config::loadFromEnvironment();
-        IOManager iom(g_iomThreads->val());
+        boost::scoped_ptr<IOManager> iom(IOManager::create(g_iomThreads->val()));
 
-        IOMBenchServer server(iom);
-        IOMBenchClient client(iom);
+        IOMBenchServer server(*iom);
+        IOMBenchClient client(*iom);
 
         bench.run(&server, &client);
-        iom.stop();
         return 0;
     } catch (...) {
         std::cerr << "caught: "

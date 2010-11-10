@@ -178,7 +178,8 @@ Socket::Socket(IOManager *ioManager, int family, int type, int protocol, int ini
   m_isRegisteredForRemoteClose(false)
 {
 #ifdef WINDOWS
-    if (pAcceptEx && m_ioManager) {
+    m_iocpIoManager = static_cast<IOManagerIOCP *>(m_ioManager);
+    if (pAcceptEx && m_iocpIoManager) {
         m_sock = socket(family, type, protocol);
         MORDOR_LOG_LEVEL(g_log, m_sock == -1 ? Log::ERROR : Log::DEBUG) << this
             << " socket(" << (Family)family << ", " << (Type)type << ", "
@@ -204,6 +205,9 @@ Socket::Socket(int family, int type, int protocol)
         << lastError() << ")";
     if (m_sock == -1)
         MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("socket");
+#ifdef WINDOWS
+    m_iocpIoManager = NULL;
+#endif
 #ifdef OSX
     unsigned int opt = 1;
     if (setsockopt(m_sock, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt)) == -1) {
@@ -236,8 +240,9 @@ Socket::Socket(IOManager &ioManager, int family, int type, int protocol)
     if (m_sock == -1)
         MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("socket");
 #ifdef WINDOWS
+    m_iocpIoManager = static_cast<IOManagerIOCP *>(m_ioManager);
     try {
-        m_ioManager->registerFile((HANDLE)m_sock);
+        m_iocpIoManager->registerFile((HANDLE)m_sock);
         m_skipCompletionPortOnSuccess =
             !!pSetFileCompletionNotificationModes((HANDLE)m_sock,
                 FILE_SKIP_COMPLETION_PORT_ON_SUCCESS |
@@ -264,9 +269,9 @@ Socket::Socket(IOManager &ioManager, int family, int type, int protocol)
 Socket::~Socket()
 {
 #ifdef WINDOWS
-    if (m_ioManager && m_hEvent) {
+    if (m_iocpIoManager && m_hEvent) {
         if (m_isRegisteredForRemoteClose) {
-            m_ioManager->unregisterEvent(m_hEvent);
+            m_iocpIoManager->unregisterEvent(m_hEvent);
             WSAEventSelect(m_sock, m_hEvent, 0);
         }
         CloseHandle(m_hEvent);
@@ -301,6 +306,14 @@ Socket::bind(Address::ptr addr)
 {
     bind(*addr);
 }
+
+#ifdef WINDOWS
+static void cancelEventLocal(IOManagerIOCP *ioManager, HANDLE sock,
+    IOManagerIOCP::AsyncEvent *event)
+{
+    ioManager->cancelEvent(sock, event);
+}
+#endif
 
 void
 Socket::connect(const Address &to)
@@ -356,11 +369,11 @@ Socket::connect(const Address &to)
                 }
             }
 
-            m_ioManager->registerEvent(&m_sendEvent);
+            m_iocpIoManager->registerEvent(&m_sendEvent);
             BOOL bRet = ConnectEx(m_sock, to.name(), to.nameLen(), NULL, 0, NULL, &m_sendEvent.overlapped);
             if (!bRet && GetLastError() != WSA_IO_PENDING) {
                 if (GetLastError() == WSAEINVAL) {
-                    m_ioManager->unregisterEvent(&m_sendEvent);
+                    m_iocpIoManager->unregisterEvent(&m_sendEvent);
                     // Some LSPs are *borken* (I'm looking at you, bmnet.dll),
                     // and don't properly support ConnectEx (and AcceptEx).  In
                     // that case, go to how we work on Windows 2000 without
@@ -369,24 +382,24 @@ Socket::connect(const Address &to)
                 }
                 MORDOR_LOG_ERROR(g_log) << this << " ConnectEx(" << m_sock
                     << ", " << to << "): (" << lastError() << ")";
-                m_ioManager->unregisterEvent(&m_sendEvent);
+                m_iocpIoManager->unregisterEvent(&m_sendEvent);
                 MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("ConnectEx");
             }
             if (m_skipCompletionPortOnSuccess && bRet) {
-                m_ioManager->unregisterEvent(&m_sendEvent);
+                m_iocpIoManager->unregisterEvent(&m_sendEvent);
                 m_sendEvent.overlapped.Internal = STATUS_SUCCESS;
             } else {
                 if (m_cancelledSend) {
                     MORDOR_LOG_ERROR(g_log) << this << " ConnectEx(" << m_sock << ", " << to
                             << "): (" << m_cancelledSend << ")";
-                    m_ioManager->cancelEvent((HANDLE)m_sock, &m_sendEvent);
+                    m_iocpIoManager->cancelEvent((HANDLE)m_sock, &m_sendEvent);
                     Scheduler::yieldTo();
                     MORDOR_THROW_EXCEPTION_FROM_ERROR_API(m_cancelledSend, "ConnectEx");
                 }
                 Timer::ptr timeout;
                 if (m_sendTimeout != ~0ull)
                     timeout = m_ioManager->registerTimer(m_sendTimeout, boost::bind(
-                        &IOManager::cancelEvent, m_ioManager, (HANDLE)m_sock, &m_sendEvent));
+                        &cancelEventLocal, m_iocpIoManager, (HANDLE)m_sock, &m_sendEvent));
                 Scheduler::yieldTo();
                 if (timeout)
                     timeout->cancel();
@@ -419,14 +432,14 @@ suckylsp:
                 return;
             }
             if (GetLastError() == WSAEWOULDBLOCK) {
-                m_ioManager->registerEvent(m_hEvent);
+                m_iocpIoManager->registerEvent(m_hEvent);
                 m_fiber = Fiber::getThis();
                 m_scheduler = Scheduler::getThis();
                 m_unregistered = false;
                 if (m_cancelledSend) {
                     MORDOR_LOG_ERROR(g_log) << this << " connect(" << m_sock << ", " << to
                             << "): (" << m_cancelledSend << ")";
-                    if (!m_ioManager->unregisterEvent(m_hEvent))
+                    if (!m_iocpIoManager->unregisterEvent(m_hEvent))
                         Scheduler::yieldTo();
                     MORDOR_THROW_EXCEPTION_FROM_ERROR_API(m_cancelledSend, "connect");
                 }
@@ -566,37 +579,37 @@ Socket::accept(Socket &target)
     } else {
 #ifdef WINDOWS
         if (pAcceptEx) {
-            m_ioManager->registerEvent(&m_receiveEvent);
+            m_iocpIoManager->registerEvent(&m_receiveEvent);
             unsigned char addrs[sizeof(SOCKADDR_STORAGE) * 2 + 16];
             DWORD bytes;
             BOOL ret = pAcceptEx(m_sock, target.m_sock, addrs, 0, sizeof(SOCKADDR_STORAGE) + 16, sizeof(SOCKADDR_STORAGE) + 16, &bytes,
                 &m_receiveEvent.overlapped);
             if (!ret && GetLastError() != WSA_IO_PENDING) {
                 if (GetLastError() == WSAENOTSOCK) {
-                    m_ioManager->unregisterEvent(&m_receiveEvent);
+                    m_iocpIoManager->unregisterEvent(&m_receiveEvent);
                     // See comment in similar line in connect()
                     goto suckylsp;
                 }
                 MORDOR_LOG_ERROR(g_log) << this << " AcceptEx(" << m_sock << "):  ("
                     << lastError() << ")";
-                m_ioManager->unregisterEvent(&m_receiveEvent);
+                m_iocpIoManager->unregisterEvent(&m_receiveEvent);
                 MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("AcceptEx");
             }
             if (m_skipCompletionPortOnSuccess && ret) {
-                m_ioManager->unregisterEvent(&m_receiveEvent);
+                m_iocpIoManager->unregisterEvent(&m_receiveEvent);
                 m_receiveEvent.overlapped.Internal = STATUS_SUCCESS;
             } else {
                 if (m_cancelledReceive) {
                     MORDOR_LOG_ERROR(g_log) << this << " AcceptEx(" << m_sock << "): ("
                         << m_cancelledReceive << ")";
-                    m_ioManager->cancelEvent((HANDLE)m_sock, &m_receiveEvent);
+                    m_iocpIoManager->cancelEvent((HANDLE)m_sock, &m_receiveEvent);
                     Scheduler::yieldTo();
                     MORDOR_THROW_EXCEPTION_FROM_ERROR_API(m_cancelledReceive, "AcceptEx");
                 }
                 Timer::ptr timeout;
                 if (m_receiveTimeout != ~0ull)
                     timeout = m_ioManager->registerTimer(m_receiveTimeout, boost::bind(
-                        &IOManager::cancelEvent, m_ioManager, (HANDLE)m_sock, &m_receiveEvent));
+                        &cancelEventLocal, m_iocpIoManager, (HANDLE)m_sock, &m_receiveEvent));
                 Scheduler::yieldTo();
                 if (timeout)
                     timeout->cancel();
@@ -625,7 +638,7 @@ Socket::accept(Socket &target)
             MORDOR_LOG_INFO(g_log) << this << " AcceptEx(" << m_sock << "): "
                 << target.m_sock << os.str();
             target.setOption(SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, &m_sock, sizeof(m_sock));
-            target.m_ioManager->registerFile((HANDLE)target.m_sock);
+            target.m_iocpIoManager->registerFile((HANDLE)target.m_sock);
             target.m_skipCompletionPortOnSuccess =
                 !!pSetFileCompletionNotificationModes((HANDLE)target.m_sock,
                     FILE_SKIP_COMPLETION_PORT_ON_SUCCESS |
@@ -647,13 +660,13 @@ suckylsp:
                     << newsock;
                 // Worked first time
             } else if (GetLastError() == WSAEWOULDBLOCK) {
-                m_ioManager->registerEvent(m_hEvent);
+                m_iocpIoManager->registerEvent(m_hEvent);
                 m_fiber = Fiber::getThis();
                 m_scheduler = Scheduler::getThis();
                 if (m_cancelledReceive) {
                     MORDOR_LOG_ERROR(g_log) << this << " accept(" << m_sock << "): ("
                         << m_cancelledReceive << ")";
-                    if (!m_ioManager->unregisterEvent(m_hEvent))
+                    if (!m_iocpIoManager->unregisterEvent(m_hEvent))
                         Scheduler::yieldTo();
                     MORDOR_THROW_EXCEPTION_FROM_ERROR_API(m_cancelledReceive, "accept");
                 }
@@ -689,7 +702,7 @@ suckylsp:
                 MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("accept");
             }
             try {
-                m_ioManager->registerFile((HANDLE)newsock);
+                m_iocpIoManager->registerFile((HANDLE)newsock);
             } catch(...) {
                 closesocket(newsock);
                 throw;
@@ -763,7 +776,7 @@ Socket::shutdown(int how)
     }
     if (m_isRegisteredForRemoteClose) {
 #ifdef WINDOWS
-        m_ioManager->unregisterEvent(m_hEvent);
+        m_iocpIoManager->unregisterEvent(m_hEvent);
         WSAEventSelect(m_sock, m_hEvent, 0);
 #else
         if (m_isRegisteredForRemoteClose)
@@ -812,15 +825,15 @@ Socket::doIO(iovec *buffers, size_t length, int &flags, Address *address)
 
 #ifdef WINDOWS
     DWORD bufferCount = (DWORD)std::min<size_t>(length, 0xffffffff);
-    AsyncEvent &event = isSend ? m_sendEvent : m_receiveEvent;
+    IOManagerIOCP::AsyncEvent &event = isSend ? m_sendEvent : m_receiveEvent;
     OVERLAPPED *overlapped = m_ioManager ? &event.overlapped : NULL;
 
-    if (m_ioManager) {
+    if (m_iocpIoManager) {
         if (cancelled) {
             MORDOR_SOCKET_LOG(-1, cancelled);
             MORDOR_THROW_EXCEPTION_FROM_ERROR_API(cancelled, api);
         }
-        m_ioManager->registerEvent(&event);
+        m_iocpIoManager->registerEvent(&event);
     }
 
     DWORD transferred;
@@ -862,22 +875,22 @@ Socket::doIO(iovec *buffers, size_t length, int &flags, Address *address)
     }
 
     if (result) {
-        if (!m_ioManager || GetLastError() != WSA_IO_PENDING) {
+        if (!m_iocpIoManager || GetLastError() != WSA_IO_PENDING) {
             MORDOR_SOCKET_LOG(-1, lastError());
-            if (m_ioManager)
-                m_ioManager->unregisterEvent(&event);
+            if (m_iocpIoManager)
+                m_iocpIoManager->unregisterEvent(&event);
             MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API(api);
         }
     }
 
-    if (m_ioManager) {
+    if (m_iocpIoManager) {
         if (m_skipCompletionPortOnSuccess && result == 0) {
-            m_ioManager->unregisterEvent(&event);
+            m_iocpIoManager->unregisterEvent(&event);
         } else {
             Timer::ptr timer;
             if (timeout != ~0ull)
                 timer = m_ioManager->registerTimer(timeout, boost::bind(
-                    &IOManager::cancelEvent, m_ioManager, (HANDLE)m_sock,
+                    &cancelEventLocal, m_iocpIoManager, (HANDLE)m_sock,
                     &event));
             Scheduler::yieldTo();
             if (timer)
@@ -1047,11 +1060,10 @@ Socket::cancelAccept()
     if (m_cancelledReceive)
         return;
     m_cancelledReceive = ERROR_OPERATION_ABORTED;
-    if (pAcceptEx) {
-        m_ioManager->cancelEvent((HANDLE)m_sock, &m_receiveEvent);
-    }
+    if (pAcceptEx)
+        m_iocpIoManager->cancelEvent((HANDLE)m_sock, &m_receiveEvent);
     if (m_hEvent && m_scheduler && m_fiber) {
-        m_unregistered = !!m_ioManager->unregisterEvent(m_hEvent);
+        m_unregistered = !!m_iocpIoManager->unregisterEvent(m_hEvent);
         m_scheduler->schedule(m_fiber);
     }
 #else
@@ -1069,10 +1081,10 @@ Socket::cancelConnect()
         return;
     m_cancelledSend = ERROR_OPERATION_ABORTED;
     if (ConnectEx) {
-        m_ioManager->cancelEvent((HANDLE)m_sock, &m_sendEvent);
+        m_iocpIoManager->cancelEvent((HANDLE)m_sock, &m_sendEvent);
     }
     if (m_hEvent && m_scheduler && m_fiber) {
-        m_unregistered = !!m_ioManager->unregisterEvent(m_hEvent);
+        m_unregistered = !!m_iocpIoManager->unregisterEvent(m_hEvent);
         m_scheduler->schedule(m_fiber);
     }
 #else
@@ -1089,7 +1101,7 @@ Socket::cancelSend()
     if (m_cancelledSend)
         return;
     m_cancelledSend = ERROR_OPERATION_ABORTED;
-    m_ioManager->cancelEvent((HANDLE)m_sock, &m_sendEvent);
+    m_iocpIoManager->cancelEvent((HANDLE)m_sock, &m_sendEvent);
 #else
     cancelIo(IOManager::WRITE, m_cancelledSend, ECANCELED);
 #endif
@@ -1104,7 +1116,7 @@ Socket::cancelReceive()
     if (m_cancelledReceive)
         return;
     m_cancelledReceive = ERROR_OPERATION_ABORTED;
-    m_ioManager->cancelEvent((HANDLE)m_sock, &m_receiveEvent);
+    m_iocpIoManager->cancelEvent((HANDLE)m_sock, &m_receiveEvent);
 #else
     cancelIo(IOManager::READ, m_cancelledReceive, ECANCELED);
 #endif
@@ -1119,7 +1131,7 @@ Socket::cancelIo(error_t &cancelled, error_t error)
         return;
     cancelled = error;
     if (m_hEvent && m_scheduler && m_fiber) {
-        m_unregistered = !!m_ioManager->unregisterEvent(m_hEvent);
+        m_unregistered = !!m_iocpIoManager->unregisterEvent(m_hEvent);
         m_scheduler->schedule(m_fiber);
     }
 }
@@ -1236,7 +1248,7 @@ Socket::registerForRemoteClose()
         MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("ResetEvent");
     if (WSAEventSelect(m_sock, m_hEvent, FD_CLOSE))
         MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("WSAEventSelect");
-    m_ioManager->registerEvent(m_hEvent, boost::bind(&Socket::callOnRemoteClose,
+    m_iocpIoManager->registerEvent(m_hEvent, boost::bind(&Socket::callOnRemoteClose,
         weak_ptr(shared_from_this())));
 #else
     m_ioManager->registerEvent(m_sock, IOManager::CLOSE,

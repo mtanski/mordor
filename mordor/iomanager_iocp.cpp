@@ -14,12 +14,12 @@ namespace Mordor {
 static Logger::ptr g_log = Log::lookup("mordor:iomanager");
 static Logger::ptr g_logWaitBlock = Log::lookup("mordor:iomanager:waitblock");
 
-AsyncEvent::AsyncEvent()
+IOManagerIOCP::AsyncEvent::AsyncEvent()
 {
     memset(this, 0, sizeof(AsyncEvent));
 }
 
-IOManager::WaitBlock::WaitBlock(IOManager &outer)
+IOManagerIOCP::WaitBlock::WaitBlock(IOManagerIOCP &outer)
 : m_outer(outer),
   m_inUseCount(0)
 {
@@ -37,7 +37,7 @@ IOManager::WaitBlock::WaitBlock(IOManager &outer)
     }
 }
 
-IOManager::WaitBlock::~WaitBlock()
+IOManagerIOCP::WaitBlock::~WaitBlock()
 {
     MORDOR_ASSERT(m_inUseCount <= 0);
     BOOL bRet = CloseHandle(m_handles[0]);
@@ -49,7 +49,7 @@ IOManager::WaitBlock::~WaitBlock()
 }
 
 bool
-IOManager::WaitBlock::registerEvent(HANDLE hEvent,
+IOManagerIOCP::WaitBlock::registerEvent(HANDLE hEvent,
                                         boost::function <void ()> dg,
                                         bool recurring)
 {
@@ -76,7 +76,7 @@ IOManager::WaitBlock::registerEvent(HANDLE hEvent,
 
 typedef boost::function<void ()> functor;
 size_t
-IOManager::WaitBlock::unregisterEvent(HANDLE handle)
+IOManagerIOCP::WaitBlock::unregisterEvent(HANDLE handle)
 {
     boost::mutex::scoped_lock lock(m_mutex);
     if (m_inUseCount == -1)
@@ -110,7 +110,7 @@ IOManager::WaitBlock::unregisterEvent(HANDLE handle)
 }
 
 void
-IOManager::WaitBlock::run()
+IOManagerIOCP::WaitBlock::run()
 {
     DWORD dwRet;
     DWORD count;
@@ -196,7 +196,7 @@ IOManager::WaitBlock::run()
 }
 
 void
-IOManager::WaitBlock::removeEntry(int index)
+IOManagerIOCP::WaitBlock::removeEntry(int index)
 {
     memmove(&m_handles[index], &m_handles[index + 1], (m_inUseCount - index) * sizeof(HANDLE));
     memmove(&m_schedulers[index], &m_schedulers[index + 1], (m_inUseCount - index) * sizeof(Scheduler *));
@@ -211,10 +211,11 @@ IOManager::WaitBlock::removeEntry(int index)
     memmove(&m_recurring[index], &m_recurring[index + 1], (m_inUseCount - index) * sizeof(bool));
 }
 
-IOManager::IOManager(size_t threads, bool useCaller)
-    : Scheduler(threads, useCaller)
+IOManagerIOCP::IOManagerIOCP(size_t threads, bool useCaller)
+    : IOManager(threads, useCaller),
+      m_pendingEventCount(0),
+      m_posixStyleIOManager(NULL)
 {
-    m_pendingEventCount = 0;
     m_hCompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
     MORDOR_LOG_LEVEL(g_log, m_hCompletionPort ? Log::VERBOSE : Log::ERROR) << this <<
         " CreateIoCompletionPort(): " << m_hCompletionPort << " ("
@@ -229,21 +230,37 @@ IOManager::IOManager(size_t threads, bool useCaller)
     }
 }
 
-IOManager::~IOManager()
+IOManagerIOCP::~IOManagerIOCP()
 {
+    if (m_posixStyleIOManager)
+        delete m_posixStyleIOManager;
     stop();
     CloseHandle(m_hCompletionPort);
 }
 
-bool
-IOManager::stopping()
+void
+IOManagerIOCP::registerEvent(int fd, Event event, boost::function<void ()> dg)
 {
-    unsigned long long timeout;
-    return stopping(timeout);
+    ensurePosixStyleIOManager();
+    m_posixStyleIOManager->registerEvent(fd, event, dg);
+}
+
+bool
+IOManagerIOCP::unregisterEvent(int fd, Event event)
+{
+    ensurePosixStyleIOManager();
+    return m_posixStyleIOManager->unregisterEvent(fd, event);
+}
+
+bool
+IOManagerIOCP::cancelEvent(int fd, Event event)
+{
+    ensurePosixStyleIOManager();
+    return m_posixStyleIOManager->cancelEvent(fd, event);
 }
 
 void
-IOManager::registerFile(HANDLE handle)
+IOManagerIOCP::registerFile(HANDLE handle)
 {
     HANDLE hRet = CreateIoCompletionPort(handle, m_hCompletionPort, 0, 0);
     MORDOR_LOG_LEVEL(g_log, m_hCompletionPort ? Log::DEBUG : Log::ERROR) << this <<
@@ -255,7 +272,7 @@ IOManager::registerFile(HANDLE handle)
 }
 
 void
-IOManager::registerEvent(AsyncEvent *e)
+IOManagerIOCP::registerEvent(AsyncEvent *e)
 {
     MORDOR_ASSERT(e);
     e->m_scheduler = Scheduler::getThis();
@@ -278,7 +295,7 @@ IOManager::registerEvent(AsyncEvent *e)
 }
 
 void
-IOManager::unregisterEvent(AsyncEvent *e)
+IOManagerIOCP::unregisterEvent(AsyncEvent *e)
 {
     MORDOR_ASSERT(e);
     MORDOR_LOG_DEBUG(g_log) << this << " unregisterEvent(" << &e->overlapped << ")";
@@ -301,7 +318,7 @@ IOManager::unregisterEvent(AsyncEvent *e)
 }
 
 void
-IOManager::registerEvent(HANDLE handle, boost::function<void ()> dg, bool recurring)
+IOManagerIOCP::registerEvent(HANDLE handle, boost::function<void ()> dg, bool recurring)
 {
     MORDOR_LOG_DEBUG(g_log) << this << " registerEvent(" << handle << ", " << dg
         << ")";
@@ -322,7 +339,7 @@ IOManager::registerEvent(HANDLE handle, boost::function<void ()> dg, bool recurr
 }
 
 size_t
-IOManager::unregisterEvent(HANDLE handle)
+IOManagerIOCP::unregisterEvent(HANDLE handle)
 {
     MORDOR_ASSERT(handle);
     boost::mutex::scoped_lock lock(m_mutex);
@@ -337,7 +354,7 @@ IOManager::unregisterEvent(HANDLE handle)
 }
 
 void
-IOManager::cancelEvent(HANDLE hFile, AsyncEvent *e)
+IOManagerIOCP::cancelEvent(HANDLE hFile, AsyncEvent *e)
 {
     MORDOR_ASSERT(hFile);
     MORDOR_ASSERT(e);
@@ -370,20 +387,18 @@ IOManager::cancelEvent(HANDLE hFile, AsyncEvent *e)
 }
 
 bool
-IOManager::stopping(unsigned long long &nextTimeout)
+IOManagerIOCP::stoppingInternal()
 {
-    nextTimeout = nextTimer();
-    if (nextTimeout == ~0ull && Scheduler::stopping()) {
-        if (m_pendingEventCount != 0)
-            return false;
-        boost::mutex::scoped_lock lock(m_mutex);
-        return m_waitBlocks.empty();
-    }
-    return false;
+    if (m_pendingEventCount != 0)
+        return false;
+    if (m_posixStyleIOManager && !m_posixStyleIOManager->stopping())
+        return false;
+    boost::mutex::scoped_lock lock(m_mutex);
+    return m_waitBlocks.empty();
 }
 
 void
-IOManager::idle()
+IOManagerIOCP::idle()
 {
     OVERLAPPED_ENTRY events[64];
     ULONG count;
@@ -476,7 +491,7 @@ IOManager::idle()
 }
 
 void
-IOManager::tickle()
+IOManagerIOCP::tickle()
 {
     BOOL bRet = PostQueuedCompletionStatus(m_hCompletionPort, 0, ~0, NULL);
     MORDOR_LOG_LEVEL(g_log, bRet ? Log::DEBUG : Log::ERROR) << this
@@ -484,6 +499,17 @@ IOManager::tickle()
         << ", 0, ~0, NULL): " << bRet << " (" << GetLastError() << ")";
     if (!bRet)
         MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("PostQueuedCompletionStatus");
+}
+
+void
+IOManagerIOCP::ensurePosixStyleIOManager()
+{
+    if (!m_posixStyleIOManager) {
+        IOManager *newIOManager = NULL;
+        // TODO: use poll or select
+        if (atomicCompareAndSwap(m_posixStyleIOManager, newIOManager, (IOManager *)NULL) != NULL)
+            delete newIOManager;
+    }
 }
 
 }

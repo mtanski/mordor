@@ -2,9 +2,7 @@
 #define __MORDOR_IOMANAGER_EPOLL_H__
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include "scheduler.h"
-#include "timer.h"
-#include "version.h"
+#include "iomanager.h"
 
 #ifndef LINUX
 #error IOManagerEPoll is Linux only
@@ -14,16 +12,8 @@ namespace Mordor {
 
 class Fiber;
 
-class IOManager : public Scheduler, public TimerManager
+class IOManagerEPoll : public PipeTicklingIOManager
 {
-public:
-    enum Event {
-        NONE  = 0x0000,
-        READ  = 0x0001,
-        WRITE = 0x0004,
-        CLOSE = 0x2000
-    };
-
 private:
     struct AsyncState : boost::noncopyable
     {
@@ -48,29 +38,22 @@ private:
     };
 
 public:
-    IOManager(size_t threads = 1, bool useCaller = true);
-    ~IOManager();
-
-    bool stopping();
+    IOManagerEPoll(size_t threads = 1, bool useCaller = true);
+    ~IOManagerEPoll();
 
     void registerEvent(int fd, Event events,
         boost::function<void ()> dg = NULL);
-    /// Will not cause the event to fire
-    /// @return If the event was successfully unregistered before firing normally
     bool unregisterEvent(int fd, Event events);
-    /// Will cause the event to fire
     bool cancelEvent(int fd, Event events);
 
-protected:
-    bool stopping(unsigned long long &nextTimeout);
-    void idle();
-    void tickle();
+    Implementation implementation() const { return EPOLL; }
 
-    void onTimerInsertedAtFront() { tickle(); }
+protected:
+    bool stoppingInternal();
+    void idle();
 
 private:
     int m_epfd;
-    int m_tickleFds[2];
     size_t m_pendingEventCount;
     boost::mutex m_mutex;
     std::vector<AsyncState *> m_pendingEvents;

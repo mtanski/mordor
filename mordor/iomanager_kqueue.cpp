@@ -13,65 +13,41 @@ namespace Mordor {
 
 static Logger::ptr g_log = Log::lookup("mordor:iomanager");
 
-IOManager::IOManager(size_t threads, bool useCaller)
+IOManagerKQueue::IOManagerKQueue(size_t threads, bool useCaller)
     : Scheduler(threads, useCaller)
 {
     m_kqfd = kqueue();
     MORDOR_LOG_LEVEL(g_log, m_kqfd <= 0 ? Log::ERROR : Log::TRACE) << this
         << " kqueue(): " << m_kqfd;
-    if (m_kqfd <= 0) {
+    if (m_kqfd <= 0)
         MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("kqueue");
-    }
-    int rc = pipe(m_tickleFds);
-    MORDOR_LOG_LEVEL(g_log, rc ? Log::ERROR : Log::VERBOSE) << this << " pipe(): "
-        << rc << " (" << errno << ")";
-    if (rc) {
-        close(m_kqfd);
-        MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("pipe");
-    }
-    MORDOR_ASSERT(m_tickleFds[0] > 0);
-    MORDOR_ASSERT(m_tickleFds[1] > 0);
     struct kevent event;
-    EV_SET(&event, m_tickleFds[0], EVFILT_READ, EV_ADD, 0, 0, NULL);
+    EV_SET(&event, tickleFd(), EVFILT_READ, EV_ADD, 0, 0, NULL);
     rc = kevent(m_kqfd, &event, 1, NULL, 0, NULL);
     MORDOR_LOG_LEVEL(g_log, rc ? Log::ERROR : Log::VERBOSE) << this << " kevent("
-        << m_kqfd << ", (" << m_tickleFds[0] << ", EVFILT_READ, EV_ADD)): " << rc
+        << m_kqfd << ", (" << tickleFd() << ", EVFILT_READ, EV_ADD)): " << rc
         << " (" << errno << ")";
     if (rc) {
-        close(m_tickleFds[0]);
-        close(m_tickleFds[1]);
         close(m_kqfd);
         MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("kevent");
     }
     try {
         start();
     } catch (...) {
-        close(m_tickleFds[0]);
-        close(m_tickleFds[1]);
         close(m_kqfd);
         throw;
     }    
 }
 
-IOManager::~IOManager()
+IOManagerKQueue::~IOManagerKQueue()
 {
     stop();
     close(m_kqfd);
     MORDOR_LOG_TRACE(g_log) << this << " close(" << m_kqfd << ")";
-    close(m_tickleFds[0]);
-    MORDOR_LOG_VERBOSE(g_log) << this << " close(" << m_tickleFds[0] << ")";
-    close(m_tickleFds[1]);
-}
-
-bool
-IOManager::stopping()
-{
-    unsigned long long timeout;
-    return stopping(timeout);
 }
 
 void
-IOManager::registerEvent(int fd, Event events,
+IOManagerKQueue::registerEvent(int fd, Event events,
                                boost::function<void ()> dg)
 {
     MORDOR_ASSERT(fd > 0);
@@ -120,8 +96,8 @@ IOManager::registerEvent(int fd, Event events,
         MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("kevent");
 }
 
-void
-IOManager::cancelEvent(int fd, Event events)
+bool
+IOManagerKQueue::unregisterEvent(int fd, Event events)
 {
     Event eventsKey = events;
     if (eventsKey == CLOSE)
@@ -130,7 +106,46 @@ IOManager::cancelEvent(int fd, Event events)
     std::map<std::pair<int, Event>, AsyncEvent>::iterator it =
         m_pendingEvents.find(std::pair<int, Event>(fd, eventsKey));
     if (it == m_pendingEvents.end())
-        return;
+        return false;
+    AsyncEvent &e = it->second;
+    MORDOR_ASSERT(e.event.ident == (unsigned)fd);
+    if (events == READ || events == WRITE) {
+        if (!e.m_fiber && !e.m_dg)
+            return false;
+        e.m_fiber.reset();
+        e.m_dg = NULL;
+        if (e.m_fiberClose || e.m_dgClose)
+            return true;
+    } else if (events == CLOSE) {
+        if (!e.m_fiberClose && !e.m_dgClose)
+            return false;
+        e.m_fiberClose.reset();
+        e.m_dgClose = NULL;
+        if (e.m_fiber || e.m_dg)
+            return true;
+    }
+    e.event.flags = EV_DELETE;
+    int rc = kevent(m_kqfd, &e.event, 1, NULL, 0, NULL);
+    MORDOR_LOG_LEVEL(g_log, rc ? Log::ERROR : Log::VERBOSE) << this << " kevent("
+        << m_kqfd << ", (" << fd << ", " << eventsKey << ", EV_DELETE)): " << rc
+        << " (" << errno << ")";
+    if (rc)
+        MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("kevent");
+    m_pendingEvents.erase(it);
+    return true;
+}
+
+bool
+IOManagerKQueue::cancelEvent(int fd, Event events)
+{
+    Event eventsKey = events;
+    if (eventsKey == CLOSE)
+        eventsKey = READ;
+    boost::mutex::scoped_lock lock(m_mutex);
+    std::map<std::pair<int, Event>, AsyncEvent>::iterator it =
+        m_pendingEvents.find(std::pair<int, Event>(fd, eventsKey));
+    if (it == m_pendingEvents.end())
+        return false;
     AsyncEvent &e = it->second;
     MORDOR_ASSERT(e.event.ident == (unsigned)fd);
     Scheduler *scheduler;
@@ -145,7 +160,7 @@ IOManager::cancelEvent(int fd, Event events)
                 scheduler->schedule(dg);
             else
                 scheduler->schedule(fiber);
-            return;
+            return true;
         }
     } else if (events == CLOSE) {
         scheduler = e.m_schedulerClose;
@@ -156,7 +171,7 @@ IOManager::cancelEvent(int fd, Event events)
                 scheduler->schedule(dg);
             else
                 scheduler->schedule(fiber);
-            return;
+            return true;
         }
     } else if (events == WRITE) {
         scheduler = e.m_scheduler;
@@ -179,55 +194,15 @@ IOManager::cancelEvent(int fd, Event events)
     m_pendingEvents.erase(it);
 }
 
-void
-IOManager::unregisterEvent(int fd, Event events)
-{
-    Event eventsKey = events;
-    if (eventsKey == CLOSE)
-        eventsKey = READ;
-    boost::mutex::scoped_lock lock(m_mutex);
-    std::map<std::pair<int, Event>, AsyncEvent>::iterator it =
-        m_pendingEvents.find(std::pair<int, Event>(fd, eventsKey));
-    if (it == m_pendingEvents.end())
-        return;
-    AsyncEvent &e = it->second;
-    MORDOR_ASSERT(e.event.ident == (unsigned)fd);
-    if (events == READ) {
-        e.m_fiber.reset();
-        e.m_dg = NULL;
-        if (e.m_fiberClose || e.m_dgClose)
-            return;
-    } else if (events == CLOSE) {
-        e.m_fiberClose.reset();
-        e.m_dgClose = NULL;
-        if (e.m_fiber || e.m_dg)
-            return;
-    }
-    e.event.flags = EV_DELETE;
-    int rc = kevent(m_kqfd, &e.event, 1, NULL, 0, NULL);
-    MORDOR_LOG_LEVEL(g_log, rc ? Log::ERROR : Log::VERBOSE) << this << " kevent("
-        << m_kqfd << ", (" << fd << ", " << eventsKey << ", EV_DELETE)): " << rc
-        << " (" << errno << ")";
-    if (rc)
-        MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("kevent");
-    m_pendingEvents.erase(it);
-}
-
-
 bool
-IOManager::stopping(unsigned long long &nextTimeout)
+IOManagerKQueue::stoppingInternal()
 {
-    nextTimeout = nextTimer();
-    if (nextTimeout == ~0ull && Scheduler::stopping()) {
-        boost::mutex::scoped_lock lock(m_mutex);
-        if (m_pendingEvents.empty())
-            return true;
-    }
-    return false;
+    boost::mutex::scoped_lock lock(m_mutex);
+    return m_pendingEvents.empty();
 }
 
 void
-IOManager::idle()
+IOManagerKQueue::idle()
 {
     struct kevent events[64];
     while (true) {
@@ -256,14 +231,8 @@ IOManager::idle()
 
         for(int i = 0; i < rc; ++i) {
             struct kevent &event = events[i];
-            if ((int)event.ident == m_tickleFds[0]) {
-                unsigned char dummy;
-#ifdef DEBUG
-                int rc2 = 
-#endif
-                read(m_tickleFds[0], &dummy, 1);
-                MORDOR_ASSERT(rc2 == 1);
-                MORDOR_LOG_VERBOSE(g_log) << this << " received tickle";
+            if ((int)event.ident == tickleFd()) {
+                consumeTickle();
                 continue;
             }
 
@@ -323,15 +292,6 @@ IOManager::idle()
             return;
         }
     }
-}
-
-void
-IOManager::tickle()
-{
-    int rc = write(m_tickleFds[1], "T", 1);
-    MORDOR_LOG_VERBOSE(g_log) << this << " write(" << m_tickleFds[1] << ", 1): "
-        << rc << " (" << errno << ")";
-    MORDOR_VERIFY(rc == 1);
 }
 
 }

@@ -18,10 +18,10 @@ singleTimer(int &sequence, int &expected)
 MORDOR_UNITTEST(IOManager, singleTimer)
 {
     int sequence = 0;
-    IOManager manager;
-    manager.registerTimer(0, boost::bind(&singleTimer, boost::ref(sequence), 1));
+    boost::scoped_ptr<IOManager> manager(IOManager::create());
+    manager->registerTimer(0, boost::bind(&singleTimer, boost::ref(sequence), 1));
     MORDOR_TEST_ASSERT_EQUAL(sequence, 0);
-    manager.dispatch();
+    manager->dispatch();
     ++sequence;
     MORDOR_TEST_ASSERT_EQUAL(sequence, 2);
 }
@@ -29,10 +29,10 @@ MORDOR_UNITTEST(IOManager, singleTimer)
 MORDOR_UNITTEST(IOManager, laterTimer)
 {
     int sequence = 0;
-    IOManager manager;
-    manager.registerTimer(100000, boost::bind(&singleTimer, boost::ref(sequence), 1));
+    boost::scoped_ptr<IOManager> manager(IOManager::create());
+    manager->registerTimer(100000, boost::bind(&singleTimer, boost::ref(sequence), 1));
     MORDOR_TEST_ASSERT_EQUAL(sequence, 0);
-    manager.dispatch();
+    manager->dispatch();
     ++sequence;
     MORDOR_TEST_ASSERT_EQUAL(sequence, 2);
 }

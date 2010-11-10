@@ -10,10 +10,10 @@ using namespace Mordor;
 
 MORDOR_UNITTEST(TimeoutStream, basicTimeout)
 {
-    IOManager ioManager;
+    boost::scoped_ptr<IOManager> ioManager(IOManager::create());
 
     std::pair<Stream::ptr, Stream::ptr> streams = pipeStream();
-    TimeoutStream::ptr timeout(new TimeoutStream(streams.first, ioManager));
+    TimeoutStream::ptr timeout(new TimeoutStream(streams.first, *ioManager));
 
     timeout->readTimeout(0);
     Buffer buffer("test");
@@ -22,26 +22,26 @@ MORDOR_UNITTEST(TimeoutStream, basicTimeout)
 
 MORDOR_UNITTEST(TimeoutStream, timeoutSetAfterOpBegan)
 {
-    IOManager ioManager;
+    boost::scoped_ptr<IOManager> ioManager(IOManager::create());
 
     std::pair<Stream::ptr, Stream::ptr> streams = pipeStream();
-    TimeoutStream::ptr timeout(new TimeoutStream(streams.first, ioManager));
+    TimeoutStream::ptr timeout(new TimeoutStream(streams.first, *ioManager));
 
     Buffer buffer("test");
-    ioManager.schedule(boost::bind(&TimeoutStream::readTimeout, timeout, 0));
+    ioManager->schedule(boost::bind(&TimeoutStream::readTimeout, timeout, 0));
     MORDOR_TEST_ASSERT_EXCEPTION(timeout->read(buffer, 4), TimedOutException);
 }
 
 MORDOR_UNITTEST(TimeoutStream, timeoutChangedAfterOpBegan)
 {
-    IOManager ioManager;
+    boost::scoped_ptr<IOManager> ioManager(IOManager::create());
 
     std::pair<Stream::ptr, Stream::ptr> streams = pipeStream();
-    TimeoutStream::ptr timeout(new TimeoutStream(streams.first, ioManager));
+    TimeoutStream::ptr timeout(new TimeoutStream(streams.first, *ioManager));
 
     timeout->readTimeout(400000);
     Buffer buffer("test");
-    ioManager.schedule(boost::bind(&TimeoutStream::readTimeout, timeout, 200000));
+    ioManager->schedule(boost::bind(&TimeoutStream::readTimeout, timeout, 200000));
     unsigned long long now = TimerManager::now();
     MORDOR_TEST_ASSERT_EXCEPTION(timeout->read(buffer, 4), TimedOutException);
     MORDOR_TEST_ASSERT_ABOUT_EQUAL(TimerManager::now() - now, 200000u, 50000);

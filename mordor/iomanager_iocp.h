@@ -7,8 +7,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/mutex.hpp>
 
-#include "scheduler.h"
-#include "timer.h"
+#include "iomanager.h"
 #include "version.h"
 
 #ifndef WINDOWS
@@ -19,27 +18,33 @@ namespace Mordor {
 
 class Fiber;
 
-struct AsyncEvent
-{
-    AsyncEvent();
-
-    OVERLAPPED overlapped;
-
-    Scheduler  *m_scheduler;
-    tid_t m_thread;
-    boost::shared_ptr<Fiber> m_fiber;
-};
-
-class IOManager : public Scheduler, public TimerManager
+/// @brief IOManager using I/O Completion Ports
+///
+/// IOManagerIOCP offers additional functionality over a generic IOManager,
+/// including I/O Completion Port style asynchronous I/O, and notification of
+/// any HANDLE being signalled
+class IOManagerIOCP : public IOManager
 {
     friend class WaitBlock;
+public:
+    struct AsyncEvent
+    {
+        AsyncEvent();
+
+        OVERLAPPED overlapped;
+
+        Scheduler  *m_scheduler;
+        tid_t m_thread;
+        boost::shared_ptr<Fiber> m_fiber;
+    };
+
 private:
     class WaitBlock : public boost::enable_shared_from_this<WaitBlock>
     {
     public:
         typedef boost::shared_ptr<WaitBlock> ptr;
     public:
-        WaitBlock(IOManager &outer);
+        WaitBlock(IOManagerIOCP &outer);
         ~WaitBlock();
 
         bool registerEvent(HANDLE handle, boost::function<void ()> dg,
@@ -52,7 +57,7 @@ private:
 
     private:
         boost::mutex m_mutex;
-        IOManager &m_outer;
+        IOManagerIOCP &m_outer;
         HANDLE m_reconfigured;
         HANDLE m_handles[MAXIMUM_WAIT_OBJECTS];
         Scheduler *m_schedulers[MAXIMUM_WAIT_OBJECTS];
@@ -63,10 +68,14 @@ private:
     };
 
 public:
-    IOManager(size_t threads = 1, bool useCaller = true);
-    ~IOManager();
+    IOManagerIOCP(size_t threads = 1, bool useCaller = true);
+    ~IOManagerIOCP();
 
-    bool stopping();
+    void registerEvent(int fd, Event event, boost::function<void ()> dg = NULL);
+    bool unregisterEvent(int fd, Event event);
+    bool cancelEvent(int fd, Event event);
+
+    Implementation implementation() const { return IOCP; }
 
     void registerFile(HANDLE handle);
     void registerEvent(AsyncEvent *e);
@@ -80,11 +89,12 @@ public:
     void cancelEvent(HANDLE hFile, AsyncEvent *e);
 
 protected:
-    bool stopping(unsigned long long &nextTimeout);
+    bool stoppingInternal();
     void idle();
     void tickle();
 
-    void onTimerInsertedAtFront() { tickle(); }
+private:
+    void ensurePosixStyleIOManager();
 
 private:
     HANDLE m_hCompletionPort;
@@ -94,6 +104,7 @@ private:
     size_t m_pendingEventCount;
     boost::mutex m_mutex;
     std::list<WaitBlock::ptr> m_waitBlocks;
+    IOManager *m_posixStyleIOManager;
 };
 
 }

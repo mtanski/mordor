@@ -66,7 +66,7 @@ MORDOR_MAIN(int argc, char *argv[])
 {
     Config::loadFromEnvironment();
     StdoutStream stdoutStream;
-    IOManager ioManager;
+    boost::scoped_ptr<IOManager> ioManager(IOManager::create());
     po::options_description desc("Allowed options");
     desc.add_options()
         ("help", "print this help message")
@@ -95,7 +95,7 @@ MORDOR_MAIN(int argc, char *argv[])
         MORDOR_ASSERT(!uri.schemeDefined() || uri.scheme() == "http" || uri.scheme() == "https");
 
         HTTP::RequestBrokerOptions options;
-        options.ioManager = &ioManager;
+        options.ioManager = &*ioManager;
         std::string username, password, proxyusername, proxypassword;
         if (vm.count("username")) username = vm["username"].as<std::string>();
         if (vm.count("password")) password = vm["password"].as<std::string>();

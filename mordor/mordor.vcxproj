@@ -103,6 +103,7 @@
     <ClCompile Include="http\auth.cpp" />
     <ClCompile Include="http\basic.cpp" />
     <ClCompile Include="http\broker.cpp" />
+    <ClCompile Include="iomanager.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="daemon.cpp" />
     <ClCompile Include="parallel.cpp" />
@@ -167,6 +168,7 @@
     <ClCompile Include="timer.cpp" />
     <ClCompile Include="streams\transfer.cpp" />
     <ClCompile Include="streams\zlib.cpp" />
+    <ClCompile Include="timerscheduler.cpp" />
     <ClCompile Include="workerpool.cpp" />
     <ClCompile Include="zip.cpp" />
   </ItemGroup>
@@ -221,6 +223,7 @@
     <ClInclude Include="http\oauth.h" />
     <ClInclude Include="http\parser.h" />
     <ClInclude Include="thread.h" />
+    <ClInclude Include="timerscheduler.h" />
     <ClInclude Include="workerpool.h" />
     <ClInclude Include="xml\parser.h" />
     <ClInclude Include="pch.h" />

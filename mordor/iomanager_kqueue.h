@@ -7,9 +7,7 @@
 
 #include <map>
 
-#include "scheduler.h"
-#include "timer.h"
-#include "version.h"
+#include "iomanager.h"
 
 #ifndef BSD
 #error IOManagerKQueue is BSD only
@@ -17,15 +15,8 @@
 
 namespace Mordor {
 
-class IOManager : public Scheduler, public TimerManager
+class IOManagerKQueue : public PipeTicklingIOManager
 {
-public:
-    enum Event {
-        READ,
-        WRITE,
-        CLOSE
-    };
-
 private:
     struct AsyncEvent
     {
@@ -40,25 +31,21 @@ private:
     };
 
 public:
-    IOManager(size_t threads = 1, bool useCaller = true);
-    ~IOManager();
-
-    bool stopping();
+    IOManagerKQueue(size_t threads = 1, bool useCaller = true);
+    ~IOManagerKQueue();
 
     void registerEvent(int fd, Event events, boost::function<void ()> dg = NULL);
-    void cancelEvent(int fd, Event events);
-    void unregisterEvent(int fd, Event events);
+    bool unregisterEvent(int fd, Event events);
+    bool cancelEvent(int fd, Event events);
+
+    Implementation implementation() const { return KQUEUE; }
 
 protected:
-    bool stopping(unsigned long long &nextTimeout);
+    bool stoppingInternal();
     void idle();
-    void tickle();
-
-    void onTimerInsertedAtFront() { tickle(); }
 
 private:
     int m_kqfd;
-    int m_tickleFds[2];
     std::map<std::pair<int, Event>, AsyncEvent> m_pendingEvents;
     boost::mutex m_mutex;
 };

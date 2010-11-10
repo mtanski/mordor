@@ -20,31 +20,31 @@ template <class T>
 typename boost::enable_if_c<sizeof(T) == sizeof(LONG), T>::type
 atomicDecrement(volatile T& t)
 {
-    return InterlockedDecrement((volatile LONG*)&t);
+    return (T)InterlockedDecrement((volatile LONG*)&t);
 }
 template <class T>
 typename boost::enable_if_c<sizeof(T) == sizeof(LONG), T>::type
 atomicIncrement(volatile T& t)
 {
-    return InterlockedIncrement((volatile LONG*)&t);
+    return (T)InterlockedIncrement((volatile LONG*)&t);
 }
 template <class T>
 typename boost::enable_if_c<sizeof(T) == sizeof(LONG), T>::type
 atomicAdd(volatile T& t, T v)
 {
-    return InterlockedExchangeAdd((volatile LONG*)&t, (LONG)v) + v;
+    return (T)InterlockedExchangeAdd((volatile LONG*)&t, (LONG)v) + v;
 }
 template <class T>
 typename boost::enable_if_c<sizeof(T) == sizeof(LONG), T>::type
 atomicCompareAndSwap(volatile T& t, T newvalue, T comparand)
 {
-    return InterlockedCompareExchange((volatile LONG*)&t, (LONG)newvalue, (LONG)comparand);
+    return (T)InterlockedCompareExchange((volatile LONG*)&t, (LONG)newvalue, (LONG)comparand);
 }
 template <class T>
 typename boost::enable_if_c<sizeof(T) == sizeof(LONG), T>::type
 atomicSwap(volatile T& t, T newvalue)
 {
-    return InterlockedExchange((volatile LONG*)&t, (LONG)newvalue);
+    return (T)InterlockedExchange((volatile LONG*)&t, (LONG)newvalue);
 }
 inline
 bool
@@ -63,31 +63,31 @@ template <class T>
 typename boost::enable_if_c<sizeof(T) == sizeof(LONGLONG), T>::type
 atomicDecrement(volatile T& t)
 {
-    return InterlockedDecrement64((volatile LONGLONG*)&t);
+    return (T)InterlockedDecrement64((volatile LONGLONG*)&t);
 }
 template <class T>
 typename boost::enable_if_c<sizeof(T) == sizeof(LONGLONG), T>::type
 atomicIncrement(volatile T& t)
 {
-    return InterlockedIncrement64((volatile LONGLONG*)&t);
+    return (T)InterlockedIncrement64((volatile LONGLONG*)&t);
 }
 template <class T>
 typename boost::enable_if_c<sizeof(T) == sizeof(LONGLONG), T>::type
 atomicAdd(volatile T& t, T v)
 {
-    return InterlockedExchangeAdd64((volatile LONGLONG*)&t, (LONGLONG)v) + v;
+    return (T)InterlockedExchangeAdd64((volatile LONGLONG*)&t, (LONGLONG)v) + v;
 }
 template <class T>
 typename boost::enable_if_c<sizeof(T) == sizeof(LONGLONG), T>::type
 atomicCompareAndSwap(volatile T& t, T newvalue, T comparand)
 {
-    return InterlockedCompareExchange64((volatile LONGLONG*)&t, (LONGLONG)newvalue, (LONGLONG)comparand);
+    return (T)InterlockedCompareExchange64((volatile LONGLONG*)&t, (LONGLONG)newvalue, (LONGLONG)comparand);
 }
 template <class T>
 typename boost::enable_if_c<sizeof(T) == sizeof(LONGLONG), T>::type
 atomicSwap(volatile T& t, T newvalue)
 {
-    return InterlockedExchange64((volatile LONGLONG*)&t, (LONGLONG)newvalue);
+    return (T)InterlockedExchange64((volatile LONGLONG*)&t, (LONGLONG)newvalue);
 }
 #endif
 #elif defined(OSX)

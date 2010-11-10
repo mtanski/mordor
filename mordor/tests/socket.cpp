@@ -61,8 +61,8 @@ MORDOR_SUITE_INVARIANT(Socket)
 
 MORDOR_UNITTEST(Socket, acceptTimeout)
 {
-    IOManager ioManager;
-    Connection conns = establishConn(ioManager);
+    boost::scoped_ptr<IOManager> ioManager(IOManager::create());
+    Connection conns = establishConn(*ioManager);
     conns.listen->receiveTimeout(100000);
     unsigned long long start = TimerManager::now();
     MORDOR_TEST_ASSERT_EXCEPTION(conns.listen->accept(), TimedOutException);
@@ -72,12 +72,12 @@ MORDOR_UNITTEST(Socket, acceptTimeout)
 
 MORDOR_UNITTEST(Socket, receiveTimeout)
 {
-    IOManager ioManager;
-    Connection conns = establishConn(ioManager);
+    boost::scoped_ptr<IOManager> ioManager(IOManager::create());
+    Connection conns = establishConn(*ioManager);
     conns.connect->receiveTimeout(100000);
-    ioManager.schedule(boost::bind(&acceptOne, boost::ref(conns)));
+    ioManager->schedule(boost::bind(&acceptOne, boost::ref(conns)));
     conns.connect->connect(conns.address);
-    ioManager.dispatch();
+    ioManager->dispatch();
     char buf;
     unsigned long long start = TimerManager::now();
     MORDOR_TEST_ASSERT_EXCEPTION(conns.connect->receive(&buf, 1), TimedOutException);
@@ -87,12 +87,12 @@ MORDOR_UNITTEST(Socket, receiveTimeout)
 
 MORDOR_UNITTEST(Socket, sendTimeout)
 {
-    IOManager ioManager;
-    Connection conns = establishConn(ioManager);
+    boost::scoped_ptr<IOManager> ioManager(IOManager::create());
+    Connection conns = establishConn(*ioManager);
     conns.connect->sendTimeout(200000);
-    ioManager.schedule(boost::bind(&acceptOne, boost::ref(conns)));
+    ioManager->schedule(boost::bind(&acceptOne, boost::ref(conns)));
     conns.connect->connect(conns.address);
-    ioManager.dispatch();
+    ioManager->dispatch();
     char buf[65536];
     memset(buf, 0, sizeof(buf));
     unsigned long long start = TimerManager::now();
@@ -106,11 +106,11 @@ class DummyException
 template <class Exception>
 static void testShutdownException(bool send, bool shutdown, bool otherEnd)
 {
-    IOManager ioManager;
-    Connection conns = establishConn(ioManager);
-    ioManager.schedule(boost::bind(&acceptOne, boost::ref(conns)));
+    boost::scoped_ptr<IOManager> ioManager(IOManager::create());
+    Connection conns = establishConn(*ioManager);
+    ioManager->schedule(boost::bind(&acceptOne, boost::ref(conns)));
     conns.connect->connect(conns.address);
-    ioManager.dispatch();
+    ioManager->dispatch();
 
     Socket::ptr &socketToClose = otherEnd ? conns.accept : conns.connect;
     if (shutdown)
@@ -225,21 +225,21 @@ static void cancelMe(Socket::ptr sock)
 
 MORDOR_UNITTEST(Socket, cancelAccept)
 {
-    IOManager ioManager;
-    Connection conns = establishConn(ioManager);
+    boost::scoped_ptr<IOManager> ioManager(IOManager::create());
+    Connection conns = establishConn(*ioManager);
 
     // cancelMe will get run when this fiber yields because it would block
-    ioManager.schedule(boost::bind(&cancelMe, conns.listen));
+    ioManager->schedule(boost::bind(&cancelMe, conns.listen));
     MORDOR_TEST_ASSERT_EXCEPTION(conns.listen->accept(), OperationAbortedException);
 }
 
 MORDOR_UNITTEST(Socket, cancelSend)
 {
-    IOManager ioManager;
-    Connection conns = establishConn(ioManager);
-    ioManager.schedule(boost::bind(&acceptOne, boost::ref(conns)));
+    boost::scoped_ptr<IOManager> ioManager(IOManager::create());
+    Connection conns = establishConn(*ioManager);
+    ioManager->schedule(boost::bind(&acceptOne, boost::ref(conns)));
     conns.connect->connect(conns.address);
-    ioManager.dispatch();
+    ioManager->dispatch();
 
     boost::scoped_array<char> array(new char[65536]);
     memset(array.get(), 1, 65536);
@@ -253,11 +253,11 @@ MORDOR_UNITTEST(Socket, cancelSend)
 
 MORDOR_UNITTEST(Socket, cancelReceive)
 {
-    IOManager ioManager;
-    Connection conns = establishConn(ioManager);
-    ioManager.schedule(boost::bind(&acceptOne, boost::ref(conns)));
+    boost::scoped_ptr<IOManager> ioManager(IOManager::create());
+    Connection conns = establishConn(*ioManager);
+    ioManager->schedule(boost::bind(&acceptOne, boost::ref(conns)));
     conns.connect->connect(conns.address);
-    ioManager.dispatch();
+    ioManager->dispatch();
 
     char buf[3];
     memset(buf, 1, 3);
@@ -271,11 +271,11 @@ MORDOR_UNITTEST(Socket, cancelReceive)
 
 MORDOR_UNITTEST(Socket, sendReceive)
 {
-    IOManager ioManager;
-    Connection conns = establishConn(ioManager);
-    ioManager.schedule(boost::bind(&acceptOne, boost::ref(conns)));
+    boost::scoped_ptr<IOManager> ioManager(IOManager::create());
+    Connection conns = establishConn(*ioManager);
+    ioManager->schedule(boost::bind(&acceptOne, boost::ref(conns)));
     conns.connect->connect(conns.address);
-    ioManager.dispatch();
+    ioManager->dispatch();
 
     const char *sendbuf = "abcd";
     char receivebuf[5];
@@ -374,32 +374,32 @@ static void receiveFiber(Socket::ptr listen, size_t &sent, int &sequence)
 
 MORDOR_UNITTEST(Socket, sendReceiveForceAsync)
 {
-    IOManager ioManager;
-    Connection conns = establishConn(ioManager);
+    boost::scoped_ptr<IOManager> ioManager(IOManager::create());
+    Connection conns = establishConn(*ioManager);
     int sequence = 0;
     size_t sent = 0;
 
     Fiber::ptr otherfiber(new Fiber(boost::bind(&receiveFiber, conns.listen,
         boost::ref(sent), boost::ref(sequence))));
 
-    ioManager.schedule(otherfiber);
+    ioManager->schedule(otherfiber);
     // Wait for otherfiber to "block", and return control to us
     Scheduler::yield();
     MORDOR_TEST_ASSERT_EQUAL(++sequence, 2);
     // Unblock him, then wait for him to block again
     conns.connect->connect(conns.address);
-    ioManager.dispatch();
+    ioManager->dispatch();
     MORDOR_TEST_ASSERT_EQUAL(++sequence, 4);
-    ioManager.schedule(otherfiber);
+    ioManager->schedule(otherfiber);
     Scheduler::yield();
     MORDOR_TEST_ASSERT_EQUAL(++sequence, 6);
 
     // Again
     const char *sendbuf = "abcd";
     MORDOR_TEST_ASSERT_EQUAL(conns.connect->send(sendbuf, 2), 2u);
-    ioManager.dispatch();
+    ioManager->dispatch();
     MORDOR_TEST_ASSERT_EQUAL(++sequence, 8);
-    ioManager.schedule(otherfiber);
+    ioManager->schedule(otherfiber);
     Scheduler::yield();
     MORDOR_TEST_ASSERT_EQUAL(++sequence, 10);
 
@@ -410,21 +410,21 @@ MORDOR_UNITTEST(Socket, sendReceiveForceAsync)
     iov[0].iov_len = 2;
     iov[1].iov_len = 2;
     MORDOR_TEST_ASSERT_EQUAL(conns.connect->send(iov, 2), 4u);
-    ioManager.dispatch();
+    ioManager->dispatch();
     MORDOR_TEST_ASSERT_EQUAL(++sequence, 12);
 
     char sendbuf2[65536];
     memset(sendbuf2, 1, 65536);
     // Keep sending until the other fiber said we blocked
-    ioManager.schedule(otherfiber);
+    ioManager->schedule(otherfiber);
     while (true) {
         sent += conns.connect->send(sendbuf2, 65536);
         if (sequence == 13)
             break;
     }
     MORDOR_TEST_ASSERT_EQUAL(++sequence, 14);
-    ioManager.schedule(otherfiber);
-    ioManager.dispatch();
+    ioManager->schedule(otherfiber);
+    ioManager->dispatch();
     MORDOR_TEST_ASSERT_EQUAL(++sequence, 16);
     MORDOR_TEST_ASSERT_EQUAL(sent, 0u);
 
@@ -432,15 +432,15 @@ MORDOR_UNITTEST(Socket, sendReceiveForceAsync)
     iov[1].iov_base = &sendbuf2[2];
     iov[1].iov_len = 65536 - 2;
     // Keep sending until the other fiber said we blocked
-    ioManager.schedule(otherfiber);
+    ioManager->schedule(otherfiber);
     while (true) {
         sent += conns.connect->send(iov, 2);
         if (sequence == 17)
             break;
     }
     MORDOR_TEST_ASSERT_EQUAL(++sequence, 18);
-    ioManager.schedule(otherfiber);
-    ioManager.dispatch();
+    ioManager->schedule(otherfiber);
+    ioManager->dispatch();
     MORDOR_TEST_ASSERT_EQUAL(++sequence, 20);
 }
 
@@ -451,30 +451,30 @@ static void closed(bool &remoteClosed)
 
 MORDOR_UNITTEST(Socket, eventOnRemoteShutdown)
 {
-    IOManager ioManager;
-    Connection conns = establishConn(ioManager);
-    ioManager.schedule(boost::bind(&acceptOne, boost::ref(conns)));
+    boost::scoped_ptr<IOManager> ioManager(IOManager::create());
+    Connection conns = establishConn(*ioManager);
+    ioManager->schedule(boost::bind(&acceptOne, boost::ref(conns)));
     conns.connect->connect(conns.address);
-    ioManager.dispatch();
+    ioManager->dispatch();
     
     bool remoteClosed = false;
     conns.accept->onRemoteClose(boost::bind(&closed, boost::ref(remoteClosed)));
     conns.connect->shutdown();
-    ioManager.dispatch();
+    ioManager->dispatch();
     MORDOR_TEST_ASSERT(remoteClosed);
 }
 
 MORDOR_UNITTEST(Socket, eventOnRemoteReset)
 {
-    IOManager ioManager;
-    Connection conns = establishConn(ioManager);
-    ioManager.schedule(boost::bind(&acceptOne, boost::ref(conns)));
+    boost::scoped_ptr<IOManager> ioManager(IOManager::create());
+    Connection conns = establishConn(*ioManager);
+    ioManager->schedule(boost::bind(&acceptOne, boost::ref(conns)));
     conns.connect->connect(conns.address);
-    ioManager.dispatch();
+    ioManager->dispatch();
     
     bool remoteClosed = false;
     conns.accept->onRemoteClose(boost::bind(&closed, boost::ref(remoteClosed)));
     conns.connect.reset();
-    ioManager.dispatch();
+    ioManager->dispatch();
     MORDOR_TEST_ASSERT(remoteClosed);
 }

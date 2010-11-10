@@ -93,19 +93,19 @@ static std::ostream &operator <<(std::ostream &os, EPOLL_EVENTS events)
     return os;
 }
 
-IOManager::AsyncState::AsyncState()
+IOManagerEPoll::AsyncState::AsyncState()
     : m_fd(0),
       m_events(NONE)
 {}
 
-IOManager::AsyncState::~AsyncState()
+IOManagerEPoll::AsyncState::~AsyncState()
 {
     boost::mutex::scoped_lock lock(m_mutex);
     MORDOR_ASSERT(!m_events);
 }
 
-IOManager::AsyncState::EventContext &
-IOManager::AsyncState::contextForEvent(Event event)
+IOManagerEPoll::AsyncState::EventContext &
+IOManagerEPoll::AsyncState::contextForEvent(Event event)
 {
     switch (event) {
         case READ:
@@ -120,7 +120,7 @@ IOManager::AsyncState::contextForEvent(Event event)
 }
 
 bool
-IOManager::AsyncState::triggerEvent(Event event, size_t &pendingEventCount)
+IOManagerEPoll::AsyncState::triggerEvent(Event event, size_t &pendingEventCount)
 {
     if (!(m_events & event))
         return false;
@@ -137,7 +137,7 @@ IOManager::AsyncState::triggerEvent(Event event, size_t &pendingEventCount)
     return true;
 }
 
-IOManager::IOManager(size_t threads, bool useCaller)
+IOManagerEPoll::IOManagerEPoll(size_t threads, bool useCaller)
     : Scheduler(threads, useCaller),
       m_pendingEventCount(0)
 {
@@ -146,47 +146,31 @@ IOManager::IOManager(size_t threads, bool useCaller)
         << " epoll_create(5000): " << m_epfd;
     if (m_epfd <= 0)
         MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("epoll_create");
-    int rc = pipe(m_tickleFds);
-    MORDOR_LOG_LEVEL(g_log, rc ? Log::ERROR : Log::VERBOSE) << this << " pipe(): "
-        << rc << " (" << errno << ")";
-    if (rc) {
-        close(m_epfd);
-        MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("pipe");
-    }
-    MORDOR_ASSERT(m_tickleFds[0] > 0);
-    MORDOR_ASSERT(m_tickleFds[1] > 0);
     epoll_event event;
     memset(&event, 0, sizeof(epoll_event));
     event.events = EPOLLIN | EPOLLET;
-    event.data.fd = m_tickleFds[0];
-    rc = epoll_ctl(m_epfd, EPOLL_CTL_ADD, m_tickleFds[0], &event);
+    event.data.fd = tickleFd();
+    rc = epoll_ctl(m_epfd, EPOLL_CTL_ADD, tickleFd(), &event);
     MORDOR_LOG_LEVEL(g_log, rc ? Log::ERROR : Log::VERBOSE) << this
         << " epoll_ctl(" << m_epfd << ", EPOLL_CTL_ADD, " << m_tickleFds[0]
         << ", EPOLLIN | EPOLLET): " << rc << " (" << errno << ")";
     if (rc) {
-        close(m_tickleFds[0]);
-        close(m_tickleFds[1]);
         close(m_epfd);
         MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("epoll_ctl");
     }
     try {
         start();
     } catch (...) {
-        close(m_tickleFds[0]);
-        close(m_tickleFds[1]);
         close(m_epfd);
         throw;
     }
 }
 
-IOManager::~IOManager()
+IOManagerEPoll::~IOManagerEPoll()
 {
     stop();
     close(m_epfd);
     MORDOR_LOG_TRACE(g_log) << this << " close(" << m_epfd << ")";
-    close(m_tickleFds[0]);
-    MORDOR_LOG_VERBOSE(g_log) << this << " close(" << m_tickleFds[0] << ")";
-    close(m_tickleFds[1]);
     // Yes, it would be more C++-esque to store a boost::shared_ptr in the
     // vector, but that requires an extra allocation per fd for the counter
     for (size_t i = 0; i < m_pendingEvents.size(); ++i) {
@@ -195,15 +179,8 @@ IOManager::~IOManager()
     }
 }
 
-bool
-IOManager::stopping()
-{
-    unsigned long long timeout;
-    return stopping(timeout);
-}
-
 void
-IOManager::registerEvent(int fd, Event event, boost::function<void ()> dg)
+IOManagerEPoll::registerEvent(int fd, Event event, boost::function<void ()> dg)
 {
     MORDOR_ASSERT(fd > 0);
     MORDOR_ASSERT(Scheduler::getThis());
@@ -249,7 +226,7 @@ IOManager::registerEvent(int fd, Event event, boost::function<void ()> dg)
 }
 
 bool
-IOManager::unregisterEvent(int fd, Event event)
+IOManagerEPoll::unregisterEvent(int fd, Event event)
 {
     MORDOR_ASSERT(fd > 0);
     MORDOR_ASSERT(event == READ || event == WRITE || event == CLOSE);
@@ -291,7 +268,7 @@ IOManager::unregisterEvent(int fd, Event event)
 }
 
 bool
-IOManager::cancelEvent(int fd, Event event)
+IOManagerEPoll::cancelEvent(int fd, Event event)
 {
     MORDOR_ASSERT(fd > 0);
     MORDOR_ASSERT(event == READ || event == WRITE || event == CLOSE);
@@ -327,15 +304,13 @@ IOManager::cancelEvent(int fd, Event event)
 }
 
 bool
-IOManager::stopping(unsigned long long &nextTimeout)
+IOManagerEPoll::stoppingInternal()
 {
-    nextTimeout = nextTimer();
-    return nextTimeout == ~0ull && Scheduler::stopping() &&
-        m_pendingEventCount == 0;
+    return m_pendingEventCount == 0;
 }
 
 void
-IOManager::idle()
+IOManagerEPoll::idle()
 {
     epoll_event events[64];
     while (true) {
@@ -363,11 +338,8 @@ IOManager::idle()
 
         for(int i = 0; i < rc; ++i) {
             epoll_event &event = events[i];
-            if (event.data.fd == m_tickleFds[0]) {
-                unsigned char dummy;
-                int rc2 = read(m_tickleFds[0], &dummy, 1);
-                MORDOR_VERIFY(rc2 == 1);
-                MORDOR_LOG_VERBOSE(g_log) << this << " received tickle";
+            if (event.data.fd == tickleFd()) {
+                consumeTickle();
                 continue;
             }
 
@@ -413,15 +385,6 @@ IOManager::idle()
             return;
         }
     }
-}
-
-void
-IOManager::tickle()
-{
-    int rc = write(m_tickleFds[1], "T", 1);
-    MORDOR_LOG_VERBOSE(g_log) << this << " write(" << m_tickleFds[1] << ", 1): "
-        << rc << " (" << errno << ")";
-    MORDOR_VERIFY(rc == 1);
 }
 
 }

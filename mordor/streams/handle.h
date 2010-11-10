@@ -45,11 +45,11 @@ public:
     HANDLE handle() { return m_hFile; }
 
 protected:
-    IOManager *m_ioManager;
+    IOManagerIOCP *m_ioManager;
     bool m_skipCompletionPortOnSuccess;
     Scheduler *m_scheduler;
-    AsyncEvent m_readEvent;
-    AsyncEvent m_writeEvent;
+    IOManagerIOCP::AsyncEvent m_readEvent;
+    IOManagerIOCP::AsyncEvent m_writeEvent;
     long long m_pos;
     HANDLE m_hFile;
     bool m_own, m_cancelRead, m_cancelWrite;

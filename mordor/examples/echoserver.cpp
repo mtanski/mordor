@@ -138,14 +138,13 @@ void namedPipeServer(IOManager &ioManager)
 int run(int argc, char *argv[])
 {
     try {
-        IOManager ioManager;
-        startSocketServer(ioManager);
-        startHttpServer(ioManager);
+        boost::scoped_ptr<IOManager> ioManager(IOManager::create());
+        startSocketServer(*ioManager);
+        startHttpServer(*ioManager);
 #ifdef WINDOWS
-        ioManager.schedule(boost::bind(&namedPipeServer, boost::ref(ioManager)));
-        ioManager.schedule(boost::bind(&namedPipeServer, boost::ref(ioManager)));
+        ioManager->schedule(boost::bind(&namedPipeServer, boost::ref(*ioManager)));
+        ioManager->schedule(boost::bind(&namedPipeServer, boost::ref(*ioManager)));
 #endif
-        ioManager.dispatch();
     } catch (...) {
         std::cerr << boost::current_exception_diagnostic_information() << std::endl;
         return 1;

@@ -4,9 +4,7 @@
 
 #ifdef WINDOWS
 
-#include "scheduler.h"
-#include "socket.h"
-#include "timer.h"
+#include "timerscheduler.h"
 
 namespace Mordor {
 
@@ -24,9 +22,8 @@ public:
     EventLoop();
     ~EventLoop();
 
-    bool stopping();
-
 protected:
+    bool stoppingInternal();
     void idle();
     void tickle();
     void onTimerInsertedAtFront();
