@@ -31,8 +31,8 @@ HandleStream::init(HANDLE hFile, IOManager *ioManager, Scheduler *scheduler,
     m_hFile = hFile;
     m_own = own;
     m_cancelRead = m_cancelWrite = false;
-    // TODO: check for viability of cast
-    m_ioManager = static_cast<IOManagerIOCP *>(ioManager);
+    if (ioManager && ioManager->implementation() == IOManager::IOCP)
+        m_ioManager = static_cast<IOManagerIOCP *>(ioManager);
     m_scheduler = scheduler;
     DWORD type = GetFileType(hFile);
     if (type == FILE_TYPE_CHAR) {
