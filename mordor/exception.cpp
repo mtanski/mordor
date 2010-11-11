@@ -267,6 +267,8 @@ void throwExceptionFromLastError(error_t error)
         case ERROR_ACCESS_DENIED:
             throw boost::enable_current_exception(AccessDeniedException())
                 << errinfo_nativeerror(error);
+        case WSAECANCELLED:
+        case WSA_E_CANCELLED:
         case ERROR_OPERATION_ABORTED:
             throw boost::enable_current_exception(OperationAbortedException())
                 << errinfo_nativeerror(error);

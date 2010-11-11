@@ -157,10 +157,9 @@ private:
 
 #ifdef WINDOWS
     // For WSAEventSelect
-    void cancelIo(error_t &cancelled, error_t error);
-#else
-    void cancelIo(int event, error_t &cancelled, error_t error);
+    void cancelIoWindows(error_t &cancelled, error_t error);
 #endif
+    void cancelIo(int event, error_t &cancelled, error_t error);
 
 private:
     socket_t m_sock;
