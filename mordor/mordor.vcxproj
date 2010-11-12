@@ -104,6 +104,7 @@
     <ClCompile Include="http\basic.cpp" />
     <ClCompile Include="http\broker.cpp" />
     <ClCompile Include="iomanager.cpp" />
+    <ClCompile Include="iomanager_poll.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="daemon.cpp" />
     <ClCompile Include="parallel.cpp" />
@@ -180,6 +181,7 @@
     <ClInclude Include="http\auth.h" />
     <ClInclude Include="http\basic.h" />
     <ClInclude Include="http\broker.h" />
+    <ClInclude Include="iomanager_poll.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="daemon.h" />
     <ClInclude Include="parallel.h" />
