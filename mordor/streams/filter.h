@@ -29,6 +29,7 @@ public:
 
     bool supportsHalfClose() { return m_parent->supportsHalfClose(); }
     bool supportsRead() { return m_parent->supportsRead(); }
+    bool supportsPeek() { return m_parent->supportsPeek(); }
     bool supportsWrite() { return m_parent->supportsWrite(); }
     bool supportsSeek() { return m_parent->supportsSeek(); }
     bool supportsTell() { return m_parent->supportsTell(); }
@@ -38,6 +39,12 @@ public:
     bool supportsUnread() { return m_parent->supportsUnread(); }
 
     void close(CloseType type = BOTH) { if (m_own) m_parent->close(type); }
+    /// @note Derived classes modifying the behavior of peek must provide both
+    ///       overloads
+    std::pair<size_t, bool> peek(Buffer &buffer, size_t length)
+    { return m_parent->peek(buffer, length); }
+    std::pair<size_t, bool> peek(void *buffer, size_t length)
+    { return m_parent->peek(buffer, length); }
     void cancelRead() { m_parent->cancelRead(); }
     void cancelWrite() { m_parent->cancelWrite(); }
     long long seek(long long offset, Anchor anchor = BEGIN)
@@ -77,6 +84,7 @@ protected:
     {}
 
 public:
+    bool supportsPeek() { return false; }
     bool supportsSeek() { return false; }
     bool supportsTell() { return supportsSeek(); }
     bool supportsSize() { return false; }
