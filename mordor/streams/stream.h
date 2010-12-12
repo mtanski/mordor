@@ -65,6 +65,8 @@ public:
     virtual bool supportsHalfClose() { return false; }
     /// @return If it is valid to call read()
     virtual bool supportsRead() { return false; }
+    /// @return If it is valid to call peek()
+    virtual bool supportsPeek() { return false; }
     /// @return If it is valid to call write()
     virtual bool supportsWrite() { return false; }
     /// @return If it is valid to call seek() with any parameters
@@ -115,6 +117,30 @@ public:
     /// blocked. This is safe to call on any Stream, but may not have any
     /// effect.
     virtual void cancelRead() {}
+
+    /// Peek at data in the Stream
+    ///
+    /// peek() will read data from the stream, without changing the current
+    /// stream pointer (or removing the data, for a non-seekable Stream).
+    /// It will also return immediately if no data is currently available.
+    /// @note The return value also contains an EOF flag since you cannot
+    ///       distinguish between no data currently available, and a true EOF.
+    /// @pre supportsPeek()
+    /// @return The amount actually read, and if EOF was hit
+    virtual std::pair<size_t, bool> peek(Buffer &buffer, size_t length);
+    virtual std::pair<size_t, bool> peek(void *buffer, size_t length);
+
+    /// Advance stream pointer
+    ///
+    /// skip() will discard length bytes from the stream (returning how many
+    /// bytes were actually skipped).  Note that all streams support skip - it
+    /// is implemented by the base Stream class by either reading the data
+    /// directly, or seeking if possible.  The only reason the return value
+    /// would be shorter than length is if EOF is hit.
+    /// @pre supportsRead()
+    /// @param length The number of bytes to skip
+    /// @return The amount actually skipped
+    size_t skip(size_t length);
 
     /// @brief Write data to the Stream
     /// @details
@@ -246,6 +272,7 @@ public:
 
 protected:
     size_t read(Buffer &buffer, size_t length, bool coalesce);
+    std::pair<size_t, bool> peek(Buffer &buffer, size_t length, bool coalesce);
     size_t write(const Buffer &buffer, size_t length, bool coalesce);
 };
 
