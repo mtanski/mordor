@@ -21,6 +21,10 @@ public:
 
     size_t read(Buffer &buffer, size_t length) { return 0; }
     size_t read(void *buffer, size_t length) { return 0; }
+    std::pair<size_t, bool> peek(Buffer &buffer, size_t length)
+    { return std::make_pair(0u, true); }
+    std::pair<size_t, bool> peek(void *buffer, size_t length)
+    { return std::make_pair(0u, true); }
     size_t write(const Buffer &buffer, size_t length) { return length; }
     size_t write(const void *buffer, size_t length) { return length; }
     long long seek(long long offset, Anchor anchor = BEGIN) { return 0; }

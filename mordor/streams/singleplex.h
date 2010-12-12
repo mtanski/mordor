@@ -17,6 +17,8 @@ public:
     SingleplexStream(Stream::ptr parent, Type type, bool own = true);
 
     bool supportsRead() { return m_type == READ; }
+    bool supportsPeek()
+    { return m_type == READ && parent()->supportsPeek(); }
     bool supportsWrite() { return m_type == WRITE; }
     bool supportsTruncate()
     { return m_type == WRITE && parent()->supportsTruncate(); }
@@ -29,6 +31,8 @@ public:
 
     size_t read(Buffer &buffer, size_t length);
     size_t read(void *buffer, size_t length);
+    std::pair<size_t, bool> peek(Buffer &buffer, size_t length);
+    std::pair<size_t, bool> peek(void *buffer, size_t length);
     size_t write(const Buffer &buffer, size_t length);
     size_t write(const void *buffer, size_t length);
     void truncate(long long size);

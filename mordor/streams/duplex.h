@@ -31,6 +31,7 @@ public:
 
     bool supportsHalfClose() { return true; }
     bool supportsRead() { return true; }
+    bool supportsPeek() { return m_readParent && m_readParent->supportsPeek(); }
     bool supportsWrite() { return true; }
     bool supportsFind() { return m_readParent && m_readParent->supportsFind(); }
     bool supportsUnread() { return m_readParent && m_readParent->supportsUnread(); }
@@ -48,15 +49,37 @@ public:
         if (type & WRITE)
             m_writeParent.reset();
     }
-    size_t read(Buffer &b, size_t len)
+    size_t read(Buffer &buffer, size_t length)
     {
         if (!m_readParent) MORDOR_THROW_EXCEPTION(BrokenPipeException());
-        return m_readParent->read(b, len);
+        return m_readParent->read(buffer, length);
     }
-    size_t write(const Buffer &b, size_t len)
+    size_t read(void *buffer, size_t length)
+    {
+        if (!m_readParent) MORDOR_THROW_EXCEPTION(BrokenPipeException());
+        return m_readParent->read(buffer, length);
+    }
+
+    std::pair<size_t, bool> peek(Buffer &buffer, size_t length)
+    {
+        if (!m_readParent) MORDOR_THROW_EXCEPTION(BrokenPipeException());
+        return m_readParent->peek(buffer, length);
+    }
+    std::pair<size_t, bool> peek(void *buffer, size_t length)
+    {
+        if (!m_readParent) MORDOR_THROW_EXCEPTION(BrokenPipeException());
+        return m_readParent->peek(buffer, length);
+    }
+
+    size_t write(const Buffer &buffer, size_t length)
     {
         if (!m_writeParent) MORDOR_THROW_EXCEPTION(BrokenPipeException());
-        return m_writeParent->write(b, len);
+        return m_writeParent->write(buffer, length);
+    }
+    size_t write(const void *buffer, size_t length)
+    {
+        if (!m_writeParent) MORDOR_THROW_EXCEPTION(BrokenPipeException());
+        return m_writeParent->write(buffer, length);
     }
     void flush(bool flushParent = true)
     {

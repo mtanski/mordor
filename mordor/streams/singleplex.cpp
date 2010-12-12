@@ -43,6 +43,20 @@ SingleplexStream::read(void * buffer, size_t length)
     return parent()->read(buffer, length);
 }
 
+std::pair<size_t, bool>
+SingleplexStream::peek(Buffer &buffer, size_t length)
+{
+    MORDOR_ASSERT(m_type == READ);
+    return parent()->peek(buffer, length);
+}
+
+std::pair<size_t, bool>
+SingleplexStream::peek(void * buffer, size_t length)
+{
+    MORDOR_ASSERT(m_type == READ);
+    return parent()->peek(buffer, length);
+}
+
 size_t
 SingleplexStream::write(const Buffer &buffer, size_t length)
 {
