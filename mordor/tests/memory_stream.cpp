@@ -176,3 +176,27 @@ MORDOR_UNITTEST(MemoryStream, writep2)
     MORDOR_TEST_ASSERT_EQUAL(stream.size(), 7);
     MORDOR_TEST_ASSERT(stream.buffer() == "ccutrer");
 }
+
+MORDOR_UNITTEST(MemoryStream, peek)
+{
+    MemoryStream stream;
+    MORDOR_TEST_ASSERT(stream.supportsPeek());
+    char c;
+    std::pair<size_t, bool> result = stream.peek(&c, 1u);
+    MORDOR_TEST_ASSERT_EQUAL(result.first, 0u);
+    MORDOR_TEST_ASSERT(result.second);
+    stream.write("cody", 4u);
+    stream.seek(0);
+    result = stream.peek(&c, 1u);
+    MORDOR_TEST_ASSERT_EQUAL(result.first, 1u);
+    MORDOR_TEST_ASSERT(!result.second);
+    // Peeks are repeatable
+    result = stream.peek(&c, 1u);
+    MORDOR_TEST_ASSERT_EQUAL(result.first, 1u);
+    MORDOR_TEST_ASSERT(!result.second);
+    Buffer buffer;
+    result = stream.peek(buffer, 5u);
+    MORDOR_TEST_ASSERT_EQUAL(result.first, 4u);
+    MORDOR_TEST_ASSERT(result.second);
+    MORDOR_TEST_ASSERT(buffer == "cody");
+}

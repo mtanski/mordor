@@ -21,24 +21,43 @@ MemoryStream::MemoryStream(const Buffer &b)
 size_t
 MemoryStream::read(Buffer &buffer, size_t length)
 {
-    return readInternal(buffer, length);
+    return readInternal(buffer, length, true).first;
 }
 
 size_t
 MemoryStream::read(void *buffer, size_t length)
 {
-    return readInternal(buffer, length);
+    return readInternal(buffer, length, true).first;
+}
+
+std::pair<size_t, bool>
+MemoryStream::peek(Buffer &buffer, size_t length)
+{
+    return readInternal(buffer, length, false);
+}
+
+std::pair<size_t, bool>
+MemoryStream::peek(void *buffer, size_t length)
+{
+    return readInternal(buffer, length, false);
 }
 
 template <class T>
-size_t
-MemoryStream::readInternal(T &buffer, size_t length)
+std::pair<size_t, bool>
+MemoryStream::readInternal(T &buffer, size_t length, bool consume)
 {
-    size_t todo = std::min(length, m_read.readAvailable());
+    size_t todo = length;
+    bool eof = false;
+    if (length >= m_read.readAvailable()) {
+        eof = true;
+        todo = m_read.readAvailable();
+    }
     m_read.copyOut(buffer, todo);
-    m_read.consume(todo);
-    m_offset += todo;
-    return todo;
+    if (consume) {
+        m_read.consume(todo);
+        m_offset += todo;
+    }
+    return std::make_pair(todo, eof);
 }
 
 size_t
