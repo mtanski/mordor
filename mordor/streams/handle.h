@@ -26,6 +26,7 @@ public:
     ~HandleStream();
 
     bool supportsRead() { return true; }
+    bool supportsPeek();
     bool supportsWrite() { return true; }
     bool supportsCancel();
     bool supportsSeek() { return GetFileType(m_hFile) == FILE_TYPE_DISK; }
@@ -34,6 +35,7 @@ public:
 
     void close(CloseType type = BOTH);
     size_t read(void *buffer, size_t length);
+    std::pair<size_t, bool> peek(void *buffer, size_t length);
     void cancelRead();
     size_t write(const void *buffer, size_t length);
     void cancelWrite();

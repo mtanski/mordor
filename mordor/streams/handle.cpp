@@ -71,6 +71,20 @@ static bool g_supportsCancel;
 static bool g_queriedSupportsCancel;
 
 bool
+HandleStream::supportsPeek()
+{
+    switch (GetFileType(m_hFile)) {
+        case FILE_TYPE_CHAR:
+        case FILE_TYPE_PIPE:
+            return supportsRead();
+        case FILE_TYPE_DISK:
+            return m_ioManager && supportsRead() && supportsSeek();
+        default:
+            return false;
+    }
+}
+
+bool
 HandleStream::supportsCancel()
 {
     if (m_ioManager)
@@ -104,6 +118,7 @@ HandleStream::close(CloseType type)
 size_t
 HandleStream::read(void *buffer, size_t length)
 {
+    MORDOR_ASSERT(supportsRead());
     if (m_cancelRead)
         MORDOR_THROW_EXCEPTION(OperationAbortedException());
     SchedulerSwitcher switcher(m_ioManager ? NULL : m_scheduler);
@@ -165,6 +180,108 @@ HandleStream::read(void *buffer, size_t length)
     if (!ret)
         MORDOR_THROW_EXCEPTION_FROM_ERROR_API(error, "ReadFile");
     return read;
+}
+
+std::pair<size_t, bool>
+HandleStream::peek(void *buffer, size_t length)
+{
+    MORDOR_ASSERT(supportsRead());
+    switch (GetFileType(m_hFile)) {
+        case FILE_TYPE_CHAR:
+        {
+            DWORD elements = (DWORD)std::min(length, m_maxOpSize);
+            boost::scoped_array<INPUT_RECORD> records(
+                new INPUT_RECORD[elements]);
+            if (!PeekConsoleInputA(m_hFile, records.get(), elements,
+                &elements))
+                MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("PeekConsoleInputW");
+            unsigned char *output = (unsigned char *)buffer;
+            unsigned char *begin = output;
+            // TODO: input processing?
+            for (DWORD i = 0; i < elements; ++i) {
+                if (records.get()[i].EventType == KEY_EVENT)
+                {
+                    for (WORD j = 0;
+                        j < records.get()[i].Event.KeyEvent.wRepeatCount;
+                        ++j) {
+                        *output++ =
+                            records.get()[i].Event.KeyEvent.uChar.AsciiChar;
+                        if (output - begin == length)
+                            break;
+                    }
+                    if (output - begin == length)
+                        break;
+                }
+            }
+            return std::make_pair((size_t)(output - begin), false);
+        }
+        case FILE_TYPE_DISK:
+        {
+            if (m_cancelRead)
+                MORDOR_THROW_EXCEPTION(OperationAbortedException());
+            DWORD read;
+            MORDOR_ASSERT(Scheduler::getThis());
+            m_ioManager->registerEvent(&m_readEvent);
+            m_readEvent.overlapped.Offset = (DWORD)m_pos;
+            m_readEvent.overlapped.OffsetHigh = (DWORD)(m_pos >> 32);
+            length = std::min(length, m_maxOpSize);
+            BOOL ret = ReadFile(m_hFile, buffer, (DWORD)length, &read,
+                &m_readEvent.overlapped);
+            Log::Level level = Log::DEBUG;
+            if (!ret) {
+                if (GetLastError() == ERROR_HANDLE_EOF) {
+                } else if (GetLastError() == ERROR_IO_PENDING) {
+                    level = Log::TRACE;
+                } else {
+                    level = Log::ERROR;
+                }
+            }
+            DWORD error = GetLastError();
+            MORDOR_LOG_LEVEL(g_log, level) << this << " ReadFile(" << m_hFile << ", "
+                << length << "): " << ret << " - " << read << " (" << error << ")";
+            if (!ret && error == ERROR_HANDLE_EOF) {
+                m_ioManager->unregisterEvent(&m_readEvent);
+                return std::make_pair(0u, true);
+            }
+            if (!ret && error != ERROR_IO_PENDING) {
+                m_ioManager->unregisterEvent(&m_readEvent);
+                MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("ReadFile");
+            }
+            if (m_skipCompletionPortOnSuccess && ret)
+                m_ioManager->unregisterEvent(&m_readEvent);
+            else
+                Scheduler::yieldTo();
+            error = pRtlNtStatusToDosError((NTSTATUS)m_readEvent.overlapped.Internal);
+            MORDOR_LOG_LEVEL(g_log, error && error != ERROR_HANDLE_EOF ? Log::ERROR : Log::VERBOSE)
+                << this << " ReadFile(" << m_hFile << ", " << length << "): "
+                << m_readEvent.overlapped.InternalHigh << " (" << error << ")";
+            if (error == ERROR_HANDLE_EOF)
+                return std::make_pair(0u, true);
+            if (error)
+                MORDOR_THROW_EXCEPTION_FROM_ERROR_API(error, "ReadFile");
+            return std::make_pair(m_readEvent.overlapped.InternalHigh, false);
+        }
+        case FILE_TYPE_PIPE:
+        {
+            DWORD read = 0;
+            length = std::min(length, m_maxOpSize);
+            BOOL ret = PeekNamedPipe(m_hFile, buffer, (DWORD)length, &read,
+                NULL, NULL);
+            bool eof = false;
+            if (!ret && GetLastError() == ERROR_BROKEN_PIPE) {
+                eof = true;
+                ret = TRUE;
+            }
+            MORDOR_LOG_LEVEL(g_log, ret ? Log::DEBUG : Log::ERROR) << this
+                << " PeekNamedPipe(" << m_hFile << ", " << length << "): "
+                << read << " (" << GetLastError() << ')';
+            if (!ret)
+                MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("PeekNamedPipe");
+            return std::make_pair(read, eof);
+        }
+        default:
+            MORDOR_NOTREACHED();
+    }
 }
 
 void

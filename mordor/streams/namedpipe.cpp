@@ -34,9 +34,9 @@ NamedPipeStream::NamedPipeStream(const std::wstring &name, Flags flags, IOManage
 {
     HANDLE hPipe = CreateNamedPipeW(name.c_str(),
         (DWORD)flags | (ioManager ? FILE_FLAG_OVERLAPPED : 0),
-        PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
+        PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_NOWAIT,
         PIPE_UNLIMITED_INSTANCES,
-        0, 0, 0, NULL);
+        100, 100, 0, NULL);
     DWORD error = GetLastError();
     MORDOR_LOG_LEVEL(g_log, hPipe == INVALID_HANDLE_VALUE ? Log::ERROR : Log::INFO)
         << this << " CreateNamedPipeW(" << toUtf8(name) << ", " << flags
