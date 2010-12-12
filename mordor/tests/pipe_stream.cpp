@@ -405,3 +405,45 @@ MORDOR_UNITTEST(PipeStream, eventOnRemoteReset)
     pipe.second.reset();
     MORDOR_TEST_ASSERT(remoteClosed);
 }
+
+MORDOR_UNITTEST(PipeStream, peek)
+{
+    std::pair<Stream::ptr, Stream::ptr> pipe = pipeStream();
+
+    Buffer buffer;
+    std::pair<size_t, bool> result = pipe.first->peek(buffer, 4u);
+    MORDOR_TEST_ASSERT_EQUAL(result.first, 0u);
+    MORDOR_TEST_ASSERT(!result.second);
+
+    pipe.second->write("hello");
+
+    // Less than available, not EOF
+    result = pipe.first->peek(buffer, 4u);
+    MORDOR_TEST_ASSERT_EQUAL(result.first, 4u);
+    MORDOR_TEST_ASSERT(!result.second);
+
+    // More than available, still not EOF
+    result = pipe.first->peek(buffer, 6u);
+    MORDOR_TEST_ASSERT_EQUAL(result.first, 5u);
+    MORDOR_TEST_ASSERT(!result.second);
+
+    // Cause EOF
+    pipe.second->close();
+
+    // Less than available, not EOF
+    result = pipe.first->peek(buffer, 4u);
+    MORDOR_TEST_ASSERT_EQUAL(result.first, 4u);
+    MORDOR_TEST_ASSERT(!result.second);
+
+    // More than available, EOF
+    result = pipe.first->peek(buffer, 6u);
+    MORDOR_TEST_ASSERT_EQUAL(result.first, 5u);
+    MORDOR_TEST_ASSERT(result.second);
+
+    pipe = pipeStream();
+    // Cause BrokenPipeException
+    pipe.second.reset();
+
+    MORDOR_TEST_ASSERT_EXCEPTION(pipe.first->peek(buffer, 4u),
+        BrokenPipeException);
+}

@@ -27,10 +27,12 @@ public:
 
     bool supportsHalfClose() { return true; }
     bool supportsRead() { return true; }
+    bool supportsPeek() { return true; }
     bool supportsWrite() { return true; }
 
     void close(CloseType type = BOTH);
     size_t read(Buffer &b, size_t len);
+    std::pair<size_t, bool> peek(Buffer &buffer, size_t length);
     void cancelRead();
     size_t write(const Buffer &b, size_t len);
     void cancelWrite();
@@ -195,6 +197,24 @@ PipeStream::read(Buffer &b, size_t len)
             throw;
         }
     }
+}
+
+std::pair<size_t, bool>
+PipeStream::peek(Buffer &buffer, size_t length)
+{
+    MORDOR_ASSERT(length != 0);
+    boost::mutex::scoped_lock lock(*m_mutex);
+    if (m_closed & READ)
+        MORDOR_THROW_EXCEPTION(BrokenPipeException());
+    PipeStream::ptr otherStream = m_otherStream.lock();
+    if (!otherStream && !(m_otherClosed & WRITE))
+        MORDOR_THROW_EXCEPTION(BrokenPipeException());
+    size_t avail = m_readBuffer.readAvailable();
+    size_t todo = std::min(length, avail);
+    buffer.copyIn(m_readBuffer, todo);
+    MORDOR_LOG_TRACE(g_log) << this << " peek(" << length << "): {"
+        << todo << ", " << ((m_otherClosed & WRITE) && todo == avail) << '}';
+    return std::make_pair(todo, (m_otherClosed & WRITE) && todo == avail);
 }
 
 void
