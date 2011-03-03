@@ -40,6 +40,15 @@ static void fiber_switchContext(void **oldsp, void *newsp);
 static size_t g_pagesize;
 
 namespace {
+struct TlsFlsBridgeInfo
+{
+    TlsFlsBridgeInfo *next;
+    tls_key_t tlsKey;
+    size_t flsKey;
+    void (*destructor)(void *);
+};
+
+static TlsFlsBridgeInfo *g_tlsFlsBridgeInfo;
 
 static struct FiberInitializer {
     FiberInitializer()
@@ -51,6 +60,16 @@ static struct FiberInitializer {
 #elif defined(POSIX)
         g_pagesize = sysconf(_SC_PAGESIZE);
 #endif
+    }
+
+    ~FiberInitializer()
+    {
+        TlsFlsBridgeInfo *current = g_tlsFlsBridgeInfo;
+        while (current) {
+            TlsFlsBridgeInfo *next = current->next;
+            delete current;
+            current = next;
+        }
     }
 } g_init;
 
@@ -197,11 +216,13 @@ Fiber::call()
     MORDOR_ASSERT(m_state == HOLD || m_state == INIT);
     MORDOR_ASSERT(cur);
     MORDOR_ASSERT(cur.get() != this);
+    saveTlsFls();
     setThis(this);
     m_outer = cur;
     m_state = m_exception ? EXCEPT : EXEC;
     fiber_switchContext(&cur->m_sp, m_sp);
     setThis(cur.get());
+    restoreTlsFls();
     MORDOR_ASSERT(cur->m_yielder);
     m_outer.reset();
     if (cur->m_yielder) {
@@ -232,6 +253,7 @@ Fiber::yieldTo(bool yieldToCallerOnTerminate)
 void
 Fiber::yield()
 {
+    saveTlsFls();
     ptr cur = getThis();
     MORDOR_ASSERT(cur);
     MORDOR_ASSERT(cur->m_state == EXEC);
@@ -243,6 +265,7 @@ Fiber::yield()
         cur->m_yielder->m_state = cur->m_yielderNextState;
         cur->m_yielder.reset();
     }
+    restoreTlsFls();
     if (cur->m_state == EXCEPT) {
         MORDOR_ASSERT(cur->m_exception);
         Mordor::rethrow_exception(cur->m_exception);
@@ -263,6 +286,7 @@ Fiber::yieldTo(bool yieldToCallerOnTerminate, State targetState)
     MORDOR_ASSERT(targetState == HOLD || targetState == TERM || targetState == EXCEPT);
     ptr cur = getThis();
     MORDOR_ASSERT(cur);
+    saveTlsFls();
     setThis(this);
     if (yieldToCallerOnTerminate) {
         Fiber::ptr outer = shared_from_this();
@@ -286,6 +310,7 @@ Fiber::yieldTo(bool yieldToCallerOnTerminate, State targetState)
 #endif
     MORDOR_ASSERT(targetState != TERM);
     setThis(curp);
+    restoreTlsFls();
     if (curp->m_yielder) {
         Fiber::ptr yielder = curp->m_yielder;
         yielder->m_state = curp->m_yielderNextState;
@@ -311,6 +336,7 @@ Fiber::entryPoint()
         cur->m_yielder->m_state = cur->m_yielderNextState;
         cur->m_yielder.reset();
     }
+    restoreTlsFls();
     MORDOR_ASSERT(cur->m_dg);
     State nextState = TERM;
     try {
@@ -338,6 +364,31 @@ Fiber::entryPoint()
 void
 Fiber::exitPoint(Fiber::ptr &cur, State targetState)
 {
+    bool hadNonNull = true;
+    while (hadNonNull) {
+        hadNonNull = false;
+        TlsFlsBridgeInfo *next = g_tlsFlsBridgeInfo;
+        while (next) {
+            void *tlsValue =
+#ifdef WINDOWS
+                TlsGetValue
+#else
+                pthread_getspecific
+#endif
+                (next->tlsKey);
+            if (tlsValue && next->destructor) {
+                hadNonNull = true;
+#ifdef WINDOWS
+                TlsSetValue
+#else
+                pthread_setspecific
+#endif
+                    (next->tlsKey, NULL);
+                next->destructor(tlsValue);
+            }
+            next = next->next;
+        }
+    }
     Fiber::ptr outer;
     Fiber *rawPtr = NULL;
     if (!cur->m_terminateOuter.expired() && !cur->m_outer) {
@@ -659,6 +710,61 @@ std::ostream &operator<<(std::ostream &os, Fiber::State state)
             return os << "TERM";
         default:
             return os << (int)state;
+}
+
+void
+Fiber::tlsFlsBridgeAlloc(tls_key_t key, void (*destructor)(void *))
+{
+    size_t flsKey = flsAlloc();
+    TlsFlsBridgeInfo *newInfo;
+    try {
+        newInfo = new TlsFlsBridgeInfo;
+    } catch (...) {
+        flsFree(flsKey);
+        throw;
+    }
+    newInfo->next = NULL;
+    newInfo->tlsKey = key;
+    newInfo->flsKey = flsKey;
+    newInfo->destructor = destructor;
+    if (!g_tlsFlsBridgeInfo) {
+        g_tlsFlsBridgeInfo = newInfo;
+    } else {
+        TlsFlsBridgeInfo *whereToPutIt = g_tlsFlsBridgeInfo;
+        while (whereToPutIt->next)
+            whereToPutIt = whereToPutIt->next;
+        whereToPutIt->next = newInfo;
+    }
+}
+
+void
+Fiber::saveTlsFls()
+{
+    TlsFlsBridgeInfo *next = g_tlsFlsBridgeInfo;
+    while (next) {
+        flsSet(next->flsKey, (intptr_t)
+#ifdef WINDOWS
+            TlsGetValue
+#else
+            pthread_getspecific
+#endif
+            (next->tlsKey));
+        next = next->next;
+    }
+}
+
+void
+Fiber::restoreTlsFls()
+{
+    TlsFlsBridgeInfo *next = g_tlsFlsBridgeInfo;
+    while (next) {
+#ifdef WINDOWS
+        TlsSetValue(next->tlsKey, (LPVOID)
+#else
+        pthread_setspecific(next->tlsKey, (const void *)
+#endif
+            flsGet(next->flsKey));
+        next = next->next;
     }
 }
 

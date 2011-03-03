@@ -52,6 +52,12 @@
 
 namespace Mordor {
 
+#ifdef WINDOWS
+typedef DWORD tls_key_t;
+#else
+typedef pthread_key_t tls_key_t;
+#endif
+
 /// Cooperative Thread
 class Fiber : public boost::enable_shared_from_this<Fiber>
 {
@@ -158,6 +164,13 @@ public:
     /// @pre state() != EXEC
     std::vector<void *> backtrace();
 
+    /// Set up key to be automatically bridged to FLS, even though it is really
+    /// TLS
+
+    /// Bridging TLS to FLS is experimental - tlsFlsBridgeAlloc is not
+    /// currently thread safe, and there's no way to unregister it.
+    static void tlsFlsBridgeAlloc(tls_key_t key, void (*destructor)(void *) = NULL);
+
 private:
     Fiber::ptr yieldTo(bool yieldToCallerOnTerminate, State targetState);
     static void setThis(Fiber *f);
@@ -195,6 +208,9 @@ private:
     static void flsFree(size_t key);
     static void flsSet(size_t key, intptr_t value);
     static intptr_t flsGet(size_t key);
+
+    static void saveTlsFls();
+    static void restoreTlsFls();
 
     std::vector<intptr_t> m_fls;
 };

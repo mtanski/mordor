@@ -52,3 +52,36 @@ MORDOR_UNITTEST(FLS, basic)
     fiber->call();
     MORDOR_TEST_ASSERT_EQUAL(fls.get(), 1);
 }
+
+#ifdef WINDOWS
+static void tlsFiber(tls_key_t tlsKey, Fiber::weak_ptr weakCaller)
+{
+    Fiber::ptr caller(weakCaller);
+    MORDOR_TEST_ASSERT_EQUAL(TlsGetValue(tlsKey), (LPVOID)0);
+    TlsSetValue(tlsKey, (LPVOID)2);
+    Fiber::yield();
+    MORDOR_TEST_ASSERT_EQUAL(TlsGetValue(tlsKey), (LPVOID)2);
+    caller->yieldTo();
+    MORDOR_TEST_ASSERT_EQUAL(TlsGetValue(tlsKey), (LPVOID)2);
+}
+
+MORDOR_UNITTEST(FLS, tlsBridge)
+{
+    tls_key_t tlsKey = TlsAlloc();
+    try {
+        Fiber::tlsFlsBridgeAlloc(tlsKey);
+        Fiber::weak_ptr weakThis = Fiber::getThis();
+        Fiber::ptr otherFiber(new Fiber(boost::bind(&tlsFiber, tlsKey, weakThis)));
+        MORDOR_TEST_ASSERT_EQUAL(TlsGetValue(tlsKey), (LPVOID)0);
+        TlsSetValue(tlsKey, (LPVOID)1);
+        otherFiber->call();
+        MORDOR_TEST_ASSERT_EQUAL(TlsGetValue(tlsKey), (LPVOID)1);
+        otherFiber->yieldTo();
+        MORDOR_TEST_ASSERT_EQUAL(TlsGetValue(tlsKey), (LPVOID)1);
+    } catch(...) {
+        TlsFree(tlsKey);
+        throw;
+    }
+    TlsFree(tlsKey);
+}
+#endif
