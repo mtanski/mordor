@@ -5,10 +5,15 @@
 #include <boost/thread/mutex.hpp>
 
 #include "buffer.h"
+#include "file.h"
 #include "mordor/assert.h"
 #include "mordor/fiber.h"
 #include "mordor/scheduler.h"
 #include "stream.h"
+
+#ifdef OSX
+#include <crt_externs.h>
+#endif
 
 namespace Mordor {
 
@@ -327,6 +332,304 @@ boost::signals2::connection
 PipeStream::onRemoteClose(const boost::signals2::slot<void ()> &slot)
 {
     return m_onRemoteClose.connect(slot);
+}
+
+
+std::pair<NativeStream::ptr, NativeStream::ptr>
+anonymousPipe(IOManager *ioManager)
+{
+    std::pair<NativeStream::ptr, NativeStream::ptr> result;
+#ifdef WINDOWS
+    if (ioManager) {
+        // TODO: Implement overlapped I/O for this pipe with either a
+        // not-quite-anonymous pipe, or a socket pair
+        MORDOR_NOTREACHED();
+    } else {
+        HANDLE read = NULL, write = NULL;
+        if (!CreatePipe(&read, &write, NULL, 0))
+            MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("CreatePipe");
+        try {
+            result.first.reset(new HandleStream(read));
+            result.second.reset(new HandleStream(write));
+        } catch (...) {
+            if (!result.first)
+                CloseHandle(read);
+            if (!result.second)
+                CloseHandle(write);
+            throw;
+        }
+    }
+#else
+    int fds[2];
+    if (pipe(fds))
+        MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("pipe");
+    try {
+            result.first.reset(new FDStream(fds[0], ioManager));
+            result.second.reset(new FDStream(fds[1], ioManager));
+        } catch (...) {
+            if (!result.first)
+                close(fds[0]);
+            if (!result.second)
+                close(fds[1]);
+            throw;
+        }
+#endif
+    return result;
+}
+
+#ifdef WINDOWS
+
+Process::~Process()
+{
+    CloseHandle(pid);
+}
+
+void
+Process::wait()
+{
+    WaitForSingleObject(pid, INFINITE);
+}
+
+Process::ptr
+popen(const wchar_t *filename, wchar_t * const argv[],
+    wchar_t * const envp[],
+    NativeStream::ptr in,
+    NativeStream::ptr out,
+    NativeStream::ptr err)
+{
+    MORDOR_ASSERT(!in || in->supportsRead());
+    MORDOR_ASSERT(!out || out->supportsWrite());
+    MORDOR_ASSERT(!err || err->supportsWrite());
+
+    std::wostringstream os;
+    // FIXME: escape "'s and \'s and quote spaces and tabs;
+    // see http://msdn.microsoft.com/en-us/library/17w5ykft.aspx
+    os << filename;
+    while (argv && *argv) {
+        os << L' ' << *argv;
+        ++argv;
+    }
+    std::wstring commandLine = os.str();
+
+    STARTUPINFOW startupInfo;
+    PROCESS_INFORMATION processInfo;
+    memset(&startupInfo, 0, sizeof(STARTUPINFO));
+    startupInfo.cb = sizeof(STARTUPINFO);
+    startupInfo.dwFlags = STARTF_USESTDHANDLES;
+    if (in) {
+        if (!DuplicateHandle(GetCurrentProcess(), in->handle(),
+            GetCurrentProcess(), &startupInfo.hStdInput,
+            0, TRUE, DUPLICATE_SAME_ACCESS))
+            MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("DuplicateHandle");
+    } else {
+        startupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+    }
+    if (out) {
+        if (!DuplicateHandle(GetCurrentProcess(), out->handle(),
+            GetCurrentProcess(), &startupInfo.hStdOutput,
+            0, TRUE, DUPLICATE_SAME_ACCESS)) {
+            if (in)
+                CloseHandle(startupInfo.hStdInput);
+            MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("DuplicateHandle");
+        }
+    } else {
+        startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+    }
+    if (err) {
+        if (!DuplicateHandle(GetCurrentProcess(), err->handle(),
+            GetCurrentProcess(), &startupInfo.hStdError,
+            0, TRUE, DUPLICATE_SAME_ACCESS)) {
+            if (in)
+                CloseHandle(startupInfo.hStdInput);
+            if (out)
+                CloseHandle(startupInfo.hStdError);
+            MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("DuplicateHandle");
+        }
+    } else {
+        startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+    }
+
+    if (!CreateProcessW(NULL, (LPWSTR)commandLine.c_str(),
+        NULL, NULL, TRUE, CREATE_UNICODE_ENVIRONMENT, (LPVOID)envp, NULL,
+        &startupInfo, &processInfo)) {
+        if (in)
+            CloseHandle(startupInfo.hStdInput);
+        if (out)
+            CloseHandle(startupInfo.hStdOutput);
+        if (err)
+            CloseHandle(startupInfo.hStdError);
+        MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("CreateProcessW");
+    }
+    CloseHandle(processInfo.hThread);
+    if (in)
+        CloseHandle(startupInfo.hStdInput);
+    if (out)
+        CloseHandle(startupInfo.hStdOutput);
+    if (err)
+        CloseHandle(startupInfo.hStdError);
+    try {
+        return Process::ptr(new Process(processInfo.hProcess));
+    } catch (...) {
+        CloseHandle(processInfo.hProcess);
+        throw;
+    }
+}
+
+Stream::ptr popen(const wchar_t *filename, wchar_t * const argv[],
+    OpenMode openMode, StderrMode stderrMode, wchar_t * const envp[])
+{
+    std::pair<NativeStream::ptr, NativeStream::ptr> pipe = anonymousPipe();
+    NativeStream::ptr in, out, err, null, result;
+    HANDLE hNull = CreateFileW(L"NUL",
+        GENERIC_READ | GENERIC_WRITE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        NULL, OPEN_EXISTING, 0, NULL);
+    if (hNull == INVALID_FILE_HANDLE)
+        MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("CreateFileW");
+    null.reset(new HandleStream(hNull));
+    switch (openMode) {
+        case READ:
+            in = null;
+            out = pipe.second;
+            result = pipe.first;
+            break;
+        case WRITE:
+            in = pipe.first;
+            out = null;
+            result = pipe.second;
+            break;
+        default:
+            MORDOR_NOTREACHED();
+    }
+    switch (stderrMode) {
+        case DROP:
+            err = null;
+            break;
+        case REDIRECT:
+            err = out;
+            break;
+        case INHERIT:
+            break;
+        default:
+            MORDOR_NOTREACHED();
+    }
+    Process::ptr process = popen(filename, argv, envp, in, out, err);
+    return result;
+}
+
+#else
+
+Process::~Process()
+{
+    // XXX: reap the process so it doesn't become a zombie
+}
+
+void
+Process::wait()
+{
+    if (pid) {
+        int status;
+        waitpid(pid, &status, 0);
+    }
+    pid = 0;
+}
+
+Process::ptr
+popen(const char *filename, char * const argv[], char * const envp[],
+    NativeStream::ptr in, NativeStream::ptr out, NativeStream::ptr err)
+{
+    MORDOR_ASSERT(!in || in->supportsRead());
+    MORDOR_ASSERT(!out || out->supportsWrite());
+    MORDOR_ASSERT(!err || err->supportsWrite());
+
+    static char * const noArgs[] = { NULL };
+    if (!argv)
+        argv = noArgs;
+    if (!envp) {
+#ifdef OSX
+	char **environ = *_NSGetEnviron();
+#endif
+        envp = environ;
+    }
+
+    pid_t child = fork();
+    if (child == -1)
+        MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("fork");
+    if (child == 0) {
+        // This is the child; set up the std streams, and then exec
+        if (in) {
+            close(STDIN_FILENO);
+            if (dup2(in->fd(), STDIN_FILENO) == -1)
+                _exit(-errno);
+        }
+        if (out) {
+            close(STDOUT_FILENO);
+            if (dup2(out->fd(), STDOUT_FILENO) == -1)
+                _exit(-errno);
+        }
+        if (err) {
+            close(STDERR_FILENO);
+            if (dup2(err->fd(), STDERR_FILENO) == -1)
+                _exit(-errno);
+        }
+        execve(filename, argv, envp);
+        _exit(-errno);
+    } else {
+        // This is the parent; return
+        // TODO: catch exception, and reap the process so it doesn't become a zombie
+        return Process::ptr(new Process(child));
+    }
+}
+
+#endif
+
+Stream::ptr popen(const char *filename, char * const argv[], OpenMode openMode,
+    StderrMode stderrMode, char * const envp[])
+{
+    std::pair<NativeStream::ptr, NativeStream::ptr> pipe = anonymousPipe();
+    NativeStream::ptr in, out, err, null, result;
+#ifdef WINDOWS
+    HANDLE hNull = CreateFileW(L"NUL",
+        GENERIC_READ | GENERIC_WRITE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        NULL, OPEN_EXISTING, 0, NULL);
+    if (hNull == INVALID_FILE_HANDLE)
+        MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("CreateFileW");
+    null.reset(new HandleStream(hNull));
+#else
+    int nullFd = open("/dev/null", O_RDWR);
+    if (nullFd == -1)
+        MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("open");
+    null.reset(new FDStream(nullFd));
+#endif
+    switch (openMode) {
+        case READ:
+            in = null;
+            out = pipe.second;
+            result = pipe.first;
+            break;
+        case WRITE:
+            in = pipe.first;
+            out = null;
+            result = pipe.second;
+            break;
+        default:
+            MORDOR_NOTREACHED();
+    }
+    switch (stderrMode) {
+        case DROP:
+            err = null;
+            break;
+        case REDIRECT:
+            err = out;
+            break;
+        case INHERIT:
+            break;
+        default:
+            MORDOR_NOTREACHED();
+    }
+    Process::ptr process = popen(filename, argv, envp, in, out, err);
+    return result;
 }
 
 }
