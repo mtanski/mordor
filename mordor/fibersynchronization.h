@@ -29,18 +29,34 @@ public:
     {
     public:
         ScopedLock(FiberMutex &mutex)
-            : m_mutex(mutex)
+            : m_mutex(&mutex)
         {
-            m_mutex.lock();
+            m_mutex->lock();
             m_locked = true;
         }
+
+        ScopedLock(ScopedLock&& rhs)
+            : m_mutex(rhs.m_mutex),
+              m_locked(rhs.m_locked)
+        { 
+            rhs.m_mutex = nullptr;
+            rhs.m_locked = false;
+        }
+
+        ScopedLock& operator= (ScopedLock&& rhs)
+        {
+            std::swap(rhs.m_mutex, m_mutex);
+            std::swap(rhs.m_locked, m_locked);
+            return *this;    
+        }
+
         ~ScopedLock()
         { unlock(); }
 
         void lock()
         {
             if (!m_locked) {
-                m_mutex.lock();
+                m_mutex->lock();
                 m_locked = true;
             }
         }
@@ -48,7 +64,7 @@ public:
         void unlock()
         {
             if (m_locked) {
-                m_mutex.unlock();
+                m_mutex->unlock();
                 m_locked = false;
             }
         }
@@ -56,7 +72,7 @@ public:
         bool unlockIfNotUnique()
         {
             if (m_locked) {
-                if (m_mutex.unlockIfNotUnique()) {
+                if (m_mutex->unlockIfNotUnique()) {
                     m_locked = false;
                     return true;
                 } else {
@@ -67,7 +83,7 @@ public:
         }
 
     private:
-        FiberMutex &m_mutex;
+        FiberMutex *m_mutex;
         bool m_locked;
     };
 
