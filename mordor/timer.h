@@ -2,6 +2,7 @@
 #define __MORDOR_TIMER_H__
 // Copyright (c) 2009 - Mozy, Inc.
 
+#include <chrono>
 #include <set>
 #include <vector>
 
@@ -67,6 +68,16 @@ public:
 
     virtual Timer::ptr registerTimer(unsigned long long us,
         boost::function<void ()> dg, bool recurring = false);
+
+    template <class Rep, class Period>
+    Timer::ptr registerTimer(std::chrono::duration<Rep,Period> duration,
+        boost::function<void ()> dg, bool recurring = false)
+    {
+        auto rescaled = std::chrono::duration_cast<std::chrono::microseconds>
+            (duration);
+
+        return registerTimer(rescaled.count(), dg, recurring);
+    }
 
     /// Conditionally execute the dg callback function only when weakCond is
     /// still in valid status, which means, the original object managed by the
