@@ -17,13 +17,14 @@ namespace HTTP {
 
 static Logger::ptr g_log = Log::lookup("mordor:http:server");
 
-ServerConnection::ServerConnection(Stream::ptr stream, boost::function<void (ServerRequest::ptr)> dg)
+ServerConnection::ServerConnection(Stream::ptr stream, boost::function<void (ServerRequest::ptr)> dg, Address::ptr client_addr)
 : Connection(stream),
   m_dg(dg),
   m_requestCount(0),
   m_priorRequestFailed(~0ull),
   m_priorRequestClosed(~0ull),
-  m_priorResponseClosed(~0ull)
+  m_priorResponseClosed(~0ull),
+  m_addr(client_addr)
 {
     MORDOR_ASSERT(m_dg);
 }

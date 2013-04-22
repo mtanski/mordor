@@ -5,6 +5,7 @@
 #include <boost/thread/mutex.hpp>
 
 #include "connection.h"
+#include "../socket.h"
 
 namespace Mordor {
 
@@ -147,12 +148,16 @@ private:
     friend class ServerRequest;
 public:
     ServerConnection(boost::shared_ptr<Stream> stream,
-        boost::function<void (ServerRequest::ptr)> dg);
+        boost::function<void (ServerRequest::ptr)> dg,
+        Address::ptr client_addr = Address::ptr());
 
     /// Does not block; simply schedules a new fiber to read the first request
     void processRequests();
 
     std::vector<ServerRequest::const_ptr> requests();
+
+    Address::ptr client_address() const
+    { return m_addr; }
 
 private:
     void scheduleNextRequest(ServerRequest *currentRequest);
@@ -167,6 +172,7 @@ private:
     std::set<ServerRequest *> m_waitingResponses;
     unsigned long long m_requestCount, m_priorRequestFailed,
         m_priorRequestClosed, m_priorResponseClosed;
+    Address::ptr m_addr;
 
     void invariant() const;
 };
