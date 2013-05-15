@@ -361,7 +361,8 @@ mordor_examples_cat_LDADD=mordor/libmordor.la	\
 	$(CORESERVICES_FRAMEWORK_LIBS)		\
 	$(COREFOUNDATION_FRAMEWORK_LIBS)	\
 	$(SECURITY_FRAMEWORK_LIBS)		\
-	$(SYSTEMCONFIGURATION_FRAMEWORK_LIBS)
+	$(SYSTEMCONFIGURATION_FRAMEWORK_LIBS)	\
+	$(BOOST_SYSTEM_LIB)
 
 
 mordor_examples_echoserver_SOURCES=mordor/examples/echoserver.cpp
@@ -369,7 +370,10 @@ mordor_examples_echoserver_LDADD=mordor/libmordor.la \
 	$(CORESERVICES_FRAMEWORK_LIBS)		\
 	$(COREFOUNDATION_FRAMEWORK_LIBS)	\
 	$(SECURITY_FRAMEWORK_LIBS)		\
-	$(SYSTEMCONFIGURATION_FRAMEWORK_LIBS)
+	$(SYSTEMCONFIGURATION_FRAMEWORK_LIBS)	\
+	$(BOOST_SYSTEM_LIB)			\
+	$(BOOST_THREAD_LIB)
+	
 
 mordor_examples_iombench_SOURCES=	\
 	mordor/examples/iombench.cpp	\
@@ -378,7 +382,8 @@ mordor_examples_iombench_LDADD=mordor/libmordor.la	\
 	$(CORESERVICES_FRAMEWORK_LIBS)		\
 	$(COREFOUNDATION_FRAMEWORK_LIBS)	\
 	$(SECURITY_FRAMEWORK_LIBS)		\
-	$(SYSTEMCONFIGURATION_FRAMEWORK_LIBS)
+	$(SYSTEMCONFIGURATION_FRAMEWORK_LIBS)	\
+	$(BOOST_SYSTEM_LIB)
 
 
 mordor_examples_simpleappserver_SOURCES=mordor/examples/simpleappserver.cpp
@@ -386,32 +391,49 @@ mordor_examples_simpleappserver_LDADD=mordor/libmordor.la	\
 	$(CORESERVICES_FRAMEWORK_LIBS)		\
 	$(COREFOUNDATION_FRAMEWORK_LIBS)	\
 	$(SECURITY_FRAMEWORK_LIBS)		\
-	$(SYSTEMCONFIGURATION_FRAMEWORK_LIBS)
+	$(SYSTEMCONFIGURATION_FRAMEWORK_LIBS)	\
+	$(BOOST_SYSTEM_LIB)			\
+	$(BOOST_THREAD_LIB)
 
 mordor_examples_simpleclient_SOURCES=mordor/examples/simpleclient.cpp
 mordor_examples_simpleclient_LDADD=mordor/libmordor.la	\
 	$(CORESERVICES_FRAMEWORK_LIBS)		\
 	$(COREFOUNDATION_FRAMEWORK_LIBS)	\
 	$(SECURITY_FRAMEWORK_LIBS)		\
-	$(SYSTEMCONFIGURATION_FRAMEWORK_LIBS)
+	$(SYSTEMCONFIGURATION_FRAMEWORK_LIBS)	\
+	$(BOOST_SYSTEM_LIB)			\
+	$(BOOST_THREAD_LIB)
+
+mordor_examples_simplefileserver_SOURCES=mordor/examples/simplefileserver.cpp
+mordor_examples_simplefileserver_LDADD=mordor/libmordor.la       \
+        $(CORESERVICES_FRAMEWORK_LIBS)          \
+        $(COREFOUNDATION_FRAMEWORK_LIBS)        \
+        $(SECURITY_FRAMEWORK_LIBS)              \
+        $(SYSTEMCONFIGURATION_FRAMEWORK_LIBS)	\
+	$(BOOST_SYSTEM_LIB)			\
+	$(BOOST_THREAD_LIB)
 
 mordor_examples_tunnel_SOURCES=mordor/examples/tunnel.cpp
 mordor_examples_tunnel_LDADD=mordor/libmordor.la	\
 	$(CORESERVICES_FRAMEWORK_LIBS)		\
 	$(COREFOUNDATION_FRAMEWORK_LIBS)	\
 	$(SECURITY_FRAMEWORK_LIBS)		\
-	$(SYSTEMCONFIGURATION_FRAMEWORK_LIBS)
+	$(SYSTEMCONFIGURATION_FRAMEWORK_LIBS)	\
+	$(BOOST_SYSTEM_LIB)
 
 mordor_examples_udpstats_SOURCES=mordor/examples/udpstats.cpp
 mordor_examples_udpstats_LDADD=mordor/libmordor.la	\
 	$(CORESERVICES_FRAMEWORK_LIBS)		\
 	$(COREFOUNDATION_FRAMEWORK_LIBS)	\
 	$(SECURITY_FRAMEWORK_LIBS)		\
-	$(SYSTEMCONFIGURATION_FRAMEWORK_LIBS)
+	$(SYSTEMCONFIGURATION_FRAMEWORK_LIBS)	\
+	$(BOOST_SYSTEM_LIB)
 
 mordor_examples_wget_SOURCES=mordor/examples/wget.cpp
 mordor_examples_wget_LDADD=mordor/libmordor.la $(BOOST_PROGRAM_OPTIONS_LIB)	\
 	$(CORESERVICES_FRAMEWORK_LIBS)		\
 	$(COREFOUNDATION_FRAMEWORK_LIBS)	\
 	$(SECURITY_FRAMEWORK_LIBS)		\
-	$(SYSTEMCONFIGURATION_FRAMEWORK_LIBS)
+	$(SYSTEMCONFIGURATION_FRAMEWORK_LIBS)	\
+	$(BOOST_SYSTEM_LIB)
+
