@@ -515,7 +515,7 @@ suckylsp:
             // Worked first time
             return;
         }
-        if (errno == EINPROGRESS) {
+        if (lastError() == EINPROGRESS) {
             m_ioManager->registerEvent(m_sock, IOManager::WRITE);
             if (m_cancelledSend) {
                 MORDOR_LOG_ERROR(g_log) << this << " connect(" << m_sock << ", " << to
@@ -744,7 +744,7 @@ suckylsp:
         error_t error;
         do {
             newsock = ::accept(m_sock, NULL, NULL);
-            error = errno;
+            error = lastError();
         } while (newsock == -1 && error == EINTR);
         while (newsock == -1 && error == EAGAIN) {
             m_ioManager->registerEvent(m_sock, IOManager::READ);
@@ -770,7 +770,7 @@ suckylsp:
             }
             do {
                 newsock = ::accept(m_sock, NULL, NULL);
-                error = errno;
+                error = lastError();
             } while (newsock == -1 && error == EINTR);
         }
         if (newsock == -1) {
@@ -956,7 +956,7 @@ Socket::doIO(iovec *buffers, size_t length, int &flags, Address *address)
     error_t error;
     do {
         rc = isSend ? sendmsg(m_sock, &msg, flags) : recvmsg(m_sock, &msg, flags);
-        error = errno;
+        error = lastError();
     } while (rc == -1 && error == EINTR);
     while (m_ioManager && rc == -1 && error == EAGAIN) {
         m_ioManager->registerEvent(m_sock, event);
@@ -974,7 +974,7 @@ Socket::doIO(iovec *buffers, size_t length, int &flags, Address *address)
         }
         do {
             rc = isSend ? sendmsg(m_sock, &msg, flags) : recvmsg(m_sock, &msg, flags);
-            error = errno;
+            error = lastError();
         } while (rc == -1 && error == EINTR);
     }
     MORDOR_SOCKET_LOG(rc, error);

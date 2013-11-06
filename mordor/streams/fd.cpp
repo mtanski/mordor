@@ -83,7 +83,7 @@ FDStream::read(Buffer &buffer, size_t length)
         length = 0xfffffffe;
     std::vector<iovec> iovs = buffer.writeBuffers(length);
     int rc = readv(m_fd, &iovs[0], iovs.size());
-    while (rc < 0 && errno == EAGAIN && m_ioManager) {
+    while (rc < 0 && lastError() == EAGAIN && m_ioManager) {
         MORDOR_LOG_TRACE(g_log) << this << " readv(" << m_fd << ", " << length
             << "): " << rc << " (EAGAIN)";
         m_ioManager->registerEvent(m_fd, IOManager::READ);
@@ -112,7 +112,7 @@ FDStream::read(void *buffer, size_t length)
     if (length > 0xfffffffe)
         length = 0xfffffffe;
     int rc = ::read(m_fd, buffer, length);
-    while (rc < 0 && errno == EAGAIN && m_ioManager) {
+    while (rc < 0 && lastError() == EAGAIN && m_ioManager) {
         MORDOR_LOG_TRACE(g_log) << this << " read(" << m_fd << ", " << length
             << "): " << rc << " (EAGAIN)";
         m_ioManager->registerEvent(m_fd, IOManager::READ);
@@ -149,7 +149,7 @@ FDStream::write(const Buffer &buffer, size_t length)
         length = 0xfffffffe;
     const std::vector<iovec> iovs = buffer.readBuffers(length);
     int rc = writev(m_fd, &iovs[0], iovs.size());
-    while (rc < 0 && errno == EAGAIN && m_ioManager) {
+    while (rc < 0 && lastError() == EAGAIN && m_ioManager) {
         MORDOR_LOG_TRACE(g_log) << this << " writev(" << m_fd << ", " << length
             << "): " << rc << " (EAGAIN)";
         m_ioManager->registerEvent(m_fd, IOManager::WRITE);
@@ -179,7 +179,7 @@ FDStream::write(const void *buffer, size_t length)
     if (length > 0xfffffffe)
         length = 0xfffffffe;
     int rc = ::write(m_fd, buffer, length);
-    while (rc < 0 && errno == EAGAIN && m_ioManager) {
+    while (rc < 0 && lastError() == EAGAIN && m_ioManager) {
         MORDOR_LOG_TRACE(g_log) << this << " write(" << m_fd << ", " << length
             << "): " << rc << " (EAGAIN)";
         m_ioManager->registerEvent(m_fd, IOManager::WRITE);
