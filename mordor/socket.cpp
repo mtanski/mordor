@@ -56,6 +56,19 @@ enum Protocol
     UDP = IPPROTO_UDP
 };
 
+static inline bool isInterupted(int errnoValue)
+{
+    switch (errnoValue) {
+#ifdef LINUX
+        case ECANCELED:
+#endif
+        case EINTR:
+            return true;
+    }
+
+    return false;
+}
+
 std::ostream &operator <<(std::ostream &os, Family family)
 {
     switch (family)
@@ -745,7 +758,7 @@ suckylsp:
         do {
             newsock = ::accept(m_sock, NULL, NULL);
             error = lastError();
-        } while (newsock == -1 && error == EINTR);
+        } while (newsock == -1 && isInterupted(error));
         while (newsock == -1 && error == EAGAIN) {
             m_ioManager->registerEvent(m_sock, IOManager::READ);
             if (m_cancelledReceive) {
@@ -771,7 +784,7 @@ suckylsp:
             do {
                 newsock = ::accept(m_sock, NULL, NULL);
                 error = lastError();
-            } while (newsock == -1 && error == EINTR);
+            } while (newsock == -1 && isInterupted(error));
         }
         if (newsock == -1) {
             MORDOR_LOG_ERROR(g_log) << this << " accept(" << m_sock << "): "
