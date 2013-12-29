@@ -3,6 +3,7 @@
 #include "config.h"
 
 #include <algorithm>
+#include <functional>
 
 #include <boost/thread/thread.hpp>
 
@@ -85,7 +86,7 @@ Config::loadFromEnvironment()
     wchar_t *enviro = GetEnvironmentStringsW();
     if (!enviro)
         return;
-    boost::shared_ptr<wchar_t> environScope(enviro, &FreeEnvironmentStringsW);
+    std::shared_ptr<wchar_t> environScope(enviro, &FreeEnvironmentStringsW);
     for (const wchar_t *env = enviro; *env; env += wcslen(env) + 1) {
         const wchar_t *equals = wcschr(env, '=');
         if (!equals)
@@ -192,7 +193,7 @@ Config::lookup(const std::string &name)
 }
 
 void
-Config::visit(boost::function<void (ConfigVarBase::ptr)> dg)
+Config::visit(std::function<void (ConfigVarBase::ptr)> dg)
 {
     for (ConfigVarSet::const_iterator it = vars().begin();
         it != vars().end();
@@ -305,7 +306,7 @@ Config::RegistryMonitor::~RegistryMonitor()
 
 void
 Config::RegistryMonitor::onRegistryChange(
-    boost::weak_ptr<RegistryMonitor> self)
+    std::weak_ptr<RegistryMonitor> self)
 {
     try
     {
@@ -364,8 +365,8 @@ Config::monitorRegistry(IOManager &ioManager, HKEY hKey,
     // Have to wait until after the object is constructed to get the weak_ptr
     // we need
     ioManager.registerEvent(result->m_hEvent,
-        boost::bind(&RegistryMonitor::onRegistryChange,
-            boost::weak_ptr<RegistryMonitor>(result)), true);
+        std::bind(&RegistryMonitor::onRegistryChange,
+            std::weak_ptr<RegistryMonitor>(result)), true);
     Mordor::loadFromRegistry(result->m_hKey);
     return result;
 }
@@ -383,14 +384,14 @@ static void updateTimer(const std::string &string, Timer *timer)
 }
 
 Timer::ptr associateTimerWithConfigVar(TimerManager &timerManager,
-    ConfigVar<std::string>::ptr configVar, boost::function<void ()> dg)
+    ConfigVar<std::string>::ptr configVar, std::function<void ()> dg)
 {
     unsigned long long initialValue = stringToMicroseconds(configVar->val());
     Timer::ptr result = timerManager.registerTimer(initialValue, dg, true);
     configVar->beforeChange.connect(&verifyString);
     configVar->onChange.connect(
         ConfigVar<std::string>::on_change_signal_type::slot_type(
-            &updateTimer, _1, result.get()).track(result));
+            &updateTimer, _1, result.get()).track_foreign(result));
     return result;
 }
 
@@ -410,8 +411,8 @@ void associateSchedulerWithConfigVar(Scheduler &scheduler,
     ConfigVar<int>::ptr configVar)
 {
     configVar->beforeChange.connect(&verifyThreadCount);
-    configVar->onChange.connect(boost::bind(&updateThreadCount, _1,
-        boost::ref(scheduler)));
+    configVar->onChange.connect(std::bind(&updateThreadCount, std::placeholders::_1,
+        std::ref(scheduler)));
     updateThreadCount(configVar->val(), scheduler);
 }
 

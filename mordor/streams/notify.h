@@ -2,7 +2,6 @@
 #define __MORDOR_NOTIFY_STREAM_H__
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include <boost/function.hpp>
 
 #include "filter.h"
 
@@ -11,16 +10,16 @@ namespace Mordor {
 class NotifyStream : public FilterStream
 {
 public:
-    typedef boost::shared_ptr<NotifyStream> ptr;
+    typedef std::shared_ptr<NotifyStream> ptr;
 public:
     NotifyStream(Stream::ptr parent, bool own = true)
         : FilterStream(parent, own)
     {}
 
-    boost::function<void ()> notifyOnClose;
-    boost::function<void ()> notifyOnFlush;
-    boost::function<void ()> notifyOnEof;
-    boost::function<void ()> notifyOnException;
+    std::function<void ()> notifyOnClose;
+    std::function<void ()> notifyOnFlush;
+    std::function<void ()> notifyOnEof;
+    std::function<void ()> notifyOnException;
 
     void close(CloseType type = BOTH)
     {

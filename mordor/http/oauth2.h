@@ -2,7 +2,6 @@
 #define __MORDOR_HTTP_OAUTH2_H__
 // Copyright (c) 2011 - Mozy, Inc.
 
-#include <boost/function.hpp>
 
 #include "broker.h"
 
@@ -17,20 +16,20 @@ namespace OAuth2 {
     {
     public:
         RequestBroker(HTTP::RequestBroker::ptr parent,
-            boost::function<bool (const URI &,
-            boost::shared_ptr<ClientRequest> /* priorRequest = ClientRequest::ptr() */,
+            std::function<bool (const URI &,
+            std::shared_ptr<ClientRequest> /* priorRequest = ClientRequest::ptr() */,
             std::string & /* token */,
             size_t /* attempts */)> getCredentialsDg)
             : RequestBrokerFilter(parent),
             m_getCredentialsDg(getCredentialsDg)
         {}
 
-        boost::shared_ptr<ClientRequest> request(Request &requestHeaders,
+        std::shared_ptr<ClientRequest> request(Request &requestHeaders,
             bool forceNewConnection = false,
-            boost::function<void (boost::shared_ptr<ClientRequest>)> bodyDg = NULL);
+            std::function<void (std::shared_ptr<ClientRequest>)> bodyDg = NULL);
 
     private:
-        boost::function<bool (const URI &, boost::shared_ptr<ClientRequest>, std::string &,
+        std::function<bool (const URI &, std::shared_ptr<ClientRequest>, std::string &,
             size_t)> m_getCredentialsDg;
     };
 

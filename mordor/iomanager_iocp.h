@@ -3,8 +3,6 @@
 
 #include <map>
 
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/shared_ptr.hpp>
 #include <boost/thread/mutex.hpp>
 
 #include "scheduler.h"
@@ -27,22 +25,22 @@ struct AsyncEvent
 
     Scheduler  *m_scheduler;
     tid_t m_thread;
-    boost::shared_ptr<Fiber> m_fiber;
+    std::shared_ptr<Fiber> m_fiber;
 };
 
 class IOManager : public Scheduler, public TimerManager
 {
     friend class WaitBlock;
 private:
-    class WaitBlock : public boost::enable_shared_from_this<WaitBlock>
+    class WaitBlock : public std::enable_shared_from_this<WaitBlock>
     {
     public:
-        typedef boost::shared_ptr<WaitBlock> ptr;
+        typedef std::shared_ptr<WaitBlock> ptr;
     public:
         WaitBlock(IOManager &outer);
         ~WaitBlock();
 
-        bool registerEvent(HANDLE handle, boost::function<void ()> dg,
+        bool registerEvent(HANDLE handle, std::function<void ()> dg,
             bool recurring);
         size_t unregisterEvent(HANDLE handle);
 
@@ -56,8 +54,8 @@ private:
         HANDLE m_reconfigured;
         HANDLE m_handles[MAXIMUM_WAIT_OBJECTS];
         Scheduler *m_schedulers[MAXIMUM_WAIT_OBJECTS];
-        boost::shared_ptr<Fiber> m_fibers[MAXIMUM_WAIT_OBJECTS];
-        boost::function<void ()> m_dgs[MAXIMUM_WAIT_OBJECTS];
+        std::shared_ptr<Fiber> m_fibers[MAXIMUM_WAIT_OBJECTS];
+        std::function<void ()> m_dgs[MAXIMUM_WAIT_OBJECTS];
         bool m_recurring[MAXIMUM_WAIT_OBJECTS];
         int m_inUseCount;
     };
@@ -72,7 +70,7 @@ public:
     void registerEvent(AsyncEvent *e);
     // Only use if the async call failed, not for cancelling it
     void unregisterEvent(AsyncEvent *e);
-    void registerEvent(HANDLE handle, boost::function<void ()> dg,
+    void registerEvent(HANDLE handle, std::function<void ()> dg,
         bool recurring = false);
     void registerEvent(HANDLE handle, bool recurring = false)
     { registerEvent(handle, NULL, recurring); }

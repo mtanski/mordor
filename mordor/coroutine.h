@@ -2,8 +2,6 @@
 #define __MORDOR_COROUTINE_H__
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
 
 #include "exception.h"
@@ -21,13 +19,13 @@ class Coroutine : boost::noncopyable
 public:
     Coroutine()
     {
-        m_fiber = Fiber::ptr(new Fiber(boost::bind(&Coroutine::run, this)));
+        m_fiber = Fiber::ptr(new Fiber(std::bind(&Coroutine::run, this)));
     }
 
-    Coroutine(boost::function<void (Coroutine &, Arg)> dg)
+    Coroutine(std::function<void (Coroutine &, Arg)> dg)
         : m_dg(dg)
     {
-        m_fiber = Fiber::ptr(new Fiber(boost::bind(&Coroutine::run, this)));
+        m_fiber = Fiber::ptr(new Fiber(std::bind(&Coroutine::run, this)));
     }
 
     ~Coroutine()
@@ -47,7 +45,7 @@ public:
         m_fiber->reset();
     }
 
-    void reset(boost::function<void (Coroutine &, Arg)> dg)
+    void reset(std::function<void (Coroutine &, Arg)> dg)
     {
         reset();
         m_dg = dg;
@@ -83,7 +81,7 @@ private:
     }
 
 private:
-    boost::function<void (Coroutine &, Arg)> m_dg;
+    std::function<void (Coroutine &, Arg)> m_dg;
     Result m_result;
     Arg m_arg;
     Fiber::ptr m_fiber;
@@ -96,13 +94,13 @@ class Coroutine<Result, DummyVoid> : boost::noncopyable
 public:
     Coroutine()
     {
-        m_fiber = Fiber::ptr(new Fiber(boost::bind(&Coroutine::run, this)));
+        m_fiber = Fiber::ptr(new Fiber(std::bind(&Coroutine::run, this)));
     }
 
-    Coroutine(boost::function<void (Coroutine &)> dg)
+    Coroutine(std::function<void (Coroutine &)> dg)
         : m_dg(dg)
     {
-        m_fiber = Fiber::ptr(new Fiber(boost::bind(&Coroutine::run, this)));
+        m_fiber = Fiber::ptr(new Fiber(std::bind(&Coroutine::run, this)));
     }
 
     ~Coroutine()
@@ -122,7 +120,7 @@ public:
         m_fiber->reset();
     }
 
-    void reset(boost::function<void (Coroutine &)> dg)
+    void reset(std::function<void (Coroutine &)> dg)
     {
         reset();
         m_dg = dg;
@@ -156,7 +154,7 @@ private:
     }
 
 private:
-    boost::function<void (Coroutine &)> m_dg;
+    std::function<void (Coroutine &)> m_dg;
     Result m_result;
     Fiber::ptr m_fiber;
 };
@@ -167,13 +165,13 @@ class Coroutine<void, Arg> : boost::noncopyable
 public:
     Coroutine()
     {
-        m_fiber = Fiber::ptr(new Fiber(boost::bind(&Coroutine::run, this)));
+        m_fiber = Fiber::ptr(new Fiber(std::bind(&Coroutine::run, this)));
     }
 
-    Coroutine(boost::function<void (Coroutine &, Arg)> dg)
+    Coroutine(std::function<void (Coroutine &, Arg)> dg)
         : m_dg(dg)
     {
-        m_fiber = Fiber::ptr(new Fiber(boost::bind(&Coroutine::run, this)));
+        m_fiber = Fiber::ptr(new Fiber(std::bind(&Coroutine::run, this)));
     }
 
     ~Coroutine()
@@ -193,7 +191,7 @@ public:
         m_fiber->reset();
     }
 
-    void reset(boost::function<void (Coroutine &, Arg)> dg)
+    void reset(std::function<void (Coroutine &, Arg)> dg)
     {
         reset();
         m_dg = dg;
@@ -226,7 +224,7 @@ private:
     }
 
 private:
-    boost::function<void (Coroutine &, Arg)> m_dg;
+    std::function<void (Coroutine &, Arg)> m_dg;
     Arg m_arg;
     Fiber::ptr m_fiber;
 };

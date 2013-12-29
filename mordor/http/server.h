@@ -17,13 +17,13 @@ namespace HTTP {
 
 class ServerConnection;
 
-class ServerRequest : public boost::enable_shared_from_this<ServerRequest>, boost::noncopyable
+class ServerRequest : public std::enable_shared_from_this<ServerRequest>, boost::noncopyable
 {
 private:
     friend class ServerConnection;
 public:
-    typedef boost::shared_ptr<ServerRequest> ptr;
-    typedef boost::shared_ptr<const ServerRequest> const_ptr;
+    typedef std::shared_ptr<ServerRequest> ptr;
+    typedef std::shared_ptr<const ServerRequest> const_ptr;
 
     enum State {
         PENDING,
@@ -35,7 +35,7 @@ public:
     };
 
 private:
-    ServerRequest(boost::shared_ptr<ServerConnection> conn);
+    ServerRequest(std::shared_ptr<ServerConnection> conn);
 
 public:
     ~ServerRequest();
@@ -48,9 +48,9 @@ public:
     /// I.e. transfer encodings will already be applied, and it will have a
     /// size if Content-Length is set.
     /// @pre hasRequestBody()
-    boost::shared_ptr<Stream> requestStream();
+    std::shared_ptr<Stream> requestStream();
     const EntityHeaders &requestTrailer() const;
-    boost::shared_ptr<Multipart> requestMultipart();
+    std::shared_ptr<Multipart> requestMultipart();
 
     /// Response Headers
     ///
@@ -66,11 +66,11 @@ public:
     /// will be automatically applied, and you will be unable to write beyond
     /// the size of Content-Length was set.  The response headers will be
     /// automatically committed if they have not been committed already
-    boost::shared_ptr<Stream> responseStream();
-    boost::shared_ptr<Multipart> responseMultipart();
+    std::shared_ptr<Stream> responseStream();
+    std::shared_ptr<Multipart> responseMultipart();
     EntityHeaders &responseTrailer();
 
-    boost::shared_ptr<ServerConnection> connection() { return m_conn; }
+    std::shared_ptr<ServerConnection> connection() { return m_conn; }
 
     bool committed() const { return m_responseState >= HEADERS; }
 
@@ -102,17 +102,17 @@ private:
     void responseDone();
 
 private:
-    boost::shared_ptr<ServerConnection> m_conn;
+    std::shared_ptr<ServerConnection> m_conn;
     unsigned long long m_requestNumber;
     Scheduler *m_scheduler;
-    boost::shared_ptr<Fiber> m_fiber;
+    std::shared_ptr<Fiber> m_fiber;
     Request m_request;
     Response m_response;
     EntityHeaders m_requestTrailer, m_responseTrailer;
     State m_requestState, m_responseState;
     bool m_willClose, m_pipeline;
-    boost::shared_ptr<Stream> m_requestStream, m_responseStream;
-    boost::shared_ptr<Multipart> m_requestMultipart, m_responseMultipart;
+    std::shared_ptr<Stream> m_requestStream, m_responseStream;
+    std::shared_ptr<Multipart> m_requestMultipart, m_responseMultipart;
     std::string m_context;
 };
 
@@ -138,17 +138,17 @@ private:
 /// ServerRequest::processNextRequest() must be called before the server will
 /// start reading a pipelined request.
 class ServerConnection : public Connection,
-    public boost::enable_shared_from_this<ServerConnection>, boost::noncopyable
+    public std::enable_shared_from_this<ServerConnection>, boost::noncopyable
 {
 public:
-    typedef boost::shared_ptr<ServerConnection> ptr;
-    typedef boost::weak_ptr<ServerConnection> weak_ptr;
+    typedef std::shared_ptr<ServerConnection> ptr;
+    typedef std::weak_ptr<ServerConnection> weak_ptr;
 
 private:
     friend class ServerRequest;
 public:
-    ServerConnection(boost::shared_ptr<Stream> stream,
-        boost::function<void (ServerRequest::ptr)> dg,
+    ServerConnection(std::shared_ptr<Stream> stream,
+        std::function<void (ServerRequest::ptr)> dg,
         Address::ptr client_addr = Address::ptr());
 
     /// Does not block; simply schedules a new fiber to read the first request
@@ -166,7 +166,7 @@ private:
     void scheduleAllWaitingResponses();
 
 private:
-    boost::function<void (ServerRequest::ptr)> m_dg;
+    std::function<void (ServerRequest::ptr)> m_dg;
     boost::mutex m_mutex;
     std::list<ServerRequest *> m_pendingRequests;
     std::set<ServerRequest *> m_waitingResponses;
@@ -195,7 +195,7 @@ void respondError(ServerRequest::ptr request, Status status,
 /// necessary or possible
 void respondStream(ServerRequest::ptr request, Stream &response);
 void respondStream(ServerRequest::ptr request,
-    boost::shared_ptr<Stream> response);
+    std::shared_ptr<Stream> response);
 
 /// Procesess If-Match, If-None-Match headers
 ///

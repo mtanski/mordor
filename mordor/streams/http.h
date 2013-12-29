@@ -17,14 +17,14 @@ struct EntityChangedException : virtual Exception {};
 class HTTPStream : public FilterStream
 {
 public:
-    typedef boost::shared_ptr<HTTPStream> ptr;
+    typedef std::shared_ptr<HTTPStream> ptr;
 
 public:
     HTTPStream(const URI &uri, HTTP::RequestBroker::ptr requestBroker,
-        boost::function<bool (size_t)> delayDg = NULL);
+        std::function<bool (size_t)> delayDg = NULL);
     HTTPStream(const HTTP::Request &requestHeaders,
         HTTP::RequestBroker::ptr requestBroker,
-        boost::function<bool (size_t)> delayDg = NULL);
+        std::function<bool (size_t)> delayDg = NULL);
     ~HTTPStream();
 
     void sharedRetryCounter(size_t *retries) { mp_retries = retries; }
@@ -90,7 +90,7 @@ public:
 private:
     void start(size_t length);
     void stat();
-    void doWrite(boost::shared_ptr<HTTP::ClientRequest> request);
+    void doWrite(std::shared_ptr<HTTP::ClientRequest> request);
     void startWrite();
     void clearParent();
 
@@ -102,11 +102,11 @@ private:
     long long m_pos, m_size, m_sizeAdvice;
     unsigned long long m_readAdvice, m_writeAdvice,
         m_readRequested, m_writeRequested;
-    boost::function<bool (size_t)> m_delayDg;
+    std::function<bool (size_t)> m_delayDg;
     size_t *mp_retries;
     bool m_writeInProgress, m_abortWrite;
     Future<> m_writeFuture, m_writeFuture2;
-    boost::shared_ptr<HTTP::ClientRequest> m_writeRequest;
+    std::shared_ptr<HTTP::ClientRequest> m_writeRequest;
     boost::exception_ptr m_writeException;
 };
 

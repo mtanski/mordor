@@ -2,7 +2,6 @@
 #define __MORDOR_SOCKS_H__
 // Copyright (c) 2010 - Mozy, Inc.
 
-#include <boost/shared_ptr.hpp>
 
 #include "mordor/exception.h"
 
@@ -34,8 +33,8 @@ private:
     unsigned char m_status;
 };
 
-boost::shared_ptr<Stream> tunnel(boost::shared_ptr<HTTP::StreamBroker> streamBroker,
-    const URI &proxy, boost::shared_ptr<IPAddress> targetIP,
+std::shared_ptr<Stream> tunnel(std::shared_ptr<HTTP::StreamBroker> streamBroker,
+    const URI &proxy, std::shared_ptr<IPAddress> targetIP,
     const std::string &targetDomain = std::string(),
     unsigned short targetPort = 0,
     unsigned char version = 5);

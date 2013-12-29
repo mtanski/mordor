@@ -4,7 +4,6 @@
 
 #include <iosfwd>
 
-#include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
 
 #include "version.h"
@@ -60,7 +59,7 @@ public:
     };
 
 public:
-    Thread(boost::function<void ()> dg, const char *name = NULL);
+    Thread(std::function<void ()> dg, const char *name = NULL);
     ~Thread();
 
     tid_t tid() const { return m_tid; }
@@ -85,7 +84,7 @@ private:
 #endif
 
 #ifdef LINUX
-    boost::function<void ()> m_dg;
+    std::function<void ()> m_dg;
     Semaphore m_semaphore;
     const char *m_name;
 #endif

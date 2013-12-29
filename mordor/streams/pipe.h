@@ -4,7 +4,6 @@
 
 #include <utility>
 
-#include <boost/shared_ptr.hpp>
 
 #ifdef WINDOWS
 #include "handle.h"

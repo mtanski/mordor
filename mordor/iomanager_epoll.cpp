@@ -121,7 +121,7 @@ IOManager::AsyncState::contextForEvent(Event event)
 
 bool
 IOManager::AsyncState::triggerEvent(Event event, size_t *pendingEventCount,
-    Fiber::ptr *fiber, boost::function<void ()> *dg)
+    Fiber::ptr *fiber, std::function<void ()> *dg)
 {
     if (!(m_events & event))
         return false;
@@ -190,7 +190,7 @@ IOManager::~IOManager()
     close(m_tickleFds[0]);
     MORDOR_LOG_VERBOSE(g_log) << this << " close(" << m_tickleFds[0] << ")";
     close(m_tickleFds[1]);
-    // Yes, it would be more C++-esque to store a boost::shared_ptr in the
+    // Yes, it would be more C++-esque to store a std::shared_ptr in the
     // vector, but that requires an extra allocation per fd for the counter
     for (size_t i = 0; i < m_pendingEvents.size(); ++i) {
         if (m_pendingEvents[i])
@@ -206,7 +206,7 @@ IOManager::stopping()
 }
 
 void
-IOManager::registerEvent(int fd, Event event, boost::function<void ()> dg)
+IOManager::registerEvent(int fd, Event event, std::function<void ()> dg)
 {
     MORDOR_ASSERT(fd > 0);
     MORDOR_ASSERT(Scheduler::getThis());
@@ -326,7 +326,7 @@ IOManager::cancelEvent(int fd, Event event)
     if (rc)
         MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("epoll_ctl");
     Fiber::ptr fiber;
-    boost::function<void ()> dg;
+    std::function<void ()> dg;
     state.triggerEvent(event, &m_pendingEventCount, &fiber, &dg);
     lock2.unlock();
     return true;
@@ -366,7 +366,7 @@ IOManager::idle()
             << " (" << lastError() << ")";
         if (rc < 0)
             MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("epoll_wait");
-        std::vector<boost::function<void ()> > expired = processTimers();
+        std::vector<std::function<void ()> > expired = processTimers();
         schedule(expired.begin(), expired.end());
         expired.clear();
 
@@ -417,7 +417,7 @@ IOManager::idle()
                 MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("epoll_ctl");
 
             Fiber::ptr readFiber, writeFiber, closeFiber;
-            boost::function<void ()> readDg, writeDg, closeDg;
+            std::function<void ()> readDg, writeDg, closeDg;
             state.m_events = (Event)oldEvents;
             if (toTrigger & EPOLLIN)
                 state.triggerEvent(READ, &m_pendingEventCount, &readFiber,

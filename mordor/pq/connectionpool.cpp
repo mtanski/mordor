@@ -4,7 +4,6 @@
 
 #include "connectionpool.h"
 
-#include <boost/bind.hpp>
 
 #include "mordor/config.h"
 #include "mordor/iomanager.h"
@@ -28,7 +27,7 @@ ConnectionPool::ConnectionPool(const std::string &conninfo, IOManager *iomanager
     try {
         for (size_t i = 0; i < m_total; i++) {
             m_freeConnections.push_back(
-                boost::shared_ptr<Connection>(
+                std::shared_ptr<Connection>(
                     new Connection(m_conninfo, m_iomanager, 0, false)));
         }
     } catch(...) {
@@ -45,14 +44,14 @@ ConnectionPool::~ConnectionPool() {
     }
 }
 
-boost::shared_ptr<Connection> ConnectionPool::getConnection() {
+std::shared_ptr<Connection> ConnectionPool::getConnection() {
     FiberMutex::ScopedLock lock(m_mutex);
     MORDOR_LOG_DEBUG(g_logger) << "Trying to get connection, pool size is "
                                << m_freeConnections.size();
     if (m_freeConnections.empty() && m_busyConnections.size() < m_total) {
         try {
             m_freeConnections.push_back(
-                boost::shared_ptr<Connection>(
+                std::shared_ptr<Connection>(
                     new Connection(m_conninfo, m_iomanager, 0, false)));
         } catch(...) {
             MORDOR_LOG_ERROR(g_logger)
@@ -63,7 +62,7 @@ boost::shared_ptr<Connection> ConnectionPool::getConnection() {
         m_condition.wait();
     }
     MORDOR_ASSERT(!m_freeConnections.empty());
-    boost::shared_ptr<Connection> conn = *m_freeConnections.begin();
+    std::shared_ptr<Connection> conn = *m_freeConnections.begin();
     if (conn->status() == CONNECTION_BAD) {
         conn->connect();
     }
@@ -79,9 +78,9 @@ boost::shared_ptr<Connection> ConnectionPool::getConnection() {
     }
     //The ret is for return value, which has separate counter than
     //the share_ptr stored in m_free/m_busyConnections
-    boost::shared_ptr<Connection> ret(
+    std::shared_ptr<Connection> ret(
         conn.get(),
-        boost::bind(&ConnectionPool::releaseConnection, this, _1));
+        std::bind(&ConnectionPool::releaseConnection, this, std::placeholders::_1));
     m_busyConnections.push_back(conn);
     m_freeConnections.erase(m_freeConnections.begin());
     return ret;
@@ -99,8 +98,8 @@ void ConnectionPool::resize(size_t num) {
 void ConnectionPool::releaseConnection(Connection* conn) {
         FiberMutex::ScopedLock lock(m_mutex);
         MORDOR_LOG_DEBUG(g_logger) << "Release connection " << conn;
-        boost::shared_ptr<Connection> c(conn, &nop<Connection*>);
-        std::list<boost::shared_ptr<Connection> >::iterator it
+        std::shared_ptr<Connection> c(conn, &nop<Connection*>);
+        std::list<std::shared_ptr<Connection> >::iterator it
             = std::find(m_busyConnections.begin(), m_busyConnections.end(), c);
         MORDOR_ASSERT(it != m_busyConnections.end());
         c = *it; //This line is necessary,
@@ -119,7 +118,7 @@ void
 associateConnectionPoolWithConfigVar(ConnectionPool &pool,
     ConfigVar<size_t>::ptr configVar)
 {
-  configVar->onChange.connect(boost::bind(&ConnectionPool::resize, &pool, _1));
+  configVar->onChange.connect(std::bind(&ConnectionPool::resize, &pool, std::placeholders::_1));
   pool.resize(configVar->val());
 }
 

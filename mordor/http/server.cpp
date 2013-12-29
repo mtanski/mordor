@@ -2,7 +2,6 @@
 
 #include "server.h"
 
-#include <boost/bind.hpp>
 
 #include "mordor/fiber.h"
 #include "mordor/scheduler.h"
@@ -17,7 +16,7 @@ namespace HTTP {
 
 static Logger::ptr g_log = Log::lookup("mordor:http:server");
 
-ServerConnection::ServerConnection(Stream::ptr stream, boost::function<void (ServerRequest::ptr)> dg, Address::ptr client_addr)
+ServerConnection::ServerConnection(Stream::ptr stream, std::function<void (ServerRequest::ptr)> dg, Address::ptr client_addr)
 : Connection(stream),
   m_dg(dg),
   m_requestCount(0),
@@ -65,7 +64,7 @@ ServerConnection::scheduleNextRequest(ServerRequest *request)
         m_pendingRequests.push_back(nextRequest.get());
         MORDOR_LOG_TRACE(g_log) << this << "-" << nextRequest->m_requestNumber
             << " scheduling request";
-        Scheduler::getThis()->schedule(boost::bind(&ServerRequest::doRequest,
+        Scheduler::getThis()->schedule(std::bind(&ServerRequest::doRequest,
             nextRequest));
     }
 }
@@ -286,8 +285,8 @@ ServerRequest::requestStream()
         return m_requestStream;
     return m_requestStream = m_conn->getStream(m_request.general, m_request.entity,
         m_request.requestLine.method, INVALID,
-        boost::bind(&ServerRequest::requestDone, this),
-        boost::bind(&ServerRequest::cancel, this), true);
+        std::bind(&ServerRequest::requestDone, this),
+        std::bind(&ServerRequest::cancel, this), true);
 }
 
 Multipart::ptr
@@ -304,9 +303,9 @@ ServerRequest::requestMultipart()
     m_requestStream = m_conn->getStream(m_request.general, m_request.entity,
         m_request.requestLine.method, INVALID,
         NULL,
-        boost::bind(&ServerRequest::cancel, this), true);
+        std::bind(&ServerRequest::cancel, this), true);
     m_requestMultipart.reset(new Multipart(m_requestStream, it->second));
-    m_requestMultipart->multipartFinished = boost::bind(&ServerRequest::requestDone, this);
+    m_requestMultipart->multipartFinished = std::bind(&ServerRequest::requestDone, this);
     return m_requestMultipart;
 }
 
@@ -342,8 +341,8 @@ ServerRequest::responseStream()
     commit();
     return m_responseStream = m_conn->getStream(m_response.general, m_response.entity,
         m_request.requestLine.method, m_response.status.status,
-        boost::bind(&ServerRequest::responseDone, this),
-        boost::bind(&ServerRequest::cancel, this), false);
+        std::bind(&ServerRequest::responseDone, this),
+        std::bind(&ServerRequest::cancel, this), false);
 }
 
 Multipart::ptr
@@ -360,10 +359,10 @@ ServerRequest::responseMultipart()
     commit();
     m_responseStream = m_conn->getStream(m_response.general, m_response.entity,
         m_request.requestLine.method, m_response.status.status,
-        boost::bind(&ServerRequest::responseDone, this),
-        boost::bind(&ServerRequest::cancel, this), false);
+        std::bind(&ServerRequest::responseDone, this),
+        std::bind(&ServerRequest::cancel, this), false);
     m_responseMultipart.reset(new Multipart(m_responseStream, it->second));
-    m_responseMultipart->multipartFinished = boost::bind(&ServerRequest::responseMultipartDone, this);
+    m_responseMultipart->multipartFinished = std::bind(&ServerRequest::responseMultipartDone, this);
     return m_responseMultipart;
 }
 

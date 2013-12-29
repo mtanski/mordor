@@ -72,7 +72,7 @@ IOManager::stopping()
 
 void
 IOManager::registerEvent(int fd, Event events,
-                               boost::function<void ()> dg)
+                               std::function<void ()> dg)
 {
     MORDOR_ASSERT(fd > 0);
     MORDOR_ASSERT(Scheduler::getThis());
@@ -135,7 +135,7 @@ IOManager::cancelEvent(int fd, Event events)
     MORDOR_ASSERT(e.event.ident == (unsigned)fd);
     Scheduler *scheduler;
     Fiber::ptr fiber;
-    boost::function<void ()> dg;
+    std::function<void ()> dg;
     if (events == READ) {
         scheduler = e.m_scheduler;
         fiber.swap(e.m_fiber);
@@ -257,7 +257,7 @@ IOManager::idle()
             << ")";
         if (rc < 0)
             MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("kevent");
-        std::vector<boost::function<void ()> > expired = processTimers();
+        std::vector<std::function<void ()> > expired = processTimers();
         schedule(expired.begin(), expired.end());
         expired.clear();
 

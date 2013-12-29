@@ -2,7 +2,6 @@
 
 #include "scheduler.h"
 
-#include <boost/bind.hpp>
 
 #include "assert.h"
 #include "fiber.h"
@@ -25,7 +24,7 @@ Scheduler::Scheduler(size_t threads, bool useCaller, size_t batchSize)
         --threads;
         MORDOR_ASSERT(getThis() == NULL);
         t_scheduler = this;
-        m_rootFiber.reset(new Fiber(boost::bind(&Scheduler::run, this)));
+        m_rootFiber.reset(new Fiber(std::bind(&Scheduler::run, this)));
         t_scheduler = this;
         t_fiber = m_rootFiber.get();
         m_rootThread = gettid();
@@ -65,8 +64,8 @@ Scheduler::start()
     MORDOR_ASSERT(m_threads.empty());
     m_threads.resize(m_threadCount);
     for (size_t i = 0; i < m_threadCount; ++i) {
-        m_threads[i] = boost::shared_ptr<Thread>(new Thread(
-            boost::bind(&Scheduler::run, this)));
+        m_threads[i] = std::shared_ptr<Thread>(new Thread(
+            std::bind(&Scheduler::run, this)));
     }
 }
 
@@ -131,12 +130,12 @@ Scheduler::stop()
         Scheduler::getThis() != this) {
         MORDOR_LOG_DEBUG(g_log) << this
             << " waiting for other threads to stop";
-        std::vector<boost::shared_ptr<Thread> > threads;
+        std::vector<std::shared_ptr<Thread> > threads;
         {
             boost::mutex::scoped_lock lock(m_mutex);
             threads.swap(m_threads);
         }
-        for (std::vector<boost::shared_ptr<Thread> >::const_iterator it
+        for (std::vector<std::shared_ptr<Thread> >::const_iterator it
             (threads.begin());
             it != threads.end();
             ++it) {
@@ -166,7 +165,7 @@ Scheduler::schedule(Fiber::ptr f, tid_t thread)
 }
 
 void
-Scheduler::schedule(boost::function<void ()> dg, tid_t thread)
+Scheduler::schedule(std::function<void ()> dg, tid_t thread)
 {
     bool tickleMe;
     {
@@ -178,10 +177,10 @@ Scheduler::schedule(boost::function<void ()> dg, tid_t thread)
 }
 
 #ifndef NDEBUG
-static bool contains(const std::vector<boost::shared_ptr<Thread> >
+static bool contains(const std::vector<std::shared_ptr<Thread> >
     &threads, tid_t thread)
 {
-    for (std::vector<boost::shared_ptr<Thread> >::const_iterator it =
+    for (std::vector<std::shared_ptr<Thread> >::const_iterator it =
         threads.begin(); it != threads.end(); ++it)
         if ((*it)->tid() == thread)
             return true;
@@ -205,10 +204,10 @@ Scheduler::scheduleNoLock(Fiber::ptr f, tid_t thread)
 }
 
 bool
-Scheduler::scheduleNoLock(boost::function<void ()> dg, tid_t thread)
+Scheduler::scheduleNoLock(std::function<void ()> dg, tid_t thread)
 {
-    MORDOR_LOG_DEBUG(g_log) << this << " scheduling " << dg << " on thread "
-        << thread;
+    // MORDOR_LOG_DEBUG(g_log) << this << " scheduling " << dg << " on thread "
+    //    << thread;
     MORDOR_ASSERT(dg);
     // Not thread-targeted, or this scheduler owns the targetted thread
     MORDOR_ASSERT(thread == emptytid() || thread == m_rootThread ||
@@ -279,8 +278,8 @@ Scheduler::threadCount(size_t threads)
     } else if (threads > m_threadCount) {
         m_threads.resize(threads);
         for (size_t i = m_threadCount; i < threads; ++i)
-            m_threads[i] = boost::shared_ptr<Thread>(new Thread(
-            boost::bind(&Scheduler::run, this)));
+            m_threads[i] = std::shared_ptr<Thread>(new Thread(
+            std::bind(&Scheduler::run, this)));
     }
     m_threadCount = threads;
 }
@@ -310,7 +309,7 @@ Scheduler::run()
         // Hijacked a thread
         MORDOR_ASSERT(t_fiber.get() == Fiber::getThis().get());
     }
-    Fiber::ptr idleFiber(new Fiber(boost::bind(&Scheduler::idle, this)));
+    Fiber::ptr idleFiber(new Fiber(std::bind(&Scheduler::idle, this)));
     MORDOR_LOG_VERBOSE(g_log) << this << " starting thread with idle fiber " << idleFiber;
     Fiber::ptr dgFiber;
     // use a vector for O(1) .size()
@@ -335,7 +334,7 @@ Scheduler::run()
                     idleFiber->inject(boost::current_exception());
                 }
                 // Detach our thread
-                for (std::vector<boost::shared_ptr<Thread> >
+                for (std::vector<std::shared_ptr<Thread> >
                     ::iterator it = m_threads.begin();
                     it != m_threads.end();
                     ++it)
@@ -406,7 +405,7 @@ Scheduler::run()
             std::vector<FiberAndThread>::iterator it;
             for (it = batch.begin(); it != batch.end(); ++it) {
                 Fiber::ptr f = it->fiber;
-                boost::function<void ()> dg = it->dg;
+                std::function<void ()> dg = it->dg;
 
                 try {
                     if (f && f->state() != Fiber::TERM) {
@@ -416,7 +415,7 @@ Scheduler::run()
                         if (!dgFiber)
                             dgFiber.reset(new Fiber(dg));
                         dgFiber->reset(dg);
-                        MORDOR_LOG_DEBUG(g_log) << this << " running " << dg;
+                        // MORDOR_LOG_DEBUG(g_log) << this << " running " << dg;
                         dgFiber->yieldTo();
                         if (dgFiber->state() != Fiber::TERM)
                             dgFiber.reset();

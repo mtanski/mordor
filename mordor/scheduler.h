@@ -4,9 +4,7 @@
 
 #include <list>
 
-#include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
-#include <boost/shared_ptr.hpp>
 #include <boost/thread/mutex.hpp>
 
 #include "thread.h"
@@ -76,14 +74,14 @@ public:
     /// @param f The Fiber to schedule
     /// @param thread Optionally provide a specific thread for the Fiber to run
     /// on
-    void schedule(boost::shared_ptr<Fiber> fiber, tid_t thread = emptytid());
+    void schedule(std::shared_ptr<Fiber> fiber, tid_t thread = emptytid());
     /// Schedule a generic functor to be executed on the Scheduler
 
     /// The functor will be executed on a new Fiber.
     /// @param dg The functor to schedule
     /// @param thread Optionally provide a specific thread for the functor to
     /// run on
-    void schedule(boost::function<void ()> dg, tid_t thread = emptytid());
+    void schedule(std::function<void ()> dg, tid_t thread = emptytid());
 
     /// Schedule multiple items to be executed at once
 
@@ -144,7 +142,7 @@ public:
     /// Change the number of threads in this scheduler
     void threadCount(size_t threads);
 
-    const std::vector<boost::shared_ptr<Thread> >& threads() const
+    const std::vector<std::shared_ptr<Thread> >& threads() const
     {
         return m_threads;
     }
@@ -176,15 +174,15 @@ private:
     void yieldTo(bool yieldToCallerOnTerminate);
     void run();
 
-    bool scheduleNoLock(boost::shared_ptr<Fiber> fiber,
+    bool scheduleNoLock(std::shared_ptr<Fiber> fiber,
         tid_t thread = emptytid());
-    bool scheduleNoLock(boost::function<void ()> dg,
+    bool scheduleNoLock(std::function<void ()> dg,
         tid_t thread = emptytid());
 
 private:
     struct FiberAndThread {
-        boost::shared_ptr<Fiber> fiber;
-        boost::function<void ()> dg;
+        std::shared_ptr<Fiber> fiber;
+        std::function<void ()> dg;
         tid_t thread;
     };
     static ThreadLocalStorage<Scheduler *> t_scheduler;
@@ -192,9 +190,9 @@ private:
     boost::mutex m_mutex;
     std::list<FiberAndThread> m_fibers;
     tid_t m_rootThread;
-    boost::shared_ptr<Fiber> m_rootFiber;
-    boost::shared_ptr<Fiber> m_callingFiber;
-    std::vector<boost::shared_ptr<Thread> > m_threads;
+    std::shared_ptr<Fiber> m_rootFiber;
+    std::shared_ptr<Fiber> m_callingFiber;
+    std::vector<std::shared_ptr<Thread> > m_threads;
     size_t m_threadCount, m_activeThreadCount;
     bool m_stopping;
     bool m_autoStop;

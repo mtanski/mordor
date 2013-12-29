@@ -6,7 +6,6 @@
 #include <string>
 #include <vector>
 
-#include <boost/shared_ptr.hpp>
 
 namespace Mordor {
 
@@ -24,7 +23,7 @@ public:
     size_t run(const std::string &string);
     size_t run(const Buffer &buffer);
     unsigned long long run(Stream &stream);
-    unsigned long long run(boost::shared_ptr<Stream> stream) { return run(*stream); }
+    unsigned long long run(std::shared_ptr<Stream> stream) { return run(*stream); }
 
     // Partial parsing
     virtual void init();

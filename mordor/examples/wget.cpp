@@ -3,9 +3,9 @@
 #include "mordor/predef.h"
 
 #include <iostream>
+#include <functional>
+namespace barg = std::placeholders;
 
-#include <boost/bind.hpp>
-#include <boost/shared_ptr.hpp>
 #include <boost/program_options.hpp>
 
 #include "mordor/config.h"
@@ -102,8 +102,8 @@ MORDOR_MAIN(int argc, char *argv[])
         if (vm.count("proxyusername")) proxyusername = vm["proxyusername"].as<std::string>();
         if (vm.count("proxypassword")) proxypassword = vm["proxypassword"].as<std::string>();
         if (vm.count("proxyusername"))
-            options.getProxyCredentialsDg = boost::bind(&getCredentials, _2, _3, _5, _6,
-                proxyusername, proxypassword, _7, true);
+            options.getProxyCredentialsDg = std::bind(&getCredentials, barg::_2, barg::_3,
+		barg::_5, barg::_6, proxyusername, proxypassword, barg::_7, true);
 #ifdef OSX
         else
             options.getProxyCredentialsDg = &HTTP::getCredentialsFromKeychain;
@@ -111,8 +111,8 @@ MORDOR_MAIN(int argc, char *argv[])
         HTTP::RequestBroker::ptr proxyBroker =
             HTTP::createRequestBroker(options).first;
         if (vm.count("username"))
-            options.getCredentialsDg = boost::bind(&getCredentials, _2, _3, _5, _6,
-                username, password, _7, false);
+            options.getCredentialsDg = std::bind(&getCredentials, barg::_2, barg::_3, barg::_5,
+		barg::_6, username, password, barg::_7, false);
 #ifdef OSX
         else
             options.getCredentialsDg = &HTTP::getCredentialsFromKeychain;
@@ -120,12 +120,12 @@ MORDOR_MAIN(int argc, char *argv[])
         options.proxyRequestBroker = proxyBroker;
 #ifdef WINDOWS
         HTTP::ProxyCache proxyCache;
-        options.proxyForURIDg = boost::bind(
-            &HTTP::ProxyCache::proxyFromUserSettings, &proxyCache, _1);
+        options.proxyForURIDg = std::bind(
+            &HTTP::ProxyCache::proxyFromUserSettings, &proxyCache, barg::_1);
 #elif defined (OSX)
         HTTP::ProxyCache proxyCache(proxyBroker);
-        options.proxyForURIDg = boost::bind(
-            &HTTP::ProxyCache::proxyFromSystemConfiguration, &proxyCache, _1);
+        options.proxyForURIDg = std::bind(
+            &HTTP::ProxyCache::proxyFromSystemConfiguration, &proxyCache, bard::_1);
 #else
         options.proxyForURIDg = &HTTP::proxyFromConfig;
 #endif

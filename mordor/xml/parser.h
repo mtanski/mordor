@@ -2,7 +2,6 @@
 #define __MORDOR_XML_PARSER_H__
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include <boost/function.hpp>
 
 #include "mordor/ragel.h"
 
@@ -27,13 +26,13 @@ class CallbackXMLParserEventHandler : public XMLParserEventHandler
 {
 public:
     CallbackXMLParserEventHandler(
-        boost::function<void (const std::string &)> startTag,
-        boost::function<void (const std::string &)> endTag = NULL,
-        boost::function<void ()> emptyTag = NULL,
-        boost::function<void (const std::string &)> attribName = NULL,
-        boost::function<void (const std::string &)> attribValue = NULL,
-        boost::function<void (const std::string &)> innerText = NULL,
-        boost::function<void (const std::string &)> reference = NULL)
+        std::function<void (const std::string &)> startTag,
+        std::function<void (const std::string &)> endTag = NULL,
+        std::function<void ()> emptyTag = NULL,
+        std::function<void (const std::string &)> attribName = NULL,
+        std::function<void (const std::string &)> attribValue = NULL,
+        std::function<void (const std::string &)> innerText = NULL,
+        std::function<void (const std::string &)> reference = NULL)
       : m_startTag(startTag),
         m_endTag(endTag),
         m_attribName(attribName),
@@ -59,9 +58,9 @@ public:
     { if (m_reference) m_reference(reference); }
 
 private:
-    boost::function<void (const std::string &)> m_startTag, m_endTag,
+    std::function<void (const std::string &)> m_startTag, m_endTag,
         m_attribName, m_attribValue, m_innerText, m_reference;
-    boost::function<void ()> m_emptyTag;
+    std::function<void ()> m_emptyTag;
 };
 
 class XMLParser : public RagelParserWithStack

@@ -24,7 +24,7 @@
 
 namespace Mordor {
 
-boost::function<unsigned long long ()> TimerManager::ms_clockDg;
+std::function<unsigned long long ()> TimerManager::ms_clockDg;
 
 static Logger::ptr g_log = Log::lookup("mordor:timer");
 
@@ -36,7 +36,7 @@ static ConfigVar<unsigned long long>::ptr g_clockRolloverThreshold =
     "Expire all timers if the clock goes backward by >= this amount");
 
 static void
-stubOnTimer(boost::weak_ptr<void> weakCond, boost::function<void ()> dg);
+stubOnTimer(std::weak_ptr<void> weakCond, std::function<void ()> dg);
 
 #ifdef WINDOWS
 static unsigned long long queryFrequency()
@@ -86,7 +86,7 @@ TimerManager::now()
 #endif
 }
 
-Timer::Timer(unsigned long long us, boost::function<void ()> dg, bool recurring,
+Timer::Timer(unsigned long long us, std::function<void ()> dg, bool recurring,
              TimerManager *manager)
     : m_recurring(recurring),
       m_us(us),
@@ -179,7 +179,7 @@ TimerManager::~TimerManager()
 }
 
 Timer::ptr
-TimerManager::registerTimer(unsigned long long us, boost::function<void ()> dg,
+TimerManager::registerTimer(unsigned long long us, std::function<void ()> dg,
         bool recurring)
 {
     MORDOR_ASSERT(dg);
@@ -200,20 +200,20 @@ TimerManager::registerTimer(unsigned long long us, boost::function<void ()> dg,
 
 Timer::ptr
 TimerManager::registerConditionTimer(unsigned long long us,
-    boost::function<void ()> dg,
-    boost::weak_ptr<void> weakCond,
+    std::function<void ()> dg,
+    std::weak_ptr<void> weakCond,
     bool recurring)
 {
     return registerTimer(us,
-        boost::bind(stubOnTimer, weakCond, dg),
+        std::bind(stubOnTimer, weakCond, dg),
         recurring);
 }
 
 static void
 stubOnTimer(
-    boost::weak_ptr<void> weakCond, boost::function<void ()> dg)
+    std::weak_ptr<void> weakCond, std::function<void ()> dg)
 {
-    boost::shared_ptr<void> temp = weakCond.lock();
+    std::shared_ptr<void> temp = weakCond.lock();
     if (temp) {
         dg();
     } else {
@@ -261,11 +261,11 @@ TimerManager::detectClockRollover(unsigned long long nowUs)
     return rollover;
 }
 
-std::vector<boost::function<void ()> >
+std::vector<std::function<void ()> >
 TimerManager::processTimers()
 {
     std::vector<Timer::ptr> expired;
-    std::vector<boost::function<void ()> > result;
+    std::vector<std::function<void ()> > result;
     unsigned long long nowUs = now();
     {
         boost::mutex::scoped_lock lock(m_mutex);
@@ -308,9 +308,9 @@ TimerManager::processTimers()
 void
 TimerManager::executeTimers()
 {
-    std::vector<boost::function<void ()> > expired = processTimers();
+    std::vector<std::function<void ()> > expired = processTimers();
     // Run the callbacks for each expired timer (not under a lock)
-    for (std::vector<boost::function<void ()> >::iterator it(expired.begin());
+    for (std::vector<std::function<void ()> >::iterator it(expired.begin());
         it != expired.end();
         ++it) {
         (*it)();
@@ -318,7 +318,7 @@ TimerManager::executeTimers()
 }
 
 void
-TimerManager::setClock(boost::function<unsigned long long()> dg)
+TimerManager::setClock(std::function<unsigned long long()> dg)
 {
     ms_clockDg = dg;
 }

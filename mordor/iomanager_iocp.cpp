@@ -2,7 +2,6 @@
 
 #include "iomanager_iocp.h"
 
-#include <boost/bind.hpp>
 
 #include "assert.h"
 #include "atomic.h"
@@ -51,7 +50,7 @@ IOManager::WaitBlock::~WaitBlock()
 
 bool
 IOManager::WaitBlock::registerEvent(HANDLE hEvent,
-                                        boost::function <void ()> dg,
+                                        std::function <void ()> dg,
                                         bool recurring)
 {
     boost::mutex::scoped_lock lock(m_mutex);
@@ -67,7 +66,7 @@ IOManager::WaitBlock::registerEvent(HANDLE hEvent,
     MORDOR_LOG_DEBUG(g_logWaitBlock) << this << " registerEvent(" << hEvent
         << ", " << dg << ")";
     if (m_inUseCount == 1) {
-        Thread thread(boost::bind(&WaitBlock::run, this));
+        Thread thread(std::bind(&WaitBlock::run, this));
     } else {
         if (!SetEvent(m_handles[0]))
             MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("SetEvent");
@@ -75,7 +74,7 @@ IOManager::WaitBlock::registerEvent(HANDLE hEvent,
     return true;
 }
 
-typedef boost::function<void ()> functor;
+typedef std::function<void ()> functor;
 size_t
 IOManager::WaitBlock::unregisterEvent(HANDLE handle)
 {
@@ -203,8 +202,8 @@ IOManager::WaitBlock::removeEntry(int index)
     memmove(&m_schedulers[index], &m_schedulers[index + 1], (m_inUseCount - index) * sizeof(Scheduler *));
     // Manually destruct old object, move others down, and default construct unused one
     m_dgs[index].~functor();
-    memmove(&m_dgs[index], &m_dgs[index + 1], (m_inUseCount - index) * sizeof(boost::function<void ()>));
-    new(&m_dgs[m_inUseCount]) boost::function<void ()>();
+    memmove(&m_dgs[index], &m_dgs[index + 1], (m_inUseCount - index) * sizeof(std::function<void ()>));
+    new(&m_dgs[m_inUseCount]) std::function<void ()>();
     // Manually destruct old object, move others down, and default construct unused one
     m_fibers[index].~shared_ptr<Fiber>();
     memmove(&m_fibers[index], &m_fibers[index + 1], (m_inUseCount - index) * sizeof(Fiber::ptr));
@@ -302,7 +301,7 @@ IOManager::unregisterEvent(AsyncEvent *e)
 }
 
 void
-IOManager::registerEvent(HANDLE handle, boost::function<void ()> dg, bool recurring)
+IOManager::registerEvent(HANDLE handle, std::function<void ()> dg, bool recurring)
 {
     MORDOR_LOG_DEBUG(g_log) << this << " registerEvent(" << handle << ", " << dg
         << ")";
@@ -408,7 +407,7 @@ IOManager::idle()
             << count << ") (" << error << ")";
         if (!ret && error) {
             if (error == WAIT_TIMEOUT) {
-                std::vector<boost::function<void ()> > expired = processTimers();
+                std::vector<std::function<void ()> > expired = processTimers();
                 if (!expired.empty()) {
                     schedule(expired.begin(), expired.end());
                     expired.clear();
@@ -422,7 +421,7 @@ IOManager::idle()
             }
             MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("GetQueuedCompletionStatusEx");
         }
-        std::vector<boost::function<void ()> > expired = processTimers();
+        std::vector<std::function<void ()> > expired = processTimers();
         schedule(expired.begin(), expired.end());
         expired.clear();
 

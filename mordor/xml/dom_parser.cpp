@@ -1,7 +1,6 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
 #include <boost/algorithm/string.hpp>
-#include <boost/bind.hpp>
 #include "mordor/assert.h"
 #include "mordor/xml/dom_parser.h"
 
@@ -12,13 +11,13 @@ namespace DOM {
     Document *doc = new Document(); \
     m_element = doc->documentElement(); \
     CallbackXMLParserEventHandler handler( \
-        boost::bind(&XMLParser::onStartTag, this, _1, doc), \
-        boost::bind(&XMLParser::onEndTag, this, _1, doc), \
-        boost::bind(&XMLParser::onEmptyTag, this), \
-        boost::bind(&XMLParser::onAttributeName, this, _1), \
-        boost::bind(&XMLParser::onAttributeValue, this, _1), \
-        boost::bind(&XMLParser::onInnerText, this, _1), \
-        boost::bind(&XMLParser::onReference, this, _1)); \
+        std::bind(&XMLParser::onStartTag, this, std::placeholders::_1, doc), \
+        std::bind(&XMLParser::onEndTag, this, std::placeholders::_1, doc), \
+        std::bind(&XMLParser::onEmptyTag, this), \
+        std::bind(&XMLParser::onAttributeName, this, std::placeholders::_1), \
+        std::bind(&XMLParser::onAttributeValue, this, std::placeholders::_1), \
+        std::bind(&XMLParser::onInnerText, this, std::placeholders::_1), \
+        std::bind(&XMLParser::onReference, this, std::placeholders::_1)); \
         Mordor::XMLParser parser(handler); \
     parser.run(xml); \
     if (!parser.final() || parser.error()) { \
@@ -69,7 +68,7 @@ Document::ptr XMLParser::loadDocument(const Buffer& buffer) {
 Document::ptr XMLParser::loadDocument(Stream& stream) {
     PARSE_DOC(stream)
 }
-Document::ptr XMLParser::loadDocument(boost::shared_ptr<Stream> stream) {
+Document::ptr XMLParser::loadDocument(std::shared_ptr<Stream> stream) {
     PARSE_DOC(*stream)
 }
 
