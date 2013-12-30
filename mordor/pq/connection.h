@@ -2,6 +2,8 @@
 #define __MORDOR_PQ_CONNECTION_H__
 // Copyright (c) 2010 Mozy, Inc.
 
+#include <memory>
+
 #include <boost/noncopyable.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 
@@ -15,6 +17,9 @@ namespace PQ {
 
 class Connection : boost::noncopyable
 {
+public:
+    typedef std::shared_ptr<Connection> ptr;
+
 public:
     Connection(const std::string &conninfo, IOManager *ioManager = NULL,
         Scheduler *scheduler = NULL,
