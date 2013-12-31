@@ -478,7 +478,8 @@ MORDOR_UNITTEST(Buffer, visitSingleSegment)
 {
     Buffer b("hello");
     int sequence = 0;
-    b.visit(std::bind(&visitor2, std::placeholders::_1, _2, std::ref(sequence)));
+    b.visit(std::bind(&visitor2, std::placeholders::_1, std::placeholders::_2,
+        std::ref(sequence)));
     MORDOR_TEST_ASSERT_EQUAL(++sequence, 2);
 }
 
@@ -505,7 +506,8 @@ MORDOR_UNITTEST(Buffer, visitMultipleSegments)
     int sequence = 0;
     b.copyIn("a");
     b.copyIn("bc");
-    b.visit(std::bind(&visitor3, std::placeholders::_1, _2, std::ref(sequence)));
+    b.visit(std::bind(&visitor3, std::placeholders::_1, std::placeholders::_2,
+        std::ref(sequence)));
     MORDOR_TEST_ASSERT_EQUAL(++sequence, 3);
 }
 
@@ -515,7 +517,8 @@ MORDOR_UNITTEST(Buffer, visitMultipleSegmentsPartial)
     int sequence = 0;
     b.copyIn("a");
     b.copyIn("bcd");
-    b.visit(std::bind(&visitor3, std::placeholders::_1, _2, std::ref(sequence)), 3);
+    b.visit(std::bind(&visitor3, std::placeholders::_1, std::placeholders::_2,
+        std::ref(sequence)), 3);
     MORDOR_TEST_ASSERT_EQUAL(++sequence, 3);
 }
 
@@ -524,7 +527,8 @@ MORDOR_UNITTEST(Buffer, visitWithWriteSegment)
     Buffer b("hello");
     b.reserve(5);
     int sequence = 0;
-    b.visit(std::bind(&visitor2, std::placeholders::_1, _2, std::ref(sequence)));
+    b.visit(std::bind(&visitor2, std::placeholders::_1, std::placeholders::_2,
+        std::ref(sequence)));
     MORDOR_TEST_ASSERT_EQUAL(++sequence, 2);
 }
 
@@ -534,7 +538,8 @@ MORDOR_UNITTEST(Buffer, visitWithMixedSegment)
     b.reserve(10);
     b.copyIn("hello");
     int sequence = 0;
-    b.visit(std::bind(&visitor2, std::placeholders::_1, _2, std::ref(sequence)));
+    b.visit(std::bind(&visitor2, std::placeholders::_1, std::placeholders::_2,
+        std::ref(sequence)));
     MORDOR_TEST_ASSERT_EQUAL(++sequence, 2);
 }
 

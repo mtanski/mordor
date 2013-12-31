@@ -25,7 +25,8 @@ public:
 #pragma warning(disable: 4355)
 #endif
     ReadAdviceFixture()
-        : server(std::bind(&ReadAdviceFixture::dummyServer, this, std::placeholders::_1, _2)),
+        : server(std::bind(&ReadAdviceFixture::dummyServer, this, std::placeholders::_1,
+              std::placeholders::_2)),
           baseRequestBroker(ConnectionBroker::ptr(&server,
               &nop<ConnectionBroker *>)),
           requestBroker(&baseRequestBroker, &nop<RequestBroker *>),
@@ -254,7 +255,8 @@ public:
 #pragma warning(disable: 4355)
 #endif
     WriteAdviceFixture()
-        : server(std::bind(&WriteAdviceFixture::dummyServer, this, std::placeholders::_1, _2)),
+        : server(std::bind(&WriteAdviceFixture::dummyServer, this, std::placeholders::_1,
+              std::placeholders::_2)),
           baseRequestBroker(ConnectionBroker::ptr(&server,
               &nop<ConnectionBroker *>)),
           requestBroker(&baseRequestBroker, &nop<RequestBroker *>),

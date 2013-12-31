@@ -1565,7 +1565,8 @@ MORDOR_UNITTEST(HTTPClient, pipelineTimeout)
     IOManager ioManager;
 
     MockConnectionBroker server(std::bind(&serverDelaysFirstResponse,
-        std::placeholders::_1, _2, std::ref(ioManager)), &ioManager, 100000, ~0ull);
+        std::placeholders::_1, std::placeholders::_2, std::ref(ioManager)),
+	&ioManager, 100000, ~0ull);
     BaseRequestBroker requestBroker(ConnectionBroker::ptr(&server, &nop<ConnectionBroker *>));
 
     ioManager.schedule(std::bind(&firstRequest, std::ref(requestBroker)));

@@ -319,6 +319,10 @@ mordor_tests_run_tests_SOURCES=				\
 
 mordor_tests_run_tests_CPPFLAGS=-include mordor/pch.h $(AM_CPPFLAGS)
 mordor_tests_run_tests_LDADD=mordor/libmordor.la mordor/test/libmordortest.la \
+	$(OPENSSL_LIBS)				\
+	$(BOOST_THREAD_LIB)			\
+	$(BOOST_REGEX_LIB)			\
+	$(BOOST_SYSTEM_LIB)			\
 	$(CORESERVICES_FRAMEWORK_LIBS)		\
 	$(COREFOUNDATION_FRAMEWORK_LIBS)	\
 	$(SECURITY_FRAMEWORK_LIBS)		\
@@ -335,6 +339,10 @@ mordor_pq_tests_run_tests_LDADD =		\
 	mordor/libmordor.la			\
 	mordor/pq/libmordorpq.la 		\
 	mordor/test/libmordortest.la		\
+	$(OPENSSL_LIBS)				\
+	$(BOOST_THREAD_LIB)			\
+	$(BOOST_REGEX_LIB)			\
+	$(BOOST_SYSTEM_LIB)			\
 	$(POSTGRESQL_LDFLAGS)			\
 	$(CORESERVICES_FRAMEWORK_LIBS)		\
 	$(COREFOUNDATION_FRAMEWORK_LIBS)	\
