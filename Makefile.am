@@ -95,7 +95,6 @@ nobase_include_HEADERS=			\
 	mordor/test/stdoutlistener.h	\
 	mordor/test/test.h		\
 	mordor/thread.h			\
-	mordor/thread_local_storage.h	\
 	mordor/timer.h			\
 	mordor/uri.h			\
 	mordor/util.h			\

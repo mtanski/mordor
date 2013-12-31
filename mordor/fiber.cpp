@@ -77,12 +77,8 @@ static ConfigVar<size_t>::ptr g_defaultStackSize = Config::lookup<size_t>(
 
 // t_fiber is the Fiber currently executing on this thread
 // t_threadFiber is the Fiber that represents the thread's original stack
-// t_threadFiber is a boost::tss, because it supports automatic cleanup when
-// the thread exits (and datatypes larger than pointer size), while
-// ThreadLocalStorage does not
-// t_fiber is a ThreadLocalStorage, because it's faster than boost::tss
-ThreadLocalStorage<Fiber *> Fiber::t_fiber;
-static boost::thread_specific_ptr<Fiber::ptr> t_threadFiber;
+thread_local Fiber* Fiber::t_fiber = nullptr;
+static thread_local Fiber::ptr t_threadFiber;
 
 static boost::mutex & g_flsMutex()
 {
@@ -140,7 +136,7 @@ Fiber::~Fiber()
         // Thread entry fiber
         MORDOR_ASSERT(!m_dg);
         MORDOR_ASSERT(m_state == EXEC);
-        Fiber *cur = t_fiber.get();
+        Fiber *cur = t_fiber;
 
         // We're actually running on the fiber we're about to delete
         // i.e. the thread is dying, so clean up after ourselves
@@ -190,8 +186,8 @@ Fiber::getThis()
     if (t_fiber)
         return t_fiber->shared_from_this();
     Fiber::ptr threadFiber(new Fiber());
-    MORDOR_ASSERT(t_fiber.get() == threadFiber.get());
-    t_threadFiber.reset(new Fiber::ptr(threadFiber));
+    MORDOR_ASSERT(t_fiber == threadFiber.get());
+    t_threadFiber = threadFiber;
     return t_fiber->shared_from_this();
 }
 

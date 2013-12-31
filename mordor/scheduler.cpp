@@ -10,8 +10,8 @@ namespace Mordor {
 
 static Logger::ptr g_log = Log::lookup("mordor:scheduler");
 
-ThreadLocalStorage<Scheduler *> Scheduler::t_scheduler;
-ThreadLocalStorage<Fiber *> Scheduler::t_fiber;
+thread_local Scheduler* Scheduler::t_scheduler = nullptr;
+thread_local Fiber* Scheduler::t_fiber = nullptr;
 
 Scheduler::Scheduler(size_t threads, bool useCaller, size_t batchSize)
     : m_activeThreadCount(0),
@@ -45,7 +45,7 @@ Scheduler::~Scheduler()
 Scheduler *
 Scheduler::getThis()
 {
-    return t_scheduler.get();
+    return t_scheduler;
 }
 
 void
@@ -237,7 +237,7 @@ Scheduler::yieldTo()
     Scheduler *self = Scheduler::getThis();
     MORDOR_ASSERT(self);
     MORDOR_LOG_DEBUG(g_log) << self << " yielding to scheduler";
-    MORDOR_ASSERT(t_fiber.get());
+    MORDOR_ASSERT(t_fiber);
     if (self->m_rootThread == gettid() &&
         (t_fiber->state() == Fiber::INIT || t_fiber->state() == Fiber::TERM)) {
         self->m_callingFiber = Fiber::getThis();
@@ -287,7 +287,7 @@ Scheduler::threadCount(size_t threads)
 void
 Scheduler::yieldTo(bool yieldToCallerOnTerminate)
 {
-    MORDOR_ASSERT(t_fiber.get());
+    MORDOR_ASSERT(t_fiber);
     MORDOR_ASSERT(Scheduler::getThis() == this);
     if (yieldToCallerOnTerminate)
         MORDOR_ASSERT(m_rootThread == gettid());
@@ -307,7 +307,7 @@ Scheduler::run()
         t_fiber = Fiber::getThis().get();
     } else {
         // Hijacked a thread
-        MORDOR_ASSERT(t_fiber.get() == Fiber::getThis().get());
+        MORDOR_ASSERT(t_fiber == Fiber::getThis().get());
     }
     Fiber::ptr idleFiber(new Fiber(std::bind(&Scheduler::idle, this)));
     MORDOR_LOG_VERBOSE(g_log) << this << " starting thread with idle fiber " << idleFiber;

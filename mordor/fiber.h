@@ -7,7 +7,6 @@
 #include <boost/thread/mutex.hpp>
 
 #include "exception.h"
-#include "thread_local_storage.h"
 #include "version.h"
 
 // Fiber impl selection
@@ -194,7 +193,7 @@ private:
     weak_ptr m_terminateOuter;
     boost::exception_ptr m_exception;
 
-    static ThreadLocalStorage<Fiber *> t_fiber;
+    static thread_local Fiber* t_fiber;
 
     // FLS Support
     static size_t flsAlloc();

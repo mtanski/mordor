@@ -8,7 +8,6 @@
 #include <boost/thread/mutex.hpp>
 
 #include "thread.h"
-#include "thread_local_storage.h"
 
 namespace Mordor {
 
@@ -185,8 +184,8 @@ private:
         std::function<void ()> dg;
         tid_t thread;
     };
-    static ThreadLocalStorage<Scheduler *> t_scheduler;
-    static ThreadLocalStorage<Fiber *> t_fiber;
+    static thread_local Scheduler* t_scheduler;
+    static thread_local Fiber* t_fiber;
     boost::mutex m_mutex;
     std::list<FiberAndThread> m_fibers;
     tid_t m_rootThread;
