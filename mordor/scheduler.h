@@ -4,7 +4,6 @@
 
 #include <list>
 
-#include <boost/noncopyable.hpp>
 #include <boost/thread/mutex.hpp>
 
 #include "thread.h"
@@ -25,7 +24,7 @@ class Fiber;
 /// there are no more Fibers scheduled, and return from yieldTo() or
 /// dispatch(). Hybrid and spawned Schedulers must be explicitly stopped via
 /// stop(). stop() will return only after there are no more Fibers scheduled.
-class Scheduler : public boost::noncopyable
+class Scheduler
 {
 public:
     /// Default constructor
@@ -179,6 +178,9 @@ private:
         tid_t thread = emptytid());
 
 private:
+    Scheduler(const Scheduler& rhs) = delete;
+
+private:
     struct FiberAndThread {
         std::shared_ptr<Fiber> fiber;
         std::function<void ()> dg;
@@ -202,7 +204,7 @@ private:
 
 /// Automatically returns to Scheduler::getThis() when goes out of scope
 /// (by calling Scheduler::switchTo())
-struct SchedulerSwitcher : public boost::noncopyable
+struct SchedulerSwitcher
 {
 public:
     /// Captures Scheduler::getThis(), and optionally calls target->switchTo()
@@ -211,6 +213,7 @@ public:
     /// Calls switchTo() on the Scheduler captured in the constructor
     /// @post Scheduler::getThis() == the Scheduler captured in the constructor
     ~SchedulerSwitcher();
+    SchedulerSwitcher(const SchedulerSwitcher& rhs) = delete;
 
 private:
     Scheduler *m_caller;

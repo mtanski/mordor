@@ -97,7 +97,6 @@
 // Non-STL C++ headers
 #if !defined(GCC) || defined(__clang__)
 #endif
-#include <boost/noncopyable.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/shared_array.hpp>
 #include <boost/blank.hpp>
@@ -111,7 +110,6 @@
 #include <boost/regex.hpp>
 #include <boost/signals2/signal.hpp>
 #include <boost/thread/mutex.hpp>
-#include <boost/thread/tss.hpp>
 #include <boost/variant.hpp>
 
 // Non-CRT C headers

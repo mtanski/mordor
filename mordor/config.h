@@ -14,7 +14,6 @@
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/global_fun.hpp>
-#include <boost/noncopyable.hpp>
 #include <boost/signals2/signal.hpp>
 
 #include "assert.h"
@@ -101,7 +100,7 @@ a periodic operation.  But they should not be used as a replacement for clean
 APIs used during the regular software flow.
 */
 
-class ConfigVarBase : public boost::noncopyable
+class ConfigVarBase
 {
 public:
     typedef std::shared_ptr<ConfigVarBase> ptr;
@@ -111,6 +110,7 @@ public:
         : m_name(name),
           m_description(description)
     {}
+    ConfigVarBase(const ConfigVarBase& rhs) = delete;
     virtual ~ConfigVarBase() {}
 
     std::string name() const { return m_name; }

@@ -4,7 +4,6 @@
 
 #include <list>
 
-#include <boost/noncopyable.hpp>
 #include <boost/thread/mutex.hpp>
 
 namespace Mordor {
@@ -18,7 +17,7 @@ class Scheduler;
 /// if the mutex cannot be immediately acquired.  It also provides the
 /// additional guarantee that it is strictly FIFO, instead of random which
 /// Fiber will acquire the mutex next after it is released.
-struct FiberMutex : boost::noncopyable
+struct FiberMutex
 {
     friend struct FiberCondition;
 public:
@@ -87,6 +86,7 @@ public:
     };
 
 public:
+    FiberMutex() = default;
     ~FiberMutex();
 
     /// @brief Locks the mutex
@@ -110,6 +110,9 @@ private:
     void unlockNoLock();
 
 private:
+    FiberMutex(const FiberMutex& rhs) = delete;
+
+private:
     boost::mutex m_mutex;
     std::shared_ptr<Fiber> m_owner;
     std::list<std::pair<Scheduler *, std::shared_ptr<Fiber> > > m_waiters;
@@ -121,7 +124,7 @@ private:
 /// if the mutex cannot be immediately acquired.  It also provides the
 /// additional guarantee that it is strictly FIFO, instead of random which
 /// Fiber will acquire the semaphore next after it is released.
-struct FiberSemaphore : boost::noncopyable
+struct FiberSemaphore
 {
 public:
     FiberSemaphore(size_t initialConcurrency = 0);
@@ -138,6 +141,9 @@ public:
     void notify();
 
 private:
+    FiberSemaphore(const FiberSemaphore& rhs) = delete;
+
+private:
     boost::mutex m_mutex;
     std::list<std::pair<Scheduler *, std::shared_ptr<Fiber> > > m_waiters;
     size_t m_concurrency;
@@ -149,7 +155,7 @@ private:
 /// It also provides the additional guarantee that it is strictly FIFO,
 /// instead of random which waiting Fiber will be released when the condition
 /// is signalled.
-struct FiberCondition : boost::noncopyable
+struct FiberCondition
 {
 public:
     /// @param mutex The mutex to associate with the Condition
@@ -172,6 +178,9 @@ public:
     void broadcast();
 
 private:
+    FiberCondition(const FiberCondition& rhs) = delete;
+
+private:
     boost::mutex m_mutex;
     FiberMutex &m_fiberMutex;
     std::list<std::pair<Scheduler *, std::shared_ptr<Fiber> > > m_waiters;
@@ -183,7 +192,7 @@ private:
 /// It also provides the additional guarantee that it is strictly FIFO,
 /// instead of random which waiting Fiber will be released when the event
 /// is signalled.
-struct FiberEvent : boost::noncopyable
+struct FiberEvent
 {
 public:
     /// @param autoReset If the Event should automatically reset itself
@@ -201,6 +210,9 @@ public:
     void set();
     /// Reset the Event
     void reset();
+
+private:
+    FiberEvent(const FiberEvent& rhs) = delete;
 
 private:
     boost::mutex m_mutex;

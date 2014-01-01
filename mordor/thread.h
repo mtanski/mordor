@@ -4,7 +4,6 @@
 
 #include <iosfwd>
 
-#include <boost/noncopyable.hpp>
 
 #include "version.h"
 #ifndef WINDOWS
@@ -28,7 +27,7 @@ tid_t gettid();
 
 class Scheduler;
 
-class Thread : boost::noncopyable
+class Thread
 {
 public:
     /// thread bookmark
@@ -65,6 +64,9 @@ public:
     tid_t tid() const { return m_tid; }
 
     void join();
+
+private:
+    Thread(const Thread& rhs) = delete;
 
 private:
     static

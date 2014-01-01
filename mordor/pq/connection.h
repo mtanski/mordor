@@ -4,7 +4,6 @@
 
 #include <memory>
 
-#include <boost/noncopyable.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 
 #include "preparedstatement.h"
@@ -15,7 +14,7 @@ class Stream;
 
 namespace PQ {
 
-class Connection : boost::noncopyable
+class Connection
 {
 public:
     typedef std::shared_ptr<Connection> ptr;
@@ -24,6 +23,7 @@ public:
     Connection(const std::string &conninfo, IOManager *ioManager = NULL,
         Scheduler *scheduler = NULL,
         bool connectImmediately = true);
+    Connection(const Connection& rhs) = delete;
 
     ConnStatusType status();
 

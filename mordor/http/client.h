@@ -5,7 +5,6 @@
 #include <list>
 #include <set>
 
-#include <boost/noncopyable.hpp>
 #include <boost/thread/mutex.hpp>
 
 #include "connection.h"
@@ -25,7 +24,7 @@ namespace HTTP {
 class ClientConnection;
 class RequestBroker;
 
-class ClientRequest : public std::enable_shared_from_this<ClientRequest>, boost::noncopyable
+class ClientRequest : public std::enable_shared_from_this<ClientRequest>
 {
 private:
     friend class ClientConnection;
@@ -56,6 +55,7 @@ public:
 
 private:
     ClientRequest(std::shared_ptr<ClientConnection> conn, const Request &request);
+    ClientRequest(const ClientRequest& rhs) = delete;
 
 public:
     ~ClientRequest();
@@ -145,7 +145,7 @@ private:
     ClientRequest::ptr m_request;
 };
 
-class ClientConnection : public Connection, public std::enable_shared_from_this<ClientConnection>, boost::noncopyable
+class ClientConnection : public Connection, public std::enable_shared_from_this<ClientConnection>
 {
 private:
     friend class ClientRequest;
@@ -156,6 +156,7 @@ public:
 public:
     ClientConnection(std::shared_ptr<Stream> stream,
         TimerManager *timerManager = NULL);
+    ClientConnection(const ClientConnection& rhs) = delete;
     ~ClientConnection();
 
     ClientRequest::ptr request(const Request &requestHeaders);

@@ -2,7 +2,6 @@
 #define __MORDOR_HTTP_AUTH_H__
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include <boost/noncopyable.hpp>
 #include <boost/scoped_ptr.hpp>
 
 #include "broker.h"

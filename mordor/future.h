@@ -4,7 +4,6 @@
 
 #include <bitset>
 
-#include <boost/noncopyable.hpp>
 
 #include "assert.h"
 #include "atomic.h"
@@ -16,7 +15,7 @@ namespace Mordor {
 struct Void;
 
 template <class T = Void>
-class Future : boost::noncopyable
+class Future
 {
     template <class Iterator>
     friend void waitAll(Iterator start, Iterator end);
@@ -92,6 +91,9 @@ public:
     }
 
 private:
+    Future(const Future& rhs) = delete;
+
+private:
     // We're going to stuff a couple of things into m_fiber, and do some bit
     // manipulation, so it's going to be easier to declare it as intptr_t
     // m_fiber = NULL if not signalled, and not waiting
@@ -105,7 +107,7 @@ private:
 };
 
 template <>
-class Future<Void> : boost::noncopyable
+class Future<Void>
 {
     template <class Iterator>
     friend void waitAll(Iterator start, Iterator end);
@@ -207,6 +209,9 @@ private:
         m_scheduler = NULL;
         return false;
     }
+
+private:
+    Future(const Future& rhs) = delete;
 
 private:
     // We're going to stuff a couple of things into m_fiber, and do some bit

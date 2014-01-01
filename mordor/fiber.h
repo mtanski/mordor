@@ -171,6 +171,9 @@ private:
     void switchContext(Fiber *toFiber);
 
 private:
+    Fiber(const Fiber& rhs) = delete;
+
+private:
     std::function<void ()> m_dg;
     void *m_stack, *m_sp;
     size_t m_stacksize;
@@ -207,7 +210,7 @@ private:
 std::ostream &operator<<(std::ostream &os, Fiber::State state);
 
 template <class T>
-class FiberLocalStorageBase : boost::noncopyable
+class FiberLocalStorageBase
 {
 public:
     FiberLocalStorageBase()
@@ -238,6 +241,9 @@ public:
     }
 
     operator T() const { return get(); }
+
+private:
+    FiberLocalStorageBase(const FiberLocalStorageBase& rhs) = delete;
 
 private:
     size_t m_key;

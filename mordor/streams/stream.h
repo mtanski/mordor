@@ -4,7 +4,6 @@
 
 #include <string>
 
-#include <boost/noncopyable.hpp>
 #include <boost/signals2/signal.hpp>
 
 #include "mordor/predef.h"
@@ -25,7 +24,7 @@ struct Buffer;
 /// and it is safe to call read() at the same time as write() (assuming the
 /// Stream supports both, and don't supportSeek()).  read() and write() are
 /// @b not re-entrant.
-class Stream : boost::noncopyable
+class Stream
 {
 public:
     typedef std::shared_ptr<Stream> ptr;
@@ -56,6 +55,8 @@ public:
     };
 
 public:
+    Stream() = default;
+
     /// Cleans up the underlying implementation, possibly by ungracefully
     /// closing it.
     virtual ~Stream() {}
@@ -242,6 +243,9 @@ public:
     virtual boost::signals2::connection onRemoteClose(
         const boost::signals2::slot<void ()> &slot)
     { return boost::signals2::connection(); }
+
+private:
+    Stream(const Stream& rhs) = delete;
 
 protected:
     size_t read(Buffer &buffer, size_t length, bool coalesce);

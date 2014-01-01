@@ -4,7 +4,6 @@
 
 #include <vector>
 
-#include <boost/noncopyable.hpp>
 #include <boost/signals2/signal.hpp>
 
 #include "endian.h"
@@ -67,7 +66,7 @@ struct TimedOutException : virtual SocketException {};
 
 struct Address;
 
-class Socket : public std::enable_shared_from_this<Socket>, boost::noncopyable
+class Socket : public std::enable_shared_from_this<Socket>
 {
 public:
     typedef std::shared_ptr<Socket> ptr;
@@ -159,6 +158,9 @@ private:
 #else
     void cancelIo(int event, error_t &cancelled, error_t error);
 #endif
+
+private:
+    Socket(const Socket& rhs) = delete;
 
 private:
     socket_t m_sock;

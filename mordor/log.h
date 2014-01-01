@@ -7,7 +7,6 @@
 #include <sstream>
 
 #include "predef.h"
-#include <boost/noncopyable.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 
 // For tid_t

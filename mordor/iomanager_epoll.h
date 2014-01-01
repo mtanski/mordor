@@ -25,10 +25,11 @@ public:
     };
 
 private:
-    struct AsyncState : boost::noncopyable
+    struct AsyncState
     {
         AsyncState();
         ~AsyncState();
+	AsyncState(const AsyncState& rhs) = delete;
 
         struct EventContext
         {

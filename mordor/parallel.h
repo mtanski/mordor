@@ -4,7 +4,6 @@
 
 #include <vector>
 
-#include <boost/noncopyable.hpp>
 
 #include "atomic.h"
 #include "fiber.h"

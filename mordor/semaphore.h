@@ -4,7 +4,6 @@
 
 #include "version.h"
 
-#include <boost/noncopyable.hpp>
 
 #ifdef WINDOWS
 #include <windows.h>
@@ -17,10 +16,11 @@
 
 namespace Mordor {
 
-class Semaphore : boost::noncopyable
+class Semaphore
 {
 public:
     Semaphore(unsigned int count = 0);
+    Semaphore(const Semaphore& rhs) = delete;
     ~Semaphore();
 
     void wait();

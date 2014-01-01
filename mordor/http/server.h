@@ -17,7 +17,7 @@ namespace HTTP {
 
 class ServerConnection;
 
-class ServerRequest : public std::enable_shared_from_this<ServerRequest>, boost::noncopyable
+class ServerRequest : public std::enable_shared_from_this<ServerRequest>
 {
 private:
     friend class ServerConnection;
@@ -35,6 +35,7 @@ public:
     };
 
 private:
+    ServerRequest(const ServerRequest& rhs) = delete;
     ServerRequest(std::shared_ptr<ServerConnection> conn);
 
 public:
@@ -138,7 +139,7 @@ private:
 /// ServerRequest::processNextRequest() must be called before the server will
 /// start reading a pipelined request.
 class ServerConnection : public Connection,
-    public std::enable_shared_from_this<ServerConnection>, boost::noncopyable
+    public std::enable_shared_from_this<ServerConnection>
 {
 public:
     typedef std::shared_ptr<ServerConnection> ptr;
@@ -150,6 +151,7 @@ public:
     ServerConnection(std::shared_ptr<Stream> stream,
         std::function<void (ServerRequest::ptr)> dg,
         Address::ptr client_addr = Address::ptr());
+    ServerConnection(const ServerConnection& rhs) = delete;
 
     /// Does not block; simply schedules a new fiber to read the first request
     void processRequests();

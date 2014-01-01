@@ -4,7 +4,6 @@
 
 #include <string>
 
-#include <boost/noncopyable.hpp>
 
 #include "http.h"
 
@@ -18,7 +17,7 @@ struct MissingMultipartBoundaryException : virtual HTTP::Exception, virtual Stre
 struct InvalidMultipartBoundaryException : virtual HTTP::Exception
 {};
 
-class Multipart : public std::enable_shared_from_this<Multipart>, boost::noncopyable
+class Multipart : public std::enable_shared_from_this<Multipart>
 {
     friend class BodyPart;
 public:
@@ -27,6 +26,7 @@ public:
     static std::string randomBoundary();
 
     Multipart(std::shared_ptr<Stream> stream, std::string boundary);
+    Multipart(const Multipart& rhs) = delete;
 
     std::shared_ptr<BodyPart> nextPart();
     void finish();

@@ -6,7 +6,6 @@
 #include <set>
 #include <vector>
 
-#include <boost/noncopyable.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/weak_ptr.hpp>
 
@@ -14,7 +13,7 @@ namespace Mordor {
 
 class TimerManager;
 
-class Timer : public boost::noncopyable, public std::enable_shared_from_this<Timer>
+class Timer : public std::enable_shared_from_this<Timer>
 {
     friend class TimerManager;
 public:
@@ -25,6 +24,7 @@ private:
         bool recurring, TimerManager *manager);
     // Constructor for dummy object
     Timer(unsigned long long next);
+    Timer(const Timer& rhs) = delete;
 
 public:
     /// @return If the timer was successfully cancelled before it fired
@@ -56,11 +56,12 @@ private:
 
 };
 
-class TimerManager : public boost::noncopyable
+class TimerManager
 {
     friend class Timer;
 public:
     TimerManager();
+    TimerManager(const TimerManager& rhs) = delete;
     virtual ~TimerManager();
 
     virtual Timer::ptr registerTimer(unsigned long long us,

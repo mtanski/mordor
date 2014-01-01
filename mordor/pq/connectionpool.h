@@ -15,12 +15,13 @@ namespace PQ {
 
 class Connection;
 
-class ConnectionPool : boost::noncopyable {
+class ConnectionPool {
 public:
     typedef std::shared_ptr<ConnectionPool> ptr;
 
     ConnectionPool(const std::string &conninfo, IOManager *iomanager,
         size_t size = 5);
+    ConnectionPool(const ConnectionPool& rhs) = delete;
     ~ConnectionPool();
     std::shared_ptr<Connection> getConnection();
     void resize(size_t num);

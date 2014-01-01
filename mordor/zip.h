@@ -2,7 +2,6 @@
 #define __MORDOR_ZIP_H__
 // Copyright (c) 2010 - Mozy, Inc.
 
-#include <boost/noncopyable.hpp>
 
 #include "exception.h"
 
@@ -72,8 +71,14 @@ private:
     unsigned short m_extraFieldsLength;
 };
 
-class ZipEntries : public std::multimap<std::string, ZipEntry>, boost::noncopyable
-{};
+class ZipEntries : public std::multimap<std::string, ZipEntry>
+{
+public:
+    ZipEntries() = default;
+
+private:
+    ZipEntries(const ZipEntries& rhs) = delete;
+};
 
 /// @brief Zip Archive Format access
 ///
@@ -117,7 +122,7 @@ class ZipEntries : public std::multimap<std::string, ZipEntry>, boost::noncopyab
 /// }
 /// zip.close();
 /// @endcode
-class Zip : boost::noncopyable
+class Zip
 {
     friend class ZipEntry;
 public:
@@ -148,6 +153,9 @@ public:
 
 private:
     void onFileEOF();
+
+private:
+    Zip(const Zip& rhs) = delete;
 
 private:
     std::shared_ptr<Stream> m_stream, m_fileStream;
