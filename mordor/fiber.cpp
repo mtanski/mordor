@@ -410,9 +410,9 @@ Fiber::allocStack()
     VirtualAlloc((char*)m_stack + g_pagesize, m_stacksize, MEM_COMMIT, PAGE_READWRITE);
     m_sp = (char*)m_stack + m_stacksize + g_pagesize;
 #elif defined(POSIX)
-    m_stack = mmap(NULL, m_stacksize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
-    if (m_stack == MAP_FAILED)
-        MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("mmap");
+    m_stack = malloc(m_stacksize);
+    if (m_stack == NULL)
+        MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("malloc");
 #ifdef HAVE_VALGRIND_VALGRIND_H
     m_valgrindStackId = VALGRIND_STACK_REGISTER(m_stack, (char *)m_stack + m_stacksize);
 #endif
@@ -433,7 +433,7 @@ Fiber::freeStack()
 #ifdef HAVE_VALGRIND_VALGRIND_H
     VALGRIND_STACK_DEREGISTER(m_valgrindStackId);
 #endif
-    munmap(m_stack, m_stacksize);
+    free(m_stack);
 #endif
 }
 
