@@ -121,6 +121,19 @@ namespace DOM {
             return m_doc;
         }
 
+        template <class T>
+        Document::ptr loadDocument(const T &xml)
+        {
+            m_doc.reset(new Document());
+            m_element = m_doc->documentElement();
+            Mordor::XMLParser parser(*this);
+            parser.run(xml);
+            if (!parser.final() || parser.error()) {
+                MORDOR_THROW_EXCEPTION(std::invalid_argument("failed to parse: Invalid xml"));
+            }
+            return m_doc;
+        }
+
     protected:
         void onStartTag(const std::string &tag);
         void onEndTag(const std::string &tag);
