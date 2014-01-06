@@ -6,7 +6,6 @@ AM_CXXFLAGS=-Wall -Werror -fno-strict-aliasing -std=c++11
 nobase_include_HEADERS=			\
 	mordor/anymap.h			\
 	mordor/assert.h			\
-	mordor/atomic.h			\
 	mordor/config.h			\
 	mordor/coroutine.h		\
 	mordor/cxa_exception.h	\
@@ -318,7 +317,6 @@ mordor_test_libmordortest_la_LIBADD=mordor/libmordor.la
 check_PROGRAMS=mordor/tests/run_tests
 mordor_tests_run_tests_SOURCES=				\
 	mordor/tests/run_tests.cpp			\
-	mordor/tests/atomic.cpp				\
 	mordor/tests/buffer.cpp				\
 	mordor/tests/buffered_stream.cpp		\
 	mordor/tests/cat_stream.cpp				\

@@ -1,11 +1,12 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
+#include <atomic>
+
 #include "parallel.h"
 
 #include <boost/scoped_ptr.hpp>
 
 #include "assert.h"
-#include "atomic.h"
 #include "fibersynchronization.h"
 
 namespace Mordor {
@@ -14,7 +15,7 @@ static Logger::ptr g_log = Log::lookup("mordor:parallel");
 
 static
 void
-parallel_do_impl(std::function<void ()> dg, size_t &completed,
+parallel_do_impl(std::function<void ()> dg, std::atomic<size_t>& completed,
     size_t total, boost::exception_ptr &exception, Scheduler *scheduler,
     Fiber::ptr caller, FiberSemaphore *sem)
 {
@@ -30,7 +31,7 @@ parallel_do_impl(std::function<void ()> dg, size_t &completed,
     }
     if (sem)
         sem->notify();
-    if (atomicIncrement(completed) == total)
+    if ((++completed) == total)
         scheduler->schedule(caller);
 }
 
@@ -38,7 +39,7 @@ void
 parallel_do(const std::vector<std::function<void ()> > &dgs,
     int parallelism)
 {
-    size_t completed = 0;
+    std::atomic<size_t> completed(0);
     Scheduler *scheduler = Scheduler::getThis();
     Fiber::ptr caller = Fiber::getThis();
     std::vector<std::function<void ()> >::const_iterator it;
@@ -84,7 +85,7 @@ parallel_do(const std::vector<std::function<void ()> > &dgs,
             int parallelism)
 {
     MORDOR_ASSERT(fibers.size() >= dgs.size());
-    size_t completed = 0;
+    std::atomic<size_t> completed(0);
     Scheduler *scheduler = Scheduler::getThis();
     Fiber::ptr caller = Fiber::getThis();
     std::vector<std::function<void ()> >::const_iterator it;

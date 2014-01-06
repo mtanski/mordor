@@ -1,7 +1,7 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
+#include <atomic>
 
-#include "mordor/atomic.h"
 #include "mordor/fiber.h"
 #include "mordor/fibersynchronization.h"
 #include "mordor/iomanager.h"
@@ -304,12 +304,14 @@ MORDOR_UNITTEST(FiberMutex, unlockUnique)
     pool.dispatch();
 }
 
-static void lockAndHold(IOManager &ioManager, FiberMutex &mutex, Atomic<int> &counter)
+static void lockAndHold(IOManager &ioManager, FiberMutex &mutex, std::atomic<int> &counter)
 {
     --counter;
     FiberMutex::ScopedLock lock(mutex);
-    while(counter > 0)
+    while(counter > 0) {
         Mordor::sleep(ioManager, 50000); // sleep 50ms
+    	MORDOR_LOG_INFO(Mordor::Log::root()) << "counter: " << counter;
+    }
 }
 
 MORDOR_UNITTEST(FiberMutex, mutexPerformance)
@@ -328,7 +330,7 @@ MORDOR_UNITTEST(FiberMutex, mutexPerformance)
     // 4096 fibers can be alive simultaneously.
     int repeatness = 1000;
 #endif
-    Atomic<int> counter = repeatness;
+    std::atomic<int> counter(repeatness);
     unsigned long long before = TimerManager::now();
     for (int i=0; i<repeatness; ++i) {
         ioManager.schedule(std::bind(lockAndHold,

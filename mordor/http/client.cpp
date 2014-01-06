@@ -2,6 +2,7 @@
 
 #include "client.h"
 
+#include <atomic>
 #include <algorithm>
 
 
@@ -19,7 +20,6 @@
 #include "mordor/streams/transfer.h"
 #include "mordor/timer.h"
 #include "mordor/util.h"
-#include "mordor/atomic.h"
 #include "mordor/socket.h"
 #include "multipart.h"
 #include "parser.h"
@@ -41,7 +41,7 @@ ClientConnection::ClientConnection(Stream::ptr stream, TimerManager *timerManage
   m_priorResponseFailed(~0ull),
   m_priorResponseClosed(~0ull)
 {
-    static Atomic<size_t> connectionCount(0);
+    static std::atomic<size_t> connectionCount(0);
     m_connectionNumber = ++connectionCount;
     MORDOR_LOG_TRACE(g_log) << "ClientConnection " << m_connectionNumber << " = " << this;
 

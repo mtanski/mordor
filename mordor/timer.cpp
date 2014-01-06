@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "assert.h"
-#include "atomic.h"
 #include "exception.h"
 #include "log.h"
 #include "version.h"

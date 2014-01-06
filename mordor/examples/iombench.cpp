@@ -12,7 +12,6 @@
 
 #include <boost/scoped_array.hpp>
 
-#include "mordor/atomic.h"
 #include "mordor/config.h"
 #include "mordor/fibersynchronization.h"
 #include "mordor/iomanager.h"
@@ -292,8 +291,8 @@ private:
     size_t m_perConnToRead;
     size_t m_perConnToWrite;
 
-    Atomic<size_t> m_clientsDone;
-    Atomic<size_t> m_opsDone;
+    std::atomic<size_t> m_clientsDone;
+    std::atomic<size_t> m_opsDone;
 
     bool m_stop;
 };

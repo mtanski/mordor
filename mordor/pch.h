@@ -80,6 +80,7 @@
 #include <time.h>
 
 // C++ Headers
+#include <atomic>
 #include <algorithm>
 #include <bitset>
 #include <iostream>

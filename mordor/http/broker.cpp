@@ -4,7 +4,6 @@
 
 #include "auth.h"
 #include "client.h"
-#include "mordor/atomic.h"
 #include "mordor/fiber.h"
 #include "mordor/future.h"
 #include "mordor/iomanager.h"
@@ -817,8 +816,8 @@ ClientRequest::ptr
 RetryRequestBroker::request(Request &requestHeaders, bool forceNewConnection,
                            std::function<void (ClientRequest::ptr)> bodyDg)
 {
-    size_t localRetries = 0;
-    size_t *retries = mp_retries ? mp_retries : &localRetries;
+    std::atomic<size_t> localRetries(0);
+    std::atomic<size_t> *retries = mp_retries ? mp_retries : &localRetries;
     while (true) {
         try {
             ClientRequest::ptr request =
@@ -830,7 +829,7 @@ RetryRequestBroker::request(Request &requestHeaders, bool forceNewConnection,
             const ExceptionSource *source = boost::get_error_info<errinfo_source>(ex);
             if (!source || (*source != HTTP && *source != CONNECTION))
                 throw;
-            if (m_delayDg && !m_delayDg(atomicIncrement(*retries)))
+            if (m_delayDg && !m_delayDg(++(*retries)))
                 throw;
             continue;
         } catch (PriorRequestFailedException &ex) {
@@ -851,7 +850,7 @@ RetryRequestBroker::request(Request &requestHeaders, bool forceNewConnection,
             const ExceptionSource *source = boost::get_error_info<errinfo_source>(ex);
             if (!source || *source != HTTP)
                 throw;
-            if (m_delayDg && !m_delayDg(atomicIncrement(*retries)))
+            if (m_delayDg && !m_delayDg(++(*retries)))
                 throw;
             continue;
         }

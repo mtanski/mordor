@@ -4,7 +4,6 @@
 
 
 #include "assert.h"
-#include "atomic.h"
 #include "fiber.h"
 #include "runtime_linking.h"
 

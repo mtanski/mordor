@@ -2,6 +2,8 @@
 #define __MORDOR_SCHEDULER_H__
 // Copyright (c) 2009 - Mozy, Inc.
 
+#include <atomic>
+#include <functional>
 #include <list>
 
 #include <boost/thread/mutex.hpp>
@@ -225,7 +227,8 @@ private:
     std::shared_ptr<Fiber> m_rootFiber;
     std::shared_ptr<Fiber> m_callingFiber;
     std::vector<std::shared_ptr<Thread> > m_threads;
-    size_t m_threadCount, m_activeThreadCount, m_idleThreadCount;
+    size_t m_threadCount, m_activeThreadCount;
+    std::atomic<size_t> m_idleThreadCount;
     bool m_stopping;
     bool m_autoStop;
     size_t m_batchSize;

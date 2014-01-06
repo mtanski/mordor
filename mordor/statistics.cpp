@@ -2,7 +2,6 @@
 
 #include "statistics.h"
 
-#include "atomic.h"
 #include "timer.h"
 
 namespace Mordor {

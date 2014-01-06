@@ -1,8 +1,8 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
+#include <atomic>
 #include <boost/thread/mutex.hpp>
 
-#include "mordor/atomic.h"
 #include "mordor/fiber.h"
 #include "mordor/iomanager.h"
 #include "mordor/parallel.h"
@@ -351,14 +351,14 @@ MORDOR_UNITTEST(Scheduler, parallelForEachStopShortParallel)
 // #endif
 
 static void sleepForABit(std::set<tid_t> &threads,
-    boost::mutex &mutex, Fiber::ptr scheduleMe, int *count)
+    boost::mutex &mutex, Fiber::ptr scheduleMe, std::atomic<int> *count = nullptr)
 {
     {
         boost::mutex::scoped_lock lock(mutex);
         threads.insert(gettid());
     }
     Mordor::sleep(10000);
-    if (count && atomicDecrement(*count) == 0)
+    if (count && --(*count) == 0)
         Scheduler::getThis()->schedule(scheduleMe);
 }
 
@@ -370,7 +370,7 @@ MORDOR_UNITTEST(Scheduler, spreadTheLoad)
         WorkerPool pool(8);
         // Wait for the other threads to get to idle first
         Mordor::sleep(100000);
-        int count = 24;
+	std::atomic<int> count(24);
         for (size_t i = 0; i < 24; ++i)
             pool.schedule(std::bind(&sleepForABit, std::ref(threads),
                 std::ref(mutex), Fiber::getThis(), &count));
@@ -415,7 +415,7 @@ static void startTheFibers(std::set<tid_t> &threads,
     for (size_t i = 0; i < 24; ++i)
         Scheduler::getThis()->schedule(std::bind(&sleepForABit,
             std::ref(threads), std::ref(mutex), Fiber::ptr(),
-            (int *)NULL));
+            nullptr));
 }
 
 MORDOR_UNITTEST(Scheduler, spreadTheLoadWhileStopping)

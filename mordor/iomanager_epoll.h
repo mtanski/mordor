@@ -2,6 +2,8 @@
 #define __MORDOR_IOMANAGER_EPOLL_H__
 // Copyright (c) 2009 - Mozy, Inc.
 
+#include <atomic>
+
 #include "scheduler.h"
 #include "timer.h"
 #include "version.h"
@@ -40,7 +42,7 @@ private:
         };
 
         EventContext &contextForEvent(Event event);
-        bool triggerEvent(Event event, size_t &pendingEventCount);
+        bool triggerEvent(Event event, std::atomic<size_t> &pendingEventCount);
         void resetContext(EventContext &);
 
         int m_fd;
@@ -79,7 +81,7 @@ protected:
 private:
     int m_epfd;
     int m_tickleFds[2];
-    size_t m_pendingEventCount;
+    std::atomic<size_t> m_pendingEventCount;
     boost::mutex m_mutex;
     std::vector<AsyncState *> m_pendingEvents;
 };

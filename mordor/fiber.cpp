@@ -1,5 +1,7 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
+#include <atomic>
+
 #include "fiber.h"
 
 #ifdef HAVE_CONFIG_H
@@ -9,8 +11,6 @@
 #ifdef HAVE_VALGRIND_VALGRIND_H
 #include <valgrind/valgrind.h>
 #endif
-
-#include <boost/thread/tss.hpp>
 
 #include "assert.h"
 #include "config.h"
@@ -35,7 +35,7 @@ static AverageMinMaxStatistic<unsigned int> &g_statAlloc =
 static AverageMinMaxStatistic<unsigned int> &g_statFree=
     Statistics::registerStatistic("fiber.freestack",
     AverageMinMaxStatistic<unsigned int>("us"));
-static volatile unsigned int g_cntFibers = 0; // Active fibers
+static std::atomic<unsigned int> g_cntFibers(0); // Active fibers
 static MaxStatistic<unsigned int> &g_statMaxFibers=Statistics::registerStatistic("fiber.max",
     MaxStatistic<unsigned int>());
 
@@ -93,7 +93,7 @@ static std::vector<bool> & g_flsIndices()
 
 Fiber::Fiber()
 {
-    g_statMaxFibers.update(atomicIncrement(g_cntFibers));
+    g_statMaxFibers.update(++g_cntFibers);
     MORDOR_ASSERT(!t_fiber);
     m_state = EXEC;
     m_stack = NULL;
@@ -113,7 +113,7 @@ Fiber::Fiber()
 
 Fiber::Fiber(std::function<void ()> dg, size_t stacksize)
 {
-    g_statMaxFibers.update(atomicIncrement(g_cntFibers));
+    g_statMaxFibers.update(++g_cntFibers);
     stacksize += g_pagesize - 1;
     stacksize -= stacksize % g_pagesize;
     m_dg = dg;
@@ -131,7 +131,7 @@ Fiber::Fiber(std::function<void ()> dg, size_t stacksize)
 
 Fiber::~Fiber()
 {
-    atomicDecrement(g_cntFibers);
+    --g_cntFibers;
     if (!m_stack || m_stack == m_sp) {
         // Thread entry fiber
         MORDOR_ASSERT(!m_dg);

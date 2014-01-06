@@ -2,12 +2,13 @@
 #define __HTTP_BROKER_H__
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include <memory>
-
 #include <openssl/ssl.h>
 
 #include "http.h"
 #include "mordor/fibersynchronization.h"
+
+#include <atomic>
+#include <memory>
 
 namespace Mordor {
 
@@ -393,10 +394,10 @@ public:
         std::function<bool (size_t)> delayDg = NULL)
         : RequestBrokerFilter(parent),
           m_delayDg(delayDg),
-          mp_retries(NULL)
+          mp_retries(nullptr)
     {}
 
-    void sharedRetryCounter(size_t *retries) { mp_retries = retries; }
+    void sharedRetryCounter(std::atomic<size_t>* retries) { mp_retries = retries; }
 
     std::shared_ptr<ClientRequest> request(Request &requestHeaders,
         bool forceNewConnection = false,
@@ -404,7 +405,7 @@ public:
 
 private:
     std::function<bool (size_t)> m_delayDg;
-    size_t *mp_retries;
+    std::atomic<size_t>* mp_retries;
 };
 
 struct CircularRedirectException : Exception

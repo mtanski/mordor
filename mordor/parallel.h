@@ -2,10 +2,10 @@
 #define __MORDOR_PARALLEL_H__
 // Copyright (c) 2009 - Mozy, Inc.
 
+#include <atomic>
 #include <vector>
 
 
-#include "atomic.h"
 #include "fiber.h"
 #include "log.h"
 #include "scheduler.h"
@@ -53,7 +53,7 @@ static
 void
 parallel_foreach_impl(Iterator &begin, Iterator &end, Functor &functor,
                       boost::mutex &mutex, boost::exception_ptr &exception,
-                      Scheduler *scheduler, Fiber::ptr caller, int &count)
+                      Scheduler *scheduler, Fiber::ptr caller, std::atomic<int> &count)
 {
     while (true) {
         try {
@@ -79,7 +79,7 @@ parallel_foreach_impl(Iterator &begin, Iterator &end, Functor &functor,
     // Don't want to own the mutex here, because another thread could pick up
     // caller immediately, and return from parallel_for before this thread has
     // a chance to unlock it
-    if (atomicDecrement(count) == 0)
+    if ((--count) == 0)
         scheduler->schedule(caller);
 }
 
@@ -122,7 +122,7 @@ parallel_foreach(Iterator begin, Iterator end, Functor functor,
     boost::exception_ptr exception;
     MORDOR_LOG_DEBUG(Detail::getLogger()) << " running parallel_for with "
         << parallelism << " fibers";
-    int count = parallelism;
+    std::atomic<int> count(parallelism);
     for (int i = 0; i < parallelism; ++i) {
         scheduler->schedule(std::bind(
             &Detail::parallel_foreach_impl<Iterator, Functor>,

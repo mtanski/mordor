@@ -1,7 +1,6 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
 // Mordor
-#include "atomic.h"
 #include "scheduler.h"
 #include "assert.h"
 #include "fiber.h"
@@ -352,9 +351,9 @@ Scheduler::run()
                 return;
             }
             MORDOR_LOG_DEBUG(g_log) << this << " idling";
-            atomicIncrement(m_idleThreadCount);
+            m_idleThreadCount++;
             idleFiber->call();
-            atomicDecrement(m_idleThreadCount);
+            m_idleThreadCount--;
             continue;
         }
 

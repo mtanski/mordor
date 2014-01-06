@@ -11,7 +11,6 @@
 #include <boost/exception_ptr.hpp>
 
 #include "assert.h"
-#include "atomic.h"
 #include "fiber.h"
 
 // EPOLLRDHUP is missing in the header on etch
@@ -122,12 +121,12 @@ IOManager::AsyncState::contextForEvent(Event event)
 }
 
 bool
-IOManager::AsyncState::triggerEvent(Event event, size_t &pendingEventCount)
+IOManager::AsyncState::triggerEvent(Event event, std::atomic<size_t> &pendingEventCount)
 {
     if (!(m_events & event))
         return false;
     m_events = (Event)(m_events & ~event);
-    atomicDecrement(pendingEventCount);
+    --pendingEventCount;
     EventContext &context = contextForEvent(event);
     if (context.dg) {
         context.scheduler->schedule(&context.dg);
@@ -276,7 +275,7 @@ IOManager::registerEvent(int fd, Event event, std::function<void ()> dg)
         << " (" << lastError() << ")";
     if (rc)
         MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("epoll_ctl");
-    atomicIncrement(m_pendingEventCount);
+    m_pendingEventCount++;
     state.m_events = (Event)(state.m_events | event);
     AsyncState::EventContext &context = state.contextForEvent(event);
     MORDOR_ASSERT(!context.scheduler);
@@ -322,7 +321,7 @@ IOManager::unregisterEvent(int fd, Event event)
         << " (" << lastError() << ")";
     if (rc)
         MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("epoll_ctl");
-    atomicDecrement(m_pendingEventCount);
+    m_pendingEventCount--;
     state.m_events = newEvents;
     AsyncState::EventContext &context = state.contextForEvent(event);
     // spawn a dedicated fiber to do the cleanup

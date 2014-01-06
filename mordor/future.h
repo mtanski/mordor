@@ -3,10 +3,10 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
 #include <bitset>
+#include <atomic>
 
 
 #include "assert.h"
-#include "atomic.h"
 #include "fiber.h"
 #include "scheduler.h"
 
@@ -36,12 +36,17 @@ public:
     /// Suspend this Fiber, and wait for the future to become signalled
     T &wait()
     {
+        intptr_t newValue, currentValue;
+
         MORDOR_ASSERT(!m_scheduler);
         MORDOR_ASSERT(!m_dg);
         m_scheduler = Scheduler::getThis();
-        intptr_t newValue = (intptr_t)Fiber::getThis().get();
+        newValue = (intptr_t) Fiber::getThis().get();
         MORDOR_ASSERT(!(newValue & 0x1));
-        intptr_t currentValue = atomicCompareAndSwap(m_fiber, newValue, (intptr_t)0);
+
+        currentValue = 0;
+        m_fiber.compare_exchange_strong(currentValue, newValue);
+
         // Not signalled yet
         if (currentValue == 0) {
             Scheduler::yieldTo();
@@ -73,7 +78,7 @@ public:
         do {
             oldValue = newValue;
             newValue = oldValue | 0x1;
-        } while ( (newValue = atomicCompareAndSwap(m_fiber, newValue, oldValue)) != oldValue);
+        } while (!m_fiber.compare_exchange_strong(oldValue, newValue));
         newValue &= ~0x1;
         // Somebody was previously waiting
         if (newValue) {
@@ -100,7 +105,7 @@ private:
     // m_fiber & 0x1 if signalled
     // m_fiber & ~0x1 if waiting
     // Note that m_fiber will *not* point to a fiber if m_dg is valid
-    intptr_t m_fiber;
+    std::atomic<intptr_t> m_fiber;
     Scheduler *m_scheduler;
     std::function<void (const T &)> m_dg;
     T m_t;
@@ -127,12 +132,17 @@ public:
     /// Suspend this Fiber, and wait for the future to become signalled
     void wait()
     {
+	    intptr_t newValue, currentValue;
+
         MORDOR_ASSERT(!m_scheduler);
         MORDOR_ASSERT(!m_dg);
         m_scheduler = Scheduler::getThis();
-        intptr_t newValue = (intptr_t)Fiber::getThis().get();
+        newValue = (intptr_t)Fiber::getThis().get();
         MORDOR_ASSERT(!(newValue & 0x1));
-        intptr_t currentValue = atomicCompareAndSwap(m_fiber, newValue, (intptr_t)0);
+
+        currentValue = 0;
+        m_fiber.compare_exchange_strong(currentValue, newValue);
+
         // Not signalled yet
         if (currentValue == 0) {
             Scheduler::yieldTo();
@@ -160,7 +170,7 @@ public:
         do {
             oldValue = newValue;
             newValue = oldValue | 0x1;
-        } while ( (newValue = atomicCompareAndSwap(m_fiber, newValue, oldValue)) != oldValue);
+        } while (!m_fiber.compare_exchange_strong(oldValue, newValue));
         newValue &= ~0x1;
         // Somebody was previously waiting
         if (newValue) {
@@ -181,12 +191,18 @@ private:
     /// @return If the future was already signalled
     bool startWait()
     {
+        intptr_t newValue, currentValue;
+
         MORDOR_ASSERT(!m_scheduler);
         MORDOR_ASSERT(!m_dg);
         m_scheduler = Scheduler::getThis();
-        intptr_t newValue = (intptr_t)Fiber::getThis().get();
+        newValue = (intptr_t) Fiber::getThis().get();
+
         MORDOR_ASSERT(!(newValue & 0x1));
-        intptr_t currentValue = atomicCompareAndSwap(m_fiber, newValue, (intptr_t)0);
+
+        currentValue = 0;
+        m_fiber.compare_exchange_strong(currentValue, newValue);
+
         if (currentValue == 0) {
             return false;
         } else if (currentValue == 0x1) {
@@ -203,7 +219,9 @@ private:
         intptr_t oldValue = m_fiber;
         if (oldValue & 1)
             return true;
-        oldValue = atomicCompareAndSwap(m_fiber, (intptr_t)0, oldValue);
+
+        m_fiber.compare_exchange_strong(oldValue, 0);
+
         if (oldValue & 1)
             return true;
         m_scheduler = NULL;
@@ -220,7 +238,7 @@ private:
     // m_fiber & 0x1 if signalled
     // m_fiber & ~0x1 if waiting
     // Note that m_fiber will *not* point to a fiber if m_dg is valid
-    intptr_t m_fiber;
+    std::atomic<intptr_t> m_fiber;
     Scheduler *m_scheduler;
     std::function<void ()> m_dg;
 };

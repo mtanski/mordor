@@ -4,11 +4,11 @@
 
 #include "predef.h"
 
+#include <atomic>
 #include <limits>
 #include <ostream>
 
 #include "assert.h"
-#include "atomic.h"
 #include "timer.h"
 
 namespace Mordor {
@@ -40,16 +40,21 @@ struct CountStatistic : Statistic
           count(T())
     {}
 
-    volatile value_type count;
+    CountStatistic(const CountStatistic& rhs)
+        : Statistic(rhs.units),
+          count(rhs.count.load())
+    { }
+
+    typename std::atomic<value_type> count;
 
     void reset() { count = T(); }
 
     std::ostream &serialize(std::ostream &os) const
     { return os << count; }
 
-    void increment() { atomicIncrement(count); }
-    void decrement() { atomicDecrement(count); }
-    void add(value_type value) { atomicAdd(count, value); }
+    void increment() { count++; }
+    void decrement() { count--; }
+    void add(value_type value) { count += value; }
     void merge(const CountStatistic<T> &stat) { add(stat.count); }
 };
 
@@ -63,14 +68,19 @@ struct SumStatistic : Statistic
           sum(T())
     {}
 
-    volatile value_type sum;
+    SumStatistic(const SumStatistic& rhs)
+        : Statistic(rhs.units),
+          sum(rhs.sum.load())
+    { }
+
+    typename std::atomic<value_type> sum;
 
     void reset() { sum = T(); }
 
     std::ostream &serialize(std::ostream &os) const
     { return os << sum; }
 
-    void add(value_type value) { atomicAdd(sum, value); }
+    void add(value_type value) { sum += value; }
     void merge(const SumStatistic<T> &stat) { add(stat.sum); }
 };
 
@@ -84,7 +94,12 @@ struct MinStatistic : Statistic
         minimum((std::numeric_limits<T>::max)())
     {}
 
-    volatile value_type minimum;
+    MinStatistic(const MinStatistic& rhs)
+        : Statistic(rhs.units),
+          minimum(rhs.minimum.load())
+    { }
+
+    typename std::atomic<value_type> minimum;
 
     void reset() { minimum = (std::numeric_limits<T>::max)(); }
 
@@ -97,7 +112,7 @@ struct MinStatistic : Statistic
         do {
             if (oldval < value)
                 break;
-        } while (value != (oldval = atomicCompareAndSwap(minimum, value, oldval)));
+        } while (!minimum.compare_exchange_strong(oldval, value));
     }
 
     void merge(const MinStatistic<T> &stat) { update(stat.minimum); }
@@ -112,8 +127,14 @@ struct MaxStatistic : Statistic
     MaxStatistic(const char *units = NULL)
         : Statistic(units),
           maximum((std::numeric_limits<T>::min)())
-    {}
-    volatile value_type maximum;
+    { }
+
+    MaxStatistic(const MaxStatistic& rhs)
+        : Statistic(rhs.units),
+          maximum(rhs.maximum.load())
+    { }
+
+    std::atomic<value_type> maximum;
 
     void reset() { maximum = (std::numeric_limits<T>::min)(); }
 
@@ -126,7 +147,7 @@ struct MaxStatistic : Statistic
         do {
             if (oldval > value)
                 break;
-        } while (value != (oldval = atomicCompareAndSwap(maximum, value, oldval)));
+        } while (!maximum.compare_exchange_strong(oldval, value));
     }
 
     void merge(const MaxStatistic<T> &stat) { update(stat.maximum); }
