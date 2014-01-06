@@ -2,6 +2,8 @@
 #define __HTTP_BROKER_H__
 // Copyright (c) 2009 - Mozy, Inc.
 
+#include <memory>
+
 #include <openssl/ssl.h>
 
 #include "http.h"
@@ -61,7 +63,6 @@ private:
     StreamBroker::weak_ptr m_weakParent;
 };
 
-
 class SocketStreamBroker : public StreamBroker
 {
 public:
@@ -92,7 +93,6 @@ private:
     IOManager *m_ioManager;
     Scheduler *m_scheduler;
     unsigned long long m_connectTimeout;
-
     std::function<void (std::shared_ptr<Socket>)> m_filterNetworkCallback;
 };
 
@@ -103,10 +103,40 @@ public:
     typedef std::weak_ptr<ConnectionBroker> weak_ptr;
 
 public:
+    ConnectionBroker():
+          m_verifySslCertificate(false),
+          m_verifySslCertificateHost(true),
+          m_httpReadTimeout(~0ull),
+          m_httpWriteTimeout(~0ull),
+          m_idleTimeout(~0ull),
+          m_sslReadTimeout(~0ull),
+          m_sslWriteTimeout(~0ull),
+          m_sslCtx(NULL),
+          m_timerManager(NULL)
+    {}
     virtual ~ConnectionBroker() {}
 
     virtual std::pair<std::shared_ptr<ClientConnection>, bool>
         getConnection(const URI &uri, bool forceNewConnection = false) = 0;
+
+    void httpReadTimeout(unsigned long long timeout) { m_httpReadTimeout = timeout; }
+    void httpWriteTimeout(unsigned long long timeout) { m_httpWriteTimeout = timeout; }
+    void idleTimeout(unsigned long long timeout) { m_idleTimeout = timeout; }
+    void sslReadTimeout(unsigned long long timeout) { m_sslReadTimeout = timeout; }
+    void sslWriteTimeout(unsigned long long timeout) { m_sslWriteTimeout = timeout; }
+    void sslCtx(SSL_CTX *ctx) { m_sslCtx = ctx; }
+    void verifySslCertificate(bool verify) { m_verifySslCertificate = verify; }
+    void verifySslCertificateHost(bool verify) { m_verifySslCertificateHost = verify; }
+
+protected:
+    void addSSL(const URI &uri, std::shared_ptr<Stream> &stream);
+
+protected:
+    bool m_verifySslCertificate, m_verifySslCertificateHost;
+    unsigned long long m_httpReadTimeout, m_httpWriteTimeout, m_idleTimeout,
+        m_sslReadTimeout, m_sslWriteTimeout;
+    SSL_CTX * m_sslCtx;
+    TimerManager *m_timerManager;
 };
 
 struct PriorConnectionFailedException : virtual Exception {};
@@ -125,39 +155,31 @@ struct PriorConnectionFailedException : virtual Exception {};
 //
 // Although exposed by createRequestBroker(), normal clients will not manipulate
 // the ConnectionCache directly, apart from calling abortConnections or closeIdleConnections
-class ConnectionCache : public ConnectionBroker
+class ConnectionCache : public std::enable_shared_from_this<ConnectionCache>, public ConnectionBroker
 {
 public:
     typedef std::shared_ptr<ConnectionCache> ptr;
+    typedef std::weak_ptr<ConnectionCache> weak_ptr;
 
-public:
+protected:
     ConnectionCache(StreamBroker::ptr streamBroker, TimerManager *timerManager = NULL)
         : m_streamBroker(streamBroker),
           m_connectionsPerHost(1u),
-          m_closed(false),
-          m_verifySslCertificate(false),
-          m_verifySslCertificateHost(true),
-          m_timerManager(timerManager),
-          m_httpReadTimeout(~0ull),
-          m_httpWriteTimeout(~0ull),
-          m_idleTimeout(~0ull),
-          m_sslReadTimeout(~0ull),
-          m_sslWriteTimeout(~0ull),
-          m_sslCtx(NULL)
-    {}
+          m_closed(false)
+    {
+        m_timerManager = timerManager;
+    }
+
+public:
+    static ConnectionCache::ptr create(StreamBroker::ptr streamBroker, TimerManager *timerManager = NULL)
+    { return ConnectionCache::ptr(new ConnectionCache(streamBroker, timerManager)); }
 
     // Specify the maximum number of seperate connections to allow to a specific host (or proxy)
     // at a time
     void connectionsPerHost(size_t connections) { m_connectionsPerHost = connections; }
 
-    void httpReadTimeout(unsigned long long timeout) { m_httpReadTimeout = timeout; }
-    void httpWriteTimeout(unsigned long long timeout) { m_httpWriteTimeout = timeout; }
-    void idleTimeout(unsigned long long timeout) { m_idleTimeout = timeout; }
-    void sslReadTimeout(unsigned long long timeout) { m_sslReadTimeout = timeout; }
-    void sslWriteTimeout(unsigned long long timeout) { m_sslWriteTimeout = timeout; }
-    void sslCtx(SSL_CTX *ctx) { m_sslCtx = ctx; }
-    void verifySslCertificate(bool verify) { m_verifySslCertificate = verify; }
-    void verifySslCertificateHost(bool verify) { m_verifySslCertificateHost = verify; }
+    // Get number of active connections
+    size_t getActiveConnections();
 
     // Proxy support requires this callback.  It is expected to return an
     // array of candidate Proxy servers to handle the requested URI.
@@ -210,8 +232,7 @@ private:
         getConnectionViaProxy(const URI &uri, const URI &proxy,
         FiberMutex::ScopedLock &lock);
     void cleanOutDeadConns(CachedConnectionMap &conns);
-    void addSSL(const URI &uri, std::shared_ptr<Stream> &stream);
-    void dropConnection(const URI &uri, const ClientConnection *connection);
+    void dropConnection(weak_ptr self, const URI &uri, const ClientConnection *connection);
 
 private:
     FiberMutex m_mutex;
@@ -219,13 +240,29 @@ private:
     size_t m_connectionsPerHost;
 
     CachedConnectionMap m_conns;
-    bool m_closed, m_verifySslCertificate, m_verifySslCertificateHost;
-    TimerManager *m_timerManager;
-    unsigned long long m_httpReadTimeout, m_httpWriteTimeout, m_idleTimeout,
-        m_sslReadTimeout, m_sslWriteTimeout;
-    SSL_CTX *m_sslCtx;
+    bool m_closed;
     std::function<std::vector<URI> (const URI &)> m_proxyForURIDg;
     std::shared_ptr<RequestBroker> m_proxyBroker;
+};
+
+// The ConnectionNoCache has no support for proxies.
+class ConnectionNoCache : public ConnectionBroker
+{
+public:
+    typedef std::shared_ptr<ConnectionNoCache> ptr;
+
+    ConnectionNoCache(StreamBroker::ptr streamBroker, TimerManager *timerManager = NULL)
+        : m_streamBroker(streamBroker)
+    {
+        m_timerManager = timerManager;
+    }
+
+    // Get a new connection associated with a URI. Do not cache it.
+    std::pair<std::shared_ptr<ClientConnection>, bool /*is proxy connection*/>
+        getConnection(const URI &uri, bool forceNewConnection = false);
+
+private:
+    StreamBroker::ptr m_streamBroker;
 };
 
 // Mock object useful for unit tests.  Rather than
@@ -241,11 +278,10 @@ public:
             std::shared_ptr<ServerRequest>)> dg,
         TimerManager *timerManager = NULL, unsigned long long readTimeout = ~0ull,
         unsigned long long writeTimeout = ~0ull)
-        : m_dg(dg),
-          m_timerManager(timerManager),
-          m_readTimeout(readTimeout),
-          m_writeTimeout(writeTimeout)
-    {}
+        : m_dg(dg)
+    {
+        m_timerManager = timerManager;
+    }
 
     std::pair<std::shared_ptr<ClientConnection>, bool /*is proxy connection*/>
         getConnection(const URI &uri, bool forceNewConnection = false);
@@ -253,8 +289,6 @@ public:
 private:
     std::function<void (const URI &uri, std::shared_ptr<ServerRequest>)> m_dg;
     ConnectionCache m_conns;
-    TimerManager *m_timerManager;
-    unsigned long long m_readTimeout, m_writeTimeout;
 };
 
 // Abstract base-class for all the RequestBroker objects.
@@ -451,9 +485,11 @@ struct RequestBrokerOptions
         httpReadTimeout(~0ull),
         httpWriteTimeout(~0ull),
         idleTimeout(~0ull),
+        connectionsPerHost(1u),
         sslCtx(NULL),
         verifySslCertificate(false),
-        verifySslCertificateHost(true)
+        verifySslCertificateHost(true),
+        enableConnectionCache(true)
     {}
 
     IOManager *ioManager;
@@ -471,13 +507,14 @@ struct RequestBrokerOptions
     bool handleRedirects; // Whether to add a RedirectRequestBroker to the chain of RequestBrokers
     TimerManager *timerManager; // When not specified the iomanager will be used
 
-    // Optional timeout values (ns)
+    // Optional timeout values (us)
     unsigned long long connectTimeout;
     unsigned long long sslConnectReadTimeout;
     unsigned long long sslConnectWriteTimeout;
     unsigned long long httpReadTimeout;
     unsigned long long httpWriteTimeout;
     unsigned long long idleTimeout;
+    size_t connectionsPerHost;
 
     // Callback to find proxy for an URI, see ConnectionCache::proxyForURI
     std::function<std::vector<URI> (const URI &)> proxyForURIDg;
@@ -495,7 +532,6 @@ struct RequestBrokerOptions
             size_t /* attempts */)>
             getCredentialsDg, getProxyCredentialsDg;
 
-
     // When specified the provided object will be installed as a filter
     // in front of the SocketStreamBroker
     StreamBrokerFilter::ptr customStreamBrokerFilter;
@@ -503,6 +539,7 @@ struct RequestBrokerOptions
     SSL_CTX *sslCtx;
     bool verifySslCertificate;
     bool verifySslCertificateHost;
+    bool enableConnectionCache;
 
     // When specified a UserAgentRequestBroker will take care of adding
     // the User-Agent header to each request

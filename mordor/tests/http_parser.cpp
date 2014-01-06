@@ -802,3 +802,62 @@ MORDOR_UNITTEST(HTTP, proxyAuthorizationHeader)
     MORDOR_TEST_ASSERT_EQUAL(request.request.proxyAuthorization.scheme, "NTLM");
     MORDOR_TEST_ASSERT_EQUAL(request.request.proxyAuthorization.base64, "TlRMTVNTUAABAAAAt4II4gAAAAAAAAAAAAAAAAAAAAAGAbAdAAAADw==");
 }
+
+MORDOR_UNITTEST(HTTP, boundary)
+{
+    std::string type = "multipart";
+    std::string subtype = "byterange";
+    // let's include '/' in boundary
+    std::string boundary = "0123456789/9876543210";
+
+    Response resp;
+    resp.status.status = OK;
+    resp.status.reason = "OK";
+    MediaType& mt = resp.entity.contentType;
+    mt.type = type;
+    mt.subtype = subtype;
+    mt.parameters["boundary"] = boundary;
+
+    // serialize to string
+    std::ostringstream os;
+    os << resp;
+    std::string msg = os.str();
+
+    // deserialize from string
+    Response resp2;
+    ResponseParser parser(resp2);
+    parser.run(msg);
+
+    MORDOR_TEST_ASSERT(!parser.error());
+    MORDOR_TEST_ASSERT(parser.complete());
+    MediaType& mt2 = resp2.entity.contentType;
+    MORDOR_TEST_ASSERT_EQUAL(mt2.type, type);
+    MORDOR_TEST_ASSERT_EQUAL(mt2.subtype, subtype);
+    MORDOR_TEST_ASSERT_EQUAL(mt2.parameters.size(), 1u);
+    MORDOR_TEST_ASSERT_EQUAL(mt2.parameters["boundary"], boundary);
+}
+
+MORDOR_UNITTEST(HTTP, authHeader)
+{
+    Request request;
+    RequestParser parser(request);
+
+    parser.run("GET / HTTP/1.1\r\n"
+               "Authorization: OAuth oauth_consumer_key=\"It's Bob \\\" pub key\" , oauth_version=1.0\r\n"
+               "\r\n");
+    MORDOR_TEST_ASSERT(!parser.error());
+    MORDOR_TEST_ASSERT(parser.final());
+
+    AuthParams & auth = request.request.authorization;
+    MORDOR_TEST_ASSERT_EQUAL(auth.scheme, "OAuth");
+    MORDOR_TEST_ASSERT_EQUAL(auth.parameters.size(), 2u);
+
+    StringMap::iterator it;
+    it = auth.parameters.find("oauth_version");
+    MORDOR_TEST_ASSERT(it != auth.parameters.end());
+    MORDOR_TEST_ASSERT_EQUAL(it->second, "1.0");
+
+    it = auth.parameters.find("oauth_consumer_key");
+    MORDOR_TEST_ASSERT(it != auth.parameters.end());
+    MORDOR_TEST_ASSERT_EQUAL(it->second, "It's Bob \" pub key");
+}

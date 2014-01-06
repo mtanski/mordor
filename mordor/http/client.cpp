@@ -20,6 +20,7 @@
 #include "mordor/timer.h"
 #include "mordor/util.h"
 #include "mordor/atomic.h"
+#include "mordor/socket.h"
 #include "multipart.h"
 #include "parser.h"
 
@@ -657,15 +658,17 @@ ClientRequest::stream()
 Multipart::ptr
 ClientRequest::responseMultipart()
 {
+    MORDOR_ASSERT(m_response.entity.contentType.type == "multipart");
     Multipart::ptr result = m_responseMultipart.lock();
-    if (result)
+    if (result) {
+        MORDOR_ASSERT(m_hasResponseBody);
         return result;
-    // You can only ask for the response stream once
+    }
+    // You can only ask for the response multipart once
     // (to avoid circular references)
     MORDOR_ASSERT(!m_hasResponseBody);
     ensureResponse();
     MORDOR_ASSERT(m_responseState == BODY);
-    MORDOR_ASSERT(m_response.entity.contentType.type == "multipart");
     StringMap::const_iterator it = m_response.entity.contentType.parameters.find("boundary");
     if (it == m_response.entity.contentType.parameters.end()) {
         MORDOR_THROW_EXCEPTION(MissingMultipartBoundaryException());
@@ -679,6 +682,7 @@ ClientRequest::responseMultipart()
     result.reset(new Multipart(stream, it->second));
     result->multipartFinished = std::bind(&ClientRequest::responseDone, shared_from_this());
     m_responseMultipart = result;
+    m_hasResponseBody = true;
     return result;
 }
 
@@ -720,7 +724,7 @@ ClientRequest::cancel(bool abort, bool error)
             NotifyStream::ptr notify =
                 std::dynamic_pointer_cast<NotifyStream>(m_requestStream);
             MORDOR_ASSERT(notify);
-            notify->notifyOnClose = NULL;
+            notify->notifyOnClose(NULL);
             notify->notifyOnEof = NULL;
             notify->notifyOnException = NULL;
             notify->parent(Stream::ptr(new Stream()));
@@ -734,7 +738,7 @@ ClientRequest::cancel(bool abort, bool error)
         NotifyStream::ptr notify =
             std::dynamic_pointer_cast<NotifyStream>(responseStream);
         MORDOR_ASSERT(notify);
-        notify->notifyOnClose = NULL;
+        notify->notifyOnClose(NULL);
         notify->notifyOnEof = NULL;
         notify->notifyOnException = NULL;
     }
@@ -901,12 +905,12 @@ ClientRequest::doRequest()
     // If any transfer encodings, must include chunked, must have chunked only once, and must be the last one
     const ParameterizedList &transferEncoding = m_request.general.transferEncoding;
     if (!transferEncoding.empty()) {
-        MORDOR_ASSERT(transferEncoding.back().value == "chunked");
+        MORDOR_ASSERT(stricmp(transferEncoding.back().value.c_str(), "chunked") == 0);
         for (ParameterizedList::const_iterator it(transferEncoding.begin());
             it + 1 != transferEncoding.end();
             ++it) {
             // Only the last one can be chunked
-            MORDOR_ASSERT(it->value != "chunked");
+            MORDOR_ASSERT(stricmp(it->value.c_str(), "chunked") != 0);
             // identity is only acceptable in the TE header field
             MORDOR_ASSERT(it->value != "identity");
             if (it->value == "gzip" ||
@@ -1209,7 +1213,7 @@ ClientRequest::requestDone()
     NotifyStream::ptr notify =
         std::dynamic_pointer_cast<NotifyStream>(m_requestStream);
     MORDOR_ASSERT(notify);
-    notify->notifyOnClose = NULL;
+    notify->notifyOnClose(NULL);
     notify->notifyOnEof = NULL;
     notify->notifyOnException = NULL;
     if (m_requestStream->supportsSize() && m_requestStream->supportsTell())
@@ -1236,7 +1240,7 @@ ClientRequest::requestFailed()
         NotifyStream::ptr notify =
             std::dynamic_pointer_cast<NotifyStream>(m_requestStream);
         MORDOR_ASSERT(notify);
-        notify->notifyOnClose = NULL;
+        notify->notifyOnClose(NULL);
         notify->notifyOnEof = NULL;
         notify->notifyOnException = NULL;
     }
@@ -1310,7 +1314,7 @@ ClientRequest::responseDone()
     NotifyStream::ptr notify =
         std::dynamic_pointer_cast<NotifyStream>(stream);
     MORDOR_ASSERT(notify);
-    notify->notifyOnClose = NULL;
+    notify->notifyOnClose(NULL);
     notify->notifyOnEof = NULL;
     notify->notifyOnException = NULL;
     // Make sure every stream in the stack gets a proper EOF
@@ -1320,7 +1324,13 @@ ClientRequest::responseDone()
     while (filter && !chunked && !limited) {
         chunked = std::dynamic_pointer_cast<ChunkedStream>(filter);
         limited = std::dynamic_pointer_cast<LimitedStream>(filter);
-        transferStream(filter, NullStream::get());
+        //redmine issue #86223
+        try {
+            transferStream(filter, NullStream::get());
+        }
+        catch( ... ) {
+            MORDOR_LOG_TRACE(g_log) << "Ignoring exception";
+        }
         filter = std::dynamic_pointer_cast<FilterStream>(filter->parent());
     }
     if (!m_response.general.transferEncoding.empty()) {

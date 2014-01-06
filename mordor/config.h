@@ -242,13 +242,18 @@ public:
 #endif
 
 public:
-    //Used to declare a ConfigVar.  A ConfigVar can only be declared once.
+    /// Declare a ConfigVar
+    ///
+    /// @note A ConfigVar can only be declared once.
+    /// @throws std::invalid_argument With what() == the name of the ConfigVar
+    ///         if the value is not valid.
     template <class T>
     static typename ConfigVar<T>::ptr lookup(const std::string &name,
         const T &defaultValue, const std::string &description = "")
     {
-        MORDOR_ASSERT(name.find_first_not_of("abcdefghijklmnopqrstuvwxyz.")
-            == std::string::npos);
+        if (name.find_first_not_of("abcdefghijklmnopqrstuvwxyz.") !=
+            std::string::npos)
+            MORDOR_THROW_EXCEPTION(std::invalid_argument(name));
 
         MORDOR_ASSERT(vars().find(name) == vars().end());
         typename ConfigVar<T>::ptr v(new ConfigVar<T>(name, defaultValue,
@@ -280,6 +285,10 @@ public:
     // The key is automatically converted to lowercase, and "_" can be
     // used in place of "."
     static void loadFromEnvironment();
+
+    // Update value of ConfigVars based on json object.
+    // If a config var not declared previously,
+    // we will create a new var to save it.
     static void loadFromJSON(const JSON::Value &json);
 #ifdef WINDOWS
     static void loadFromRegistry(HKEY key, const std::string &subKey);
@@ -320,6 +329,25 @@ std::shared_ptr<Timer> associateTimerWithConfigVar(
 /// of available processor cores.
 void associateSchedulerWithConfigVar(Scheduler &scheduler,
     std::shared_ptr<ConfigVar<int> > configVar);
+
+
+/// helper class to allow temporarily change the ConfigVar Value
+///
+/// When an instance is created, the specified ConfigVar is hijacked to the @c
+/// tempValue, after the instance is @c reset() or destroyed, the value is
+/// restored.
+class HijackConfigVar
+{
+public:
+    HijackConfigVar(const std::string &name, const std::string &value);
+    const std::string& originValue() const { return m_oldValue; }
+    void reset();
+    ~HijackConfigVar();
+
+private:
+    std::shared_ptr<Mordor::ConfigVarBase> m_var;
+    std::string m_oldValue;
+};
 
 }
 

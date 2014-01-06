@@ -39,21 +39,29 @@ createRequestBroker(const RequestBrokerOptions &options)
         streamBroker = options.customStreamBrokerFilter;
     }
 
-    ConnectionCache::ptr connectionCache(new ConnectionCache(streamBroker,
-        timerManager));
-    connectionCache->httpReadTimeout(options.httpReadTimeout);
-    connectionCache->httpWriteTimeout(options.httpWriteTimeout);
-    connectionCache->idleTimeout(options.idleTimeout);
-    connectionCache->sslReadTimeout(options.sslConnectReadTimeout);
-    connectionCache->sslWriteTimeout(options.sslConnectWriteTimeout);
-    connectionCache->sslCtx(options.sslCtx);
-    connectionCache->proxyForURI(options.proxyForURIDg);
-    connectionCache->proxyRequestBroker(options.proxyRequestBroker);
-    connectionCache->verifySslCertificate(options.verifySslCertificate);
-    connectionCache->verifySslCertificateHost(options.verifySslCertificateHost);
+    ConnectionBroker::ptr connectionBroker;
+    ConnectionCache::ptr connectionCache;
+    if (!options.enableConnectionCache) {
+        ConnectionNoCache::ptr connectionNoCache(new ConnectionNoCache(streamBroker,
+            timerManager));
+        connectionBroker = std::static_pointer_cast<ConnectionBroker>(connectionNoCache);
+    } else {
+        connectionCache = ConnectionCache::create(streamBroker, timerManager);
+        connectionCache->idleTimeout(options.idleTimeout);
+        connectionCache->proxyForURI(options.proxyForURIDg);
+        connectionCache->proxyRequestBroker(options.proxyRequestBroker);
+        connectionCache->connectionsPerHost(options.connectionsPerHost);
+        connectionBroker = std::static_pointer_cast<ConnectionBroker>(connectionCache);
+    }
+    connectionBroker->httpReadTimeout(options.httpReadTimeout);
+    connectionBroker->httpWriteTimeout(options.httpWriteTimeout);
+    connectionBroker->sslReadTimeout(options.sslConnectReadTimeout);
+    connectionBroker->sslWriteTimeout(options.sslConnectWriteTimeout);
+    connectionBroker->sslCtx(options.sslCtx);
+    connectionBroker->verifySslCertificate(options.verifySslCertificate);
+    connectionBroker->verifySslCertificateHost(options.verifySslCertificateHost);
 
-    RequestBroker::ptr requestBroker(new BaseRequestBroker(
-        std::static_pointer_cast<ConnectionBroker>(connectionCache)));
+    RequestBroker::ptr requestBroker(new BaseRequestBroker(connectionBroker));
 
     if (options.getCredentialsDg || options.getProxyCredentialsDg)
         requestBroker.reset(new AuthRequestBroker(requestBroker,
@@ -268,6 +276,28 @@ ConnectionCache::getConnection(const URI &uri, bool forceNewConnection)
 }
 
 std::pair<ClientConnection::ptr, bool>
+ConnectionNoCache::getConnection(const URI &uri, bool forceNewConnection)
+{
+    URI endPoint = uri;
+    endPoint.path = URI::Path();
+    endPoint.queryDefined(false);
+    endPoint.fragmentDefined(false);
+
+    // Establish a new connection
+    Stream::ptr stream = m_streamBroker->getStream(endPoint);
+    addSSL(endPoint, stream);
+
+    std::pair<ClientConnection::ptr, bool> result = std::make_pair(ClientConnection::ptr(
+        new ClientConnection(stream, m_timerManager)), false);
+    if (m_httpReadTimeout != ~0ull)
+        result.first->readTimeout(m_httpReadTimeout);
+    if (m_httpWriteTimeout != ~0ull)
+        result.first->writeTimeout(m_httpWriteTimeout);
+
+    return result;
+}
+
+std::pair<ClientConnection::ptr, bool>
 ConnectionCache::getConnectionViaProxyFromCache(const URI &uri, const URI &proxy)
 {
     // Check if an existing connection exists to the requested URI
@@ -380,15 +410,15 @@ ConnectionCache::getConnectionViaProxy(const URI &uri, const URI &proxy,
         MORDOR_LOG_TRACE(g_cacheLog) << this << " connection " << result.first
             << " to " << endpoint << " established";
         stream->onRemoteClose(std::bind(&ConnectionCache::dropConnection,
-            this, endpoint, result.first.get()));
+            this, weak_ptr(shared_from_this()), endpoint, result.first.get()));
         if (m_httpReadTimeout != ~0ull)
             result.first->readTimeout(m_httpReadTimeout);
         if (m_httpWriteTimeout != ~0ull)
             result.first->writeTimeout(m_httpWriteTimeout);
         if (m_idleTimeout != ~0ull)
             result.first->idleTimeout(m_idleTimeout,
-            std::bind(&ConnectionCache::dropConnection, this, endpoint,
-                result.first.get()));
+            std::bind(&ConnectionCache::dropConnection,
+                this, weak_ptr(shared_from_this()), endpoint, result.first.get()));
         // Assign this connection to the first blank connection for this
         // schemeAndAuthority
         for (it2 = info->connections.begin();
@@ -520,7 +550,7 @@ ConnectionCache::cleanOutDeadConns(CachedConnectionMap &conns)
 }
 
 void
-ConnectionCache::addSSL(const URI &uri, Stream::ptr &stream)
+ConnectionBroker::addSSL(const URI &uri, Stream::ptr &stream)
 {
     if (uri.schemeDefined() && uri.scheme() == "https") {
         TimeoutStream::ptr timeoutStream;
@@ -569,9 +599,15 @@ struct CompareConn
 }
 
 void
-ConnectionCache::dropConnection(const URI &uri,
+ConnectionCache::dropConnection(weak_ptr self,
+    const URI &uri,
     const ClientConnection *connection)
 {
+    ptr strongSelf = self.lock();
+    if (!strongSelf) {
+        return;
+    }
+
     FiberMutex::ScopedLock lock(m_mutex);
     CachedConnectionMap::iterator it = m_conns.find(uri);
     if (it == m_conns.end())
@@ -587,6 +623,33 @@ ConnectionCache::dropConnection(const URI &uri,
         if (it->second->connections.empty())
             m_conns.erase(it);
     }
+}
+
+// Get the number of active connections
+// Can be used to determine throttling with multiple connections.
+size_t
+ConnectionCache::getActiveConnections()
+{
+    size_t result = 0;
+    size_t tmpCount;
+    FiberMutex::ScopedLock lock(m_mutex);
+    CachedConnectionMap::iterator it;
+    ConnectionList::iterator it2;
+    for (it = m_conns.begin(); it != m_conns.end(); it++) {
+        std::shared_ptr<ConnectionInfo> info = it->second;
+        tmpCount = 0;
+        for (it2 = info->connections.begin();
+            it2 != info->connections.end();
+            ++it2) {
+            if (*it2 != NULL && (*it2)->outstandingRequests() > 0){
+                tmpCount++;
+            }
+        }
+        MORDOR_LOG_TRACE(g_cacheLog) << this << " Active connections to " << it->first.toString() << " - " << tmpCount;
+        result += tmpCount;
+    }
+    MORDOR_LOG_TRACE(g_cacheLog) << this << " Total connections " << result;
+    return result;
 }
 
 std::pair<ClientConnection::ptr, bool>
@@ -606,8 +669,8 @@ MockConnectionBroker::getConnection(const URI &uri, bool forceNewConnection)
         ClientConnection::ptr client(
             new ClientConnection(pipes.first, m_timerManager));
         if (m_timerManager) {
-            client->readTimeout(m_readTimeout);
-            client->writeTimeout(m_writeTimeout);
+            client->readTimeout(m_httpReadTimeout);
+            client->writeTimeout(m_httpWriteTimeout);
         }
         ServerConnection::ptr server(
             new ServerConnection(pipes.second, std::bind(m_dg,

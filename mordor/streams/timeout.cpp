@@ -12,107 +12,143 @@ namespace Mordor {
 
 static Logger::ptr g_log = Log::lookup("mordor:streams:timeout");
 
-static void cancelReadLocal(Stream::ptr stream, bool &flag, bool &flag2)
+static void cancelReadLocal(Stream::ptr stream) { stream->cancelRead(); }
+static void cancelWriteLocal(Stream::ptr stream) { stream->cancelWrite(); }
+static void cancelReadWriteLocal(Stream::ptr stream)
 {
-    if (!flag) {
-        MORDOR_LOG_INFO(g_log) << "read timeout";
-        stream->cancelRead();
-        flag = flag2 = true;
+    cancelReadLocal(stream);
+    cancelWriteLocal(stream);
+}
+
+TimeoutHandler::~TimeoutHandler()
+{
+    if (m_timer)
+        cancelTimer();
+}
+
+void
+TimeoutHandler::onTimeout()
+{
+    if (m_lastTimedOut == TIMING) {
+        MORDOR_LOG_DEBUG(g_log) << this << " timeout";
+        m_lastTimedOut = m_permaTimedOut = TIMEDOUT;
+        if (m_timeoutDg)
+            m_timeoutDg();
     } else {
-        MORDOR_LOG_DEBUG(g_log) << "read timeout no longer registered";
+        MORDOR_LOG_DEBUG(g_log) << this << " timeout no longer registered";
     }
 }
 
-static void cancelWriteLocal(Stream::ptr stream, bool &flag, bool &flag2)
+void
+TimeoutHandler::setTimeout(unsigned long long timeout, TimeoutDg dg)
 {
-    if (!flag) {
-        MORDOR_LOG_INFO(g_log) << "write timeout";
-        stream->cancelWrite();
-        flag = flag2 = true;
+    m_timeout = timeout;
+    m_timeoutDg = dg;
+    if (m_timer) {
+        // timer is running, need to stop it or reset its counting down
+        if (!isTimeoutSet()) {
+            cancelTimer();
+        } else {
+            m_timer->reset(timeout, true);
+        }
     } else {
-        MORDOR_LOG_DEBUG(g_log) << "write timeout no longer registered";
+        // timer is not running, start it
+        if (isTimeoutSet()) {
+            // start new timer if read/write is ongoing
+            // OR auto start is set
+            if (m_lastTimedOut == TIMING || m_autoStart) {
+                m_timer = m_timerManager.registerTimer(timeout,
+                        std::bind(&TimeoutHandler::onTimeout, this));
+            }
+        }
     }
+}
+
+void
+TimeoutHandler::startTimer()
+{
+    MORDOR_LOG_TRACE(g_log) << this << " startTimer()";
+    if (m_permaTimedOut == TIMEDOUT)
+        MORDOR_THROW_EXCEPTION(TimedOutException());
+    MORDOR_ASSERT(!m_timer);
+    m_lastTimedOut = TIMING;
+    if (isTimeoutSet())
+        m_timer = m_timerManager.registerTimer(m_timeout,
+            std::bind(&TimeoutHandler::onTimeout, this));
+}
+
+bool
+TimeoutHandler::cancelTimer()
+{
+    MORDOR_LOG_TRACE(g_log) << this << " cancelTimer()";
+    bool res = (m_lastTimedOut == TIMEDOUT);
+    if (m_timer) {
+        m_timer->cancel();
+        m_timer.reset();
+    }
+    m_lastTimedOut = NONE;
+    return res;
+}
+
+bool
+TimeoutHandler::refreshTimer()
+{
+    MORDOR_LOG_TRACE(g_log) << this << " refreshTimer()";
+    bool res = (m_lastTimedOut == TIMEDOUT);
+    if (m_timer) {
+        m_timer->refresh();
+    }
+    m_lastTimedOut = TIMING;
+    return res;
 }
 
 void
 TimeoutStream::readTimeout(unsigned long long readTimeout)
 {
     FiberMutex::ScopedLock lock(m_mutex);
-    m_readTimeout = readTimeout;
-    if (m_readTimer) {
-        if (readTimeout == ~0ull) {
-            m_readTimer->cancel();
-            m_readTimer.reset();
-        } else {
-            m_readTimer->reset(readTimeout, true);
-        }
-    } else if (m_readTimeout != ~0ull && !m_readTimedOut) {
-        m_readTimer = m_timerManager.registerTimer(m_readTimeout,
-            std::bind(&cancelReadLocal, parent(),
-            std::ref(m_readTimedOut), std::ref(m_permaReadTimedOut)));
-    }
+    m_reader.setTimeout(readTimeout, std::bind(&cancelReadLocal, parent()));
 }
 
 void
 TimeoutStream::writeTimeout(unsigned long long writeTimeout)
 {
     FiberMutex::ScopedLock lock(m_mutex);
-    m_writeTimeout = writeTimeout;
-    if (m_writeTimer) {
-        if (writeTimeout == ~0ull) {
-            m_writeTimer->cancel();
-            m_writeTimer.reset();
-        } else {
-            m_writeTimer->reset(writeTimeout, true);
-        }
-    } else if (m_writeTimeout != ~0ull && !m_writeTimedOut) {
-        m_writeTimer = m_timerManager.registerTimer(m_writeTimeout,
-            std::bind(&cancelWriteLocal, parent(),
-            std::ref(m_writeTimedOut), std::ref(m_permaWriteTimedOut)));
-    }
+    m_writer.setTimeout(writeTimeout, std::bind(&cancelWriteLocal, parent()));
+}
+
+void
+TimeoutStream::idleTimeout(unsigned long long idleTimeout)
+{
+    FiberMutex::ScopedLock lock(m_mutex);
+    m_idler.setTimeout(idleTimeout, std::bind(&cancelReadWriteLocal, parent()));
 }
 
 size_t
 TimeoutStream::read(Buffer &buffer, size_t length)
 {
     FiberMutex::ScopedLock lock(m_mutex);
-    if (m_permaReadTimedOut)
-        MORDOR_THROW_EXCEPTION(TimedOutException());
-    m_readTimedOut = false;
-    MORDOR_ASSERT(!m_readTimer);
-    if (m_readTimeout != ~0ull)
-        m_readTimer = m_timerManager.registerTimer(m_readTimeout,
-            std::bind(&cancelReadLocal, parent(),
-            std::ref(m_readTimedOut), std::ref(m_permaReadTimedOut)));
+    // start read timer & tickle idle
+    m_reader.startTimer();
+    m_idler.refreshTimer();
     lock.unlock();
     size_t result;
     try {
         result = parent()->read(buffer, length);
     } catch (OperationAbortedException &) {
         lock.lock();
-        if (m_readTimer) {
-            m_readTimer->cancel();
-            m_readTimer.reset();
-        }
-        if (m_readTimedOut)
+        if (m_reader.cancelTimer() || m_idler.cancelTimer())
             MORDOR_THROW_EXCEPTION(TimedOutException());
-        m_readTimedOut = true;
         throw;
     } catch (...) {
         lock.lock();
-        if (m_readTimer) {
-            m_readTimer->cancel();
-            m_readTimer.reset();
-        }
-        m_readTimedOut = true;
+        m_reader.cancelTimer();
+        m_idler.cancelTimer();
         throw;
     }
     lock.lock();
-    if (m_readTimer) {
-        m_readTimer->cancel();
-        m_readTimer.reset();
-    }
-    m_readTimedOut = true;
+    // read done, stop read timer & tickle idle
+    m_reader.cancelTimer();
+    m_idler.refreshTimer();
     return result;
 }
 
@@ -120,43 +156,28 @@ size_t
 TimeoutStream::write(const Buffer &buffer, size_t length)
 {
     FiberMutex::ScopedLock lock(m_mutex);
-    if (m_permaWriteTimedOut)
-        MORDOR_THROW_EXCEPTION(TimedOutException());
-    m_writeTimedOut = false;
-    MORDOR_ASSERT(!m_writeTimer);
-    if (m_writeTimeout != ~0ull)
-        m_writeTimer = m_timerManager.registerTimer(m_writeTimeout,
-            std::bind(&cancelWriteLocal, parent(),
-            std::ref(m_writeTimedOut), std::ref(m_permaWriteTimedOut)));
+    // start write timer & tickle idle
+    m_writer.startTimer();
+    m_idler.refreshTimer();
     lock.unlock();
     size_t result;
     try {
         result = parent()->write(buffer, length);
     } catch (OperationAbortedException &) {
         lock.lock();
-        if (m_writeTimer) {
-            m_writeTimer->cancel();
-            m_writeTimer.reset();
-        }
-        if (m_writeTimedOut)
+        if (m_writer.cancelTimer() || m_idler.cancelTimer())
             MORDOR_THROW_EXCEPTION(TimedOutException());
-        m_writeTimedOut = true;
         throw;
     } catch (...) {
         lock.lock();
-        if (m_writeTimer) {
-            m_writeTimer->cancel();
-            m_writeTimer.reset();
-        }
-        m_writeTimedOut = true;
+        m_writer.cancelTimer();
+        m_idler.cancelTimer();
         throw;
     }
     lock.lock();
-    if (m_writeTimer) {
-        m_writeTimer->cancel();
-        m_writeTimer.reset();
-    }
-    m_writeTimedOut = true;
+    // write done, stop write timer & tickle idle
+    m_writer.cancelTimer();
+    m_idler.refreshTimer();
     return result;
 }
 

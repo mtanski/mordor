@@ -49,7 +49,7 @@
 #   define GCC
 #   ifdef __x86_64
 #       define X86_64
-#   elif defined(i386)
+#   elif defined(__i386__)
 #       define X86
 #   elif defined(__ppc__)
 #       define PPC
@@ -63,9 +63,11 @@
 #endif
 
 #ifdef MSVC
-#ifndef _DEBUG
-#define NDEBUG
-#endif
+#   ifndef _DEBUG
+#       ifndef NDEBUG
+#           define NDEBUG
+#       endif
+#   endif
 #endif
 
 #endif

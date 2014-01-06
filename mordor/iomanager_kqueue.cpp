@@ -6,6 +6,8 @@
 
 #include "iomanager_kqueue.h"
 
+#include <boost/exception_ptr.hpp>
+
 #include "assert.h"
 #include "fiber.h"
 
@@ -13,7 +15,7 @@ namespace Mordor {
 
 static Logger::ptr g_log = Log::lookup("mordor:iomanager");
 
-IOManager::IOManager(size_t threads, bool useCaller)
+IOManager::IOManager(size_t threads, bool useCaller, bool autoStart)
     : Scheduler(threads, useCaller)
 {
     m_kqfd = kqueue();
@@ -43,14 +45,16 @@ IOManager::IOManager(size_t threads, bool useCaller)
         close(m_kqfd);
         MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("kevent");
     }
-    try {
-        start();
-    } catch (...) {
-        close(m_tickleFds[0]);
-        close(m_tickleFds[1]);
-        close(m_kqfd);
-        throw;
-    }    
+    if (autoStart) {
+        try {
+            start();
+        } catch (...) {
+            close(m_tickleFds[0]);
+            close(m_tickleFds[1]);
+            close(m_kqfd);
+            throw;
+        }
+    }
 }
 
 IOManager::~IOManager()
@@ -177,9 +181,9 @@ IOManager::cancelEvent(int fd, Event events)
     if (rc)
         MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("kevent");
     if (dg)
-        scheduler->schedule(dg);
+        scheduler->schedule(&dg);
     else
-        scheduler->schedule(fiber);
+        scheduler->schedule(&fiber);
     m_pendingEvents.erase(it);
 }
 
@@ -199,14 +203,17 @@ IOManager::unregisterEvent(int fd, Event events)
     if (events == READ) {
         e.m_fiber.reset();
         e.m_dg = NULL;
-        if (e.m_fiberClose || e.m_dgClose)
+        if (e.m_fiberClose || e.m_dgClose) {
             return;
+        }
     } else if (events == CLOSE) {
         e.m_fiberClose.reset();
         e.m_dgClose = NULL;
-        if (e.m_fiber || e.m_dg)
+        if (e.m_fiber || e.m_dg) {
             return;
+        }
     }
+
     e.event.flags = EV_DELETE;
     int rc = kevent(m_kqfd, &e.event, 1, NULL, 0, NULL);
     MORDOR_LOG_LEVEL(g_log, rc ? Log::ERROR : Log::VERBOSE) << this << " kevent("
@@ -216,7 +223,6 @@ IOManager::unregisterEvent(int fd, Event events)
         MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("kevent");
     m_pendingEvents.erase(it);
 }
-
 
 bool
 IOManager::stopping(unsigned long long &nextTimeout)
@@ -258,9 +264,12 @@ IOManager::idle()
         if (rc < 0)
             MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("kevent");
         std::vector<std::function<void ()> > expired = processTimers();
-        schedule(expired.begin(), expired.end());
-        expired.clear();
+        if (!expired.empty()) {
+            schedule(expired.begin(), expired.end());
+            expired.clear();
+        }
 
+        boost::exception_ptr exception;
         for(int i = 0; i < rc; ++i) {
             struct kevent &event = events[i];
             if ((int)event.ident == m_tickleFds[0]) {
@@ -299,28 +308,32 @@ IOManager::idle()
                     << this << " kevent(" << m_kqfd << ", (" << event.ident
                     << ", " << event.filter << ", EV_DELETE)): " << rc2 << " ("
                     << lastError() << ")";
-                if (rc2)
-                    MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("kevent");
+                if (rc2) {
+                    try {
+                        MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("kevent");
+                    } catch (boost::exception &) {
+                        exception = boost::current_exception();
+                        continue;
+                    }
+                }
             }
             if (e.m_dg) {
-                e.m_scheduler->schedule(e.m_dg);
-                e.m_dg = NULL;
+                e.m_scheduler->schedule(&e.m_dg);
             } else if (e.m_fiber) {
-                e.m_scheduler->schedule(e.m_fiber);
-                e.m_fiber.reset();
+                e.m_scheduler->schedule(&e.m_fiber);
             }
             if (eof && e.event.filter == EVFILT_READ) {
                 if (e.m_dgClose) {
-                    e.m_schedulerClose->schedule(e.m_dgClose);
-                    e.m_dgClose = NULL;
+                    e.m_schedulerClose->schedule(&e.m_dgClose);
                 } else if (e.m_fiberClose) {
-                    e.m_schedulerClose->schedule(e.m_fiberClose);
-                    e.m_fiberClose.reset();
+                    e.m_schedulerClose->schedule(&e.m_fiberClose);
                 }
             }
             if (remove)
                 m_pendingEvents.erase(it);
         }
+        if (exception)
+            boost::rethrow_exception(exception);
         try {
             Fiber::yield();
         } catch (OperationAbortedException &) {

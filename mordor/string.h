@@ -41,6 +41,8 @@ std::string sha256(const std::string &data);
 // Returns result in blob
 std::string md5sum(const std::string &data);
 std::string md5sum(const void *data, size_t len);
+std::string sha0sum(const std::string &data);
+std::string sha0sum(const void *data, size_t len);
 std::string sha1sum(const std::string &data);
 std::string sha1sum(const void *data, size_t len);
 #if OPENSSL_VERSION_NUMBER >= 0x0090800fL
@@ -96,13 +98,16 @@ typedef std::basic_string<utf16char> utf16string;
 typedef std::basic_string<utf32char> utf32string;
 
 #ifdef WINDOWS
-std::string toUtf8(const utf16char *str, size_t len = ~0);
+std::string toUtf8(const utf16char *str, size_t len);
 std::string toUtf8(const utf16string &str);
-utf16string toUtf16(const char *str, size_t len = ~0);
+utf16string toUtf16(const char *str, size_t len);
 utf16string toUtf16(const std::string &str);
 #elif defined (OSX)
 std::string toUtf8(CFStringRef string);
-utf16string toUtf16(const char *str, size_t len = ~0);
+utf16string toUtf16(const char *str, size_t len);
+utf16string toUtf16(const std::string &str);
+#elif defined (LINUX)
+utf16string toUtf16(const char *str, size_t len);
 utf16string toUtf16(const std::string &str);
 #endif
 std::string toUtf8(utf16char character);

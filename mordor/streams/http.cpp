@@ -51,7 +51,11 @@ HTTPStream::HTTPStream(const Request &requestHeaders, RequestBroker::ptr request
 
 HTTPStream::~HTTPStream()
 {
-    clearParent();
+    try {
+        clearParent();
+    } catch (...) {
+        // ignore clean up errors
+    }
 }
 
 ETag
@@ -142,8 +146,9 @@ HTTPStream::start(size_t length)
                         PARTIAL_CONTENT) {
                         // Server doesn't support If-Range
                         request->cancel(true);
-                        parent(Stream::ptr());
+                        clearParent();
                     } else {
+                        m_readRequest = request;
                         parent(request->responseStream());
                     }
                     m_pos = 0;
@@ -155,9 +160,15 @@ HTTPStream::start(size_t length)
                     m_readRequested = ~0ull;
                     transferStream(responseStream, NullStream::get(), m_pos);
                 }
+                m_readRequest = request;
                 parent(responseStream);
                 break;
             default:
+                // The bad ClientRequest `request' is propagated along with the
+                // InvalidResponseException, the uppper level should handle the
+                // error and finish the request, fail to do so will cause the
+                // corresponding ClientConnection abortion and all the remaining
+                // requests on the connection will be canceled.
                 MORDOR_THROW_EXCEPTION(InvalidResponseException(request));
         }
     }
@@ -220,6 +231,7 @@ HTTPStream::checkModified()
             return true;
         }
     }
+    m_readRequest = request;
     parent(responseStream);
     return true;
 }
@@ -260,12 +272,12 @@ HTTPStream::read(Buffer &buffer, size_t length)
                 throw;
             }
         } catch (SocketException &) {
-            parent(Stream::ptr());
+            clearParent(true);
             if (!m_delayDg || !m_delayDg(++*retries))
                 throw;
             continue;
         } catch (UnexpectedEofException &) {
-            parent(Stream::ptr());
+            clearParent(true);
             if (!m_delayDg || !m_delayDg(++*retries))
                 throw;
             continue;
@@ -340,7 +352,7 @@ HTTPStream::write(const Buffer &buffer, size_t length)
             m_requestHeaders.entity.contentLength =
                 (unsigned long long)m_sizeAdvice;
             m_requestHeaders.entity.contentRange = ContentRange();
-            m_writeRequested = m_writeAdvice;
+            m_writeRequested = m_sizeAdvice;
         }
         if (m_sizeAdvice == -1) {
             if (m_requestHeaders.general.transferEncoding.empty())
@@ -367,7 +379,7 @@ HTTPStream::write(const Buffer &buffer, size_t length)
     m_pos += result;
     m_writeRequested -= result;
     if (m_writeRequested == 0)
-        close();
+        close(WRITE);
     return result;
 }
 
@@ -396,16 +408,16 @@ HTTPStream::seek(long long offset, Anchor anchor)
     // Attempt to do an optimized forward seek
     if (offset > m_pos && m_readRequested != ~0ull && parent() &&
         parent()->supportsRead() &&
-        m_pos + m_readRequested < (unsigned long long)offset) {
+        m_pos + m_readRequested > (unsigned long long)offset) {
         try {
             transferStream(*this, NullStream::get(), offset - m_pos);
             MORDOR_ASSERT(m_pos == offset);
             return m_pos;
         } catch (...) {
-            parent(Stream::ptr());
+            clearParent(true);
         }
     } else {
-        parent(Stream::ptr());
+        clearParent();
     }
     return m_pos = offset;
 }
@@ -450,7 +462,7 @@ HTTPStream::stat()
                 } else if (!m_eTag.unspecified &&
                     response.response.eTag != m_eTag) {
                     m_eTag = response.response.eTag;
-                    parent(Stream::ptr());
+                    clearParent();
                     m_pos = 0;
                     MORDOR_THROW_EXCEPTION(EntityChangedException());
                 }
@@ -515,8 +527,11 @@ HTTPStream::close(CloseType type)
         m_sizeAdvice = ~0ull;
         return;
     }
-    if (parent() && (type & WRITE) && parent()->supportsWrite()) {
+    if (parent()) {
         parent()->close();
+    }
+
+    if (parent() && (type & WRITE) && parent()->supportsWrite()) {
         parent(Stream::ptr());
         m_writeFuture.reset();
         m_writeFuture2.signal();
@@ -541,6 +556,7 @@ HTTPStream::close(CloseType type)
                 MORDOR_THROW_EXCEPTION(InvalidResponseException(m_writeRequest));
         }
     }
+    parent(Stream::ptr());
 }
 
 void
@@ -551,16 +567,32 @@ HTTPStream::flush(bool flushParent)
 }
 
 void
-HTTPStream::clearParent()
+HTTPStream::clearParent(bool error)
 {
     if (m_writeInProgress) {
         m_abortWrite = true;
         m_writeFuture.reset();
         m_writeFuture2.signal();
         m_writeFuture.wait();
-        MORDOR_ASSERT(!m_abortWrite);
+        MORDOR_ASSERT(!m_writeInProgress);
     }
-    parent(Stream::ptr());
+    if (parent()) {
+        if (parent()->supportsWrite() && m_writeRequest) {
+            if (error)
+                m_writeRequest->cancel(true);
+            else
+                m_writeRequest->finish();
+            m_writeRequest.reset();
+        }
+        if (parent()->supportsRead() && m_readRequest) {
+            if (error)
+                m_readRequest->cancel(true);
+            else
+                m_readRequest->finish();
+            m_readRequest.reset();
+        }
+        parent(Stream::ptr());
+    }
 }
 
 }

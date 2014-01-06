@@ -2,7 +2,7 @@
 #define __MORDOR_HTTP_SERVER_H__
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include <boost/thread/mutex.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 
 #include "connection.h"
 #include "../socket.h"
@@ -93,6 +93,10 @@ public:
     /// Context of the ServerRequest
     const std::string & context() const { return m_context; }
     unsigned long long requestNumber() const { return m_requestNumber; }
+    /// ignore request body
+    void discardRequestBody();
+
+    unsigned long long startTime() const { return m_startTime; }
 
 private:
     void doRequest();
@@ -115,6 +119,7 @@ private:
     std::shared_ptr<Stream> m_requestStream, m_responseStream;
     std::shared_ptr<Multipart> m_requestMultipart, m_responseMultipart;
     std::string m_context;
+    unsigned long long m_startTime;
 };
 
 /// Individual connection to an HTTP server
@@ -160,6 +165,7 @@ public:
 
     Address::ptr client_address() const
     { return m_addr; }
+    void cancel();
 
 private:
     void scheduleNextRequest(ServerRequest *currentRequest);
@@ -169,7 +175,7 @@ private:
 
 private:
     std::function<void (ServerRequest::ptr)> m_dg;
-    boost::mutex m_mutex;
+    boost::recursive_mutex m_mutex;
     std::list<ServerRequest *> m_pendingRequests;
     std::set<ServerRequest *> m_waitingResponses;
     unsigned long long m_requestCount, m_priorRequestFailed,

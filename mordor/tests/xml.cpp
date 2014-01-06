@@ -30,7 +30,7 @@ static void reference(std::string &value, int &called,
     else if (string == "&apos;")
         value.append("\'");
     else
-        // Real code should also look for character references like “&#38;”
+        // Real code should also look for character references like "&#38;"
         MORDOR_NOTREACHED();
 
     ++called;
@@ -47,7 +47,7 @@ static void handlereferencecallback(std::string &value, int &called,
     replace(rawstring, "&lt;", "<" );
     replace(rawstring, "&quot;", "\"");
     replace(rawstring, "&apos;", "\'");
-    // Should also look for character references like “&#38;”
+    // Should also look for character references like "&#38;"
 
     value.append(rawstring);
     ++called;

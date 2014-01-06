@@ -1,4 +1,5 @@
 // Copyright (c) 2009 - Mozy, Inc.
+#include <vector>
 
 #ifdef HAVE_VALGRIND_VALGRIND_H
 #include <valgrind/valgrind.h>
@@ -24,6 +25,7 @@
 #include "mordor/streams/null.h"
 #include "mordor/streams/pipe.h"
 #include "mordor/streams/random.h"
+#include "mordor/streams/ssl.h"
 #include "mordor/streams/test.h"
 #include "mordor/streams/transfer.h"
 #include "mordor/test/test.h"
@@ -223,6 +225,78 @@ MORDOR_UNITTEST(HTTPClient, simpleResponseBody)
 #ifndef NDEBUG
     MORDOR_TEST_ASSERT_ASSERTED(request->responseStream());
 #endif
+}
+
+static void validateMultipartStream(
+        Stream::ptr stream,
+        std::string data)
+{
+    MORDOR_TEST_ASSERT(stream);
+    MORDOR_TEST_ASSERT(stream->supportsRead());
+    MORDOR_TEST_ASSERT(!stream->supportsWrite());
+    MORDOR_TEST_ASSERT(!stream->supportsSeek());
+    MORDOR_TEST_ASSERT(!stream->supportsTruncate());
+    MORDOR_TEST_ASSERT(!stream->supportsFind());
+    MORDOR_TEST_ASSERT(!stream->supportsUnread());
+
+    MemoryStream body;
+    transferStream(stream, body);
+    MORDOR_TEST_ASSERT(body.buffer() == data);
+}
+
+MORDOR_UNITTEST(HTTPClient, multipartResponseBody)
+{
+    std::string boundary = Multipart::randomBoundary();
+    MemoryStream::ptr requestStream(new MemoryStream());
+    MemoryStream::ptr responseStream(new MemoryStream(Buffer(
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: multipart/bytesrange; boundary=\"" + boundary + "\"\r\n"
+        "Connection: close\r\n"
+        "\r\n"
+        "\r\n--" + boundary + "\r\n"
+        "\r\n"
+        "This is the first part.\r\n"
+        "--" + boundary + "\r\n"
+        "\r\n"
+        "This is the second part.\r\n"
+        "--" + boundary + "--\r\n")));
+    DuplexStream::ptr duplexStream(new DuplexStream(responseStream, requestStream));
+    ClientConnection::ptr conn(new ClientConnection(duplexStream));
+
+    Request requestHeaders;
+    requestHeaders.requestLine.uri = "/";
+    requestHeaders.general.connection.insert("close");
+
+    ClientRequest::ptr request = conn->request(requestHeaders);
+    request->doRequest();
+    MORDOR_TEST_ASSERT(requestStream->buffer() ==
+        "GET / HTTP/1.0\r\n"
+        "Connection: close\r\n"
+        "\r\n");
+    MORDOR_TEST_ASSERT_EQUAL(request->response().status.status, OK);
+    MORDOR_TEST_ASSERT(request->hasResponseBody());
+
+    Multipart::ptr response = request->responseMultipart();
+    BodyPart::ptr part = response->nextPart();
+    MORDOR_TEST_ASSERT(part);
+    Stream::ptr stream = part->stream();
+    validateMultipartStream(stream, "This is the first part.");
+
+    part = response->nextPart();
+    MORDOR_TEST_ASSERT(part);
+    stream = part->stream();
+    validateMultipartStream(stream, "This is the second part.");
+
+    part = response->nextPart();
+    MORDOR_TEST_ASSERT(!part);
+
+    stream.reset();
+    part.reset();
+    response.reset();
+#ifndef NDEBUG
+    MORDOR_TEST_ASSERT_ASSERTED(request->responseMultipart());
+#endif
+    request->finish();
 }
 
 MORDOR_UNITTEST(HTTPClient, incompleteResponseBody)
@@ -2577,15 +2651,42 @@ namespace {
 class DummyStreamBroker : public StreamBroker
 {
 public:
+    typedef std::shared_ptr<DummyStreamBroker> ptr;
     Stream::ptr getStream(const URI &uri)
     {
         std::pair<Stream::ptr, Stream::ptr> pipe = pipeStream();
         Servlet::ptr servlet(new ServletDispatcher());
-        ServerConnection::ptr server(new ServerConnection(pipe.second,
+        serverConn.reset(new ServerConnection(pipe.second,
             std::bind(&Servlet::request, servlet, std::placeholders::_1)));
-        server->processRequests();
+        serverConn->processRequests();
         return pipe.first;
     }
+    // Latest server connection
+    ServerConnection::ptr serverConn;
+};
+
+static void accept(SSLStream::ptr server)
+{
+    server->accept();
+}
+
+class DummySSLStreamBroker : public StreamBroker
+{
+public:
+    typedef std::shared_ptr<DummyStreamBroker> ptr;
+    Stream::ptr getStream(const URI &uri)
+    {
+        std::pair<Stream::ptr, Stream::ptr> pipes = pipeStream();
+        m_pipes.push_back(pipes);
+        SSLStream::ptr sslserver(new SSLStream(pipes.first, false));
+
+        m_pool.schedule(std::bind(&accept, sslserver));
+        return pipes.second;
+    }
+
+private:
+    WorkerPool m_pool;
+    std::vector<std::pair<Stream::ptr, Stream::ptr> > m_pipes;
 };
 }
 
@@ -2593,13 +2694,73 @@ MORDOR_UNITTEST(HTTPConnectionCache, idleDoesntPreventStop)
 {
     IOManager ioManager;
     StreamBroker::ptr broker(new DummyStreamBroker());
-    ConnectionCache cache(broker, &ioManager);
-    cache.idleTimeout(5000000ull);
-    ClientConnection::ptr conn = cache.getConnection("http://localhost/").first;
-    cache.closeIdleConnections();
+    ConnectionCache::ptr cache = ConnectionCache::create(broker, &ioManager);
+    cache->idleTimeout(5000000ull);
+    ClientConnection::ptr conn = cache->getConnection("http://localhost/").first;
+    cache->closeIdleConnections();
     unsigned long long start = TimerManager::now();
     ioManager.stop();
     MORDOR_TEST_ASSERT_LESS_THAN(TimerManager::now() - start, 1000000ull);
+}
+
+MORDOR_UNITTEST(HTTPConnectionCache, remoteClose)
+{
+    IOManager ioManager;
+    std::weak_ptr<ConnectionCache> weakCache;
+    ServerConnection::ptr serverConn;
+    ClientConnection::ptr clientConn;
+    {
+        DummyStreamBroker::ptr broker(new DummyStreamBroker());
+        ConnectionCache::ptr cache = ConnectionCache::create(broker, &ioManager);
+        weakCache = cache;
+        cache->idleTimeout(5000000ull);
+        clientConn = cache->getConnection("http://localhost/").first;
+        serverConn = broker->serverConn;
+    }
+
+    // Connection cache of broker has been destroyed already
+    ConnectionCache::ptr cache = weakCache.lock();
+    MORDOR_TEST_ASSERT(!cache);
+    // Stream of client connection still exists
+    MORDOR_TEST_ASSERT(clientConn->stream());
+    // Close remote stream, and it shouldn't throw exception
+    try {
+        serverConn->stream()->close();
+    } catch (...) {
+        MORDOR_TEST_ASSERT(!"Crashed caused by remote close!");
+    }
+}
+
+MORDOR_UNITTEST(HTTPConnectionNoCache, getDifferentConnection)
+{
+    IOManager ioManager;
+    StreamBroker::ptr broker(new DummyStreamBroker());
+    ConnectionNoCache::ptr noCache(new ConnectionNoCache(broker, &ioManager));
+    ClientConnection::ptr conn1 = noCache->getConnection("http://localhost/").first;
+    ClientConnection::ptr conn2 = noCache->getConnection("http://localhost/").first;
+    MORDOR_TEST_ASSERT_NOT_EQUAL(conn1->stream().get(), conn2->stream().get());
+    ioManager.stop();
+}
+
+MORDOR_UNITTEST(HTTPConnectionNoCache, getDifferentSSLConnection)
+{
+    StreamBroker::ptr broker(new DummySSLStreamBroker());
+    ConnectionNoCache::ptr noCache(new ConnectionNoCache(broker, NULL));
+    noCache->verifySslCertificateHost(false);
+    ClientConnection::ptr conn1 = noCache->getConnection("https://localhost/").first;
+    ClientConnection::ptr conn2 = noCache->getConnection("https://localhost/").first;
+    MORDOR_TEST_ASSERT_NOT_EQUAL(conn1->stream().get(), conn2->stream().get());
+}
+
+MORDOR_UNITTEST(HTTPConnectionNoCache, regardlessForceNewConnectionParam)
+{
+    IOManager ioManager;
+    StreamBroker::ptr broker(new DummyStreamBroker());
+    ConnectionNoCache::ptr noCache(new ConnectionNoCache(broker, &ioManager));
+    ClientConnection::ptr conn1 = noCache->getConnection("http://localhost/", false).first;
+    ClientConnection::ptr conn2 = noCache->getConnection("http://localhost/", false).first;
+    MORDOR_TEST_ASSERT_NOT_EQUAL(conn1->stream().get(), conn2->stream().get());
+    ioManager.stop();
 }
 
 namespace {
@@ -2614,15 +2775,15 @@ public:
 };
 }
 
-static void expectFail(ConnectionCache &cache)
+static void expectFail(ConnectionCache::ptr cache)
 {
-    MORDOR_TEST_ASSERT_EXCEPTION(cache.getConnection("http://localhost/"),
+    MORDOR_TEST_ASSERT_EXCEPTION(cache->getConnection("http://localhost/"),
         DummyException);
 }
 
-static void expectPriorFail(ConnectionCache &cache)
+static void expectPriorFail(ConnectionCache::ptr cache)
 {
-    MORDOR_TEST_ASSERT_EXCEPTION(cache.getConnection("http://localhost/"),
+    MORDOR_TEST_ASSERT_EXCEPTION(cache->getConnection("http://localhost/"),
         PriorConnectionFailedException);
 }
 
@@ -2630,7 +2791,7 @@ MORDOR_UNITTEST(HTTPConnectionCache, pendingConnectionsFailTogether)
 {
     WorkerPool pool;
     StreamBroker::ptr broker(new FailStreamBroker());
-    ConnectionCache cache(broker);
+    ConnectionCache::ptr cache = ConnectionCache::create(broker);
     pool.schedule(std::bind(&expectFail, std::ref(cache)));
     pool.schedule(std::bind(&expectPriorFail, std::ref(cache)));
     pool.schedule(std::bind(&expectPriorFail, std::ref(cache)));

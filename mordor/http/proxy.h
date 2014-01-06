@@ -27,12 +27,14 @@ class RequestBroker;
 // The default; if you've done Config::loadFromEnvironment, this will use the
 // HTTP_PROXY environment variable (passing it to proxyFromList)
 std::vector<URI> proxyFromConfig(const URI &uri);
+
 // This parses proxy and bypassList according to the WINHTTP_PROXY_INFO
 // structure; additionally if bypassList is blank, it will look for a !
 // in the proxy, and use that to separate the proxy from the
 // bypassList
-std::vector<URI> proxyFromList(const URI &uri, const std::string &proxy,
-    const std::string &bypassList = std::string());
+std::vector<URI> proxyFromList(const URI &uri,
+                               std::string proxy,
+                               std::string bypassList = std::string());
 
 #ifdef WINDOWS
 std::vector<URI> proxyFromMachineDefault(const URI &uri);
@@ -59,8 +61,8 @@ public:
 
     // Determine the Proxy URIs, if any, to use to reach the specified uri
     // If no pacScript url is specified the system will attempt to autodetect one
-    std::vector<URI> autoDetectProxy(const URI &uri,
-        const std::string &pacScript = std::string());
+    bool autoDetectProxy(const URI &uri, const std::string &pacScript,
+                         std::vector<URI> &proxyList);
 
     bool resetDetectionResultCache() {
         // Depending on the settings the proxyFromUserSettings() method
@@ -74,10 +76,23 @@ public:
 
 private:
     HINTERNET m_hHttpSession;
-    std::string m_autoConfigUrl; // Autodetected pac Script, if any
-    bool m_bAutoProxyFailed;
+
+    // The follow members are static so that the cache state can be shared by
+    // all of the ProxyCache instances. This cache is invalided by calling
+    // resetDetectionResultCache(), defined above.
+    //
+    // The lock held when accessing the static member variables.
+    static boost::mutex s_cacheMutex;
+
+    // True if WPAD failed.
+    static bool s_failedAutoDetect;
+
+    // The list of failed PAC file URLs.
+    static std::set<std::string> s_invalidConfigURLs;
 };
+
 #elif defined (OSX)
+
 class ProxyCache
 {
 public:
@@ -106,10 +121,10 @@ private:
 
     void runPacWorker();
 
-    std::vector<URI> proxyFromPacScript(CFURLRef cfurl, CFURLRef targeturl,
+    std::vector<URI> proxyFromPacScript(CFURLRef cfurl, ScopedCFRef<CFURLRef> targeturl,
         RequestBroker::ptr requestBroker,
         std::map<URI, ScopedCFRef<CFStringRef> > &cachedScripts);
-    std::vector<URI> proxyFromCFArray(CFArrayRef proxies, CFURLRef targeturl,
+    std::vector<URI> proxyFromCFArray(CFArrayRef proxies, ScopedCFRef<CFURLRef> targeturl,
         RequestBroker::ptr requestBroker,
         std::map<URI, ScopedCFRef<CFStringRef> > &cachedScripts);
 };

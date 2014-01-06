@@ -7,9 +7,9 @@
 #include <vector>
 
 #include <openssl/ssl.h>
+#include <boost/thread.hpp>
 
 #include "buffer.h"
-#include "mordor/scheduler.h"
 
 namespace Mordor {
 
@@ -73,11 +73,14 @@ public:
 
     void verifyPeerCertificate();
     void verifyPeerCertificate(const std::string &hostname);
+    void clearSSLError();
 
 private:
     void wantRead();
+    int sslCallWithLock(std::function<int ()> dg, unsigned long *error);
 
 private:
+    boost::mutex m_mutex;
     std::shared_ptr<SSL_CTX> m_ctx;
     std::shared_ptr<SSL> m_ssl;
     Buffer m_readBuffer, m_writeBuffer;

@@ -5,6 +5,7 @@
 
 #include "mordor/assert.h"
 #include "mordor/streams/buffer.h"
+#include "mordor/streams/buffered.h"
 #include "mordor/streams/notify.h"
 #include "mordor/streams/null.h"
 #include "mordor/streams/transfer.h"
@@ -46,6 +47,8 @@ Multipart::Multipart(Stream::ptr stream, std::string boundary)
     }
     m_boundary = "\r\n--" + m_boundary;
     if (m_stream->supportsRead()) {
+        if (!m_stream->supportsFind())
+            m_stream.reset(new BufferedStream(m_stream));
         MORDOR_ASSERT(m_stream->supportsFind());
         MORDOR_ASSERT(m_stream->supportsUnread());
     }
@@ -74,10 +77,10 @@ Multipart::nextPart()
         size_t offsetToBoundary = m_stream->find(m_boundary);
 
         Buffer b;
-        size_t UNUSED(result) = m_stream->read(b, offsetToBoundary + m_boundary.size());
-        MORDOR_ASSERT(result == offsetToBoundary + m_boundary.size());
+        MORDOR_VERIFY(m_stream->read(b, offsetToBoundary + m_boundary.size()) ==
+                      offsetToBoundary + m_boundary.size());
         b.clear();
-        result = m_stream->read(b, 2);
+        m_stream->read(b, 2);
         if (b == "--") {
             m_finished = true;
         }
@@ -178,7 +181,7 @@ BodyPart::stream()
         std::string headers = os.str();
         m_multipart->m_stream->write(headers.c_str(), headers.size());
         NotifyStream *notify = new NotifyStream(m_multipart->m_stream, false);
-        notify->notifyOnClose = std::bind(&Multipart::partDone, m_multipart);
+        notify->notifyOnClose(std::bind(&Multipart::partDone, m_multipart));
         m_stream.reset(notify);
     }
     return m_stream;
@@ -197,7 +200,7 @@ BodyPart::multipart()
         std::string headers = os.str();
         m_multipart->m_stream->write(headers.c_str(), headers.size());
         NotifyStream *notify = new NotifyStream(m_multipart->m_stream, false);
-        notify->notifyOnClose = std::bind(&Multipart::partDone, m_multipart);
+        notify->notifyOnClose(std::bind(&Multipart::partDone, m_multipart));
         m_stream.reset(notify);
     }
     HTTP::StringMap::const_iterator it = m_headers.contentType.parameters.find("boundary");

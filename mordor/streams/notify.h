@@ -2,7 +2,6 @@
 #define __MORDOR_NOTIFY_STREAM_H__
 // Copyright (c) 2009 - Mozy, Inc.
 
-
 #include "filter.h"
 
 namespace Mordor {
@@ -16,7 +15,6 @@ public:
         : FilterStream(parent, own)
     {}
 
-    std::function<void ()> notifyOnClose;
     std::function<void ()> notifyOnFlush;
     std::function<void ()> notifyOnEof;
     std::function<void ()> notifyOnException;
@@ -31,8 +29,8 @@ public:
                 notifyOnException();
             throw;
         }
-        if (notifyOnClose)
-            notifyOnClose();
+        if (m_notifyOnClose)
+            m_notifyOnClose(type);
     }
 
     using FilterStream::read;
@@ -75,6 +73,25 @@ public:
         if (notifyOnFlush)
             notifyOnFlush();
     }
+
+    void notifyOnClose(std::function<void ()> dg = NULL)
+    {
+        if (dg)
+            notifyOnClose2(std::bind(&NotifyStream::onCloseAdapter, dg, std::placeholders::_1));
+        else
+            notifyOnClose2(NULL);
+    }
+
+    void notifyOnClose2(std::function<void (CloseType)> dg)
+    { m_notifyOnClose = dg; }
+
+private:
+    static void onCloseAdapter(std::function<void ()> dg, CloseType type)
+    { dg(); }
+
+private:
+    std::function<void (CloseType)> m_notifyOnClose;
+
 };
 
 }

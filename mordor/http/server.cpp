@@ -8,6 +8,7 @@
 #include "mordor/socket.h"
 #include "mordor/streams/null.h"
 #include "mordor/streams/transfer.h"
+#include "mordor/timer.h"
 #include "multipart.h"
 #include "parser.h"
 
@@ -31,7 +32,7 @@ ServerConnection::ServerConnection(Stream::ptr stream, std::function<void (Serve
 void
 ServerConnection::processRequests()
 {
-    boost::mutex::scoped_lock lock(m_mutex);
+    boost::recursive_mutex::scoped_lock lock(m_mutex);
     invariant();
     scheduleNextRequest(NULL);
 }
@@ -40,7 +41,7 @@ std::vector<ServerRequest::const_ptr>
 ServerConnection::requests()
 {
     std::vector<ServerRequest::const_ptr> result;
-    boost::mutex::scoped_lock lock(m_mutex);
+    boost::recursive_mutex::scoped_lock lock(m_mutex);
     invariant();
     for (std::list<ServerRequest *>::const_iterator it(m_pendingRequests.begin());
         it != m_pendingRequests.end();
@@ -75,7 +76,7 @@ ServerConnection::requestComplete(ServerRequest *request)
     MORDOR_ASSERT(request);
     bool close = false;
     {
-        boost::mutex::scoped_lock lock(m_mutex);
+        boost::recursive_mutex::scoped_lock lock(m_mutex);
         invariant();
         MORDOR_ASSERT(!m_pendingRequests.empty());
         MORDOR_ASSERT(request == m_pendingRequests.back());
@@ -106,8 +107,24 @@ ServerConnection::requestComplete(ServerRequest *request)
 void
 ServerConnection::responseComplete(ServerRequest *request)
 {
+    if (request->m_willClose) {
+        MORDOR_LOG_TRACE(g_log) << this << " closing";
+        try {
+            m_stream->close();
+        } catch (...) {
+            MORDOR_LOG_DEBUG(g_log) << this << " " << request->context()
+                << " Unexpected exception: "
+                << boost::current_exception_diagnostic_information();
+            request->cancel();
+            throw;
+        }
+    } else {
+        MORDOR_LOG_TRACE(g_log) << this << " flushing";
+        m_stream->flush();
+    }
+
     {
-        boost::mutex::scoped_lock lock(m_mutex);
+        boost::recursive_mutex::scoped_lock lock(m_mutex);
         invariant();
         MORDOR_ASSERT(request->m_responseState == ServerRequest::HEADERS ||
             ServerRequest::BODY);
@@ -146,17 +163,9 @@ ServerConnection::responseComplete(ServerRequest *request)
             MORDOR_LOG_TRACE(g_log) << this << " flushing";
         }
     }
-    if (request->m_willClose) {
-        try {
-            m_stream->close();
-        } catch (...) {
-            request->cancel();
-            throw;
-        }
-    } else {
-        m_stream->flush();
-    }
-    boost::mutex::scoped_lock lock(m_mutex);
+
+    boost::recursive_mutex::scoped_lock lock(m_mutex);
+
     invariant();
     MORDOR_ASSERT(!m_pendingRequests.empty());
     MORDOR_ASSERT(request == m_pendingRequests.front());
@@ -236,6 +245,15 @@ ServerConnection::invariant() const
     }
 }
 
+void
+ServerConnection::cancel()
+{
+    boost::recursive_mutex::scoped_lock lock(m_mutex);
+    MORDOR_LOG_VERBOSE(g_log) << this << " server connection cancelled";
+    m_stream->cancelRead();
+    m_stream->cancelWrite();
+}
+
 
 ServerRequest::ServerRequest(ServerConnection::ptr conn)
 : m_conn(conn),
@@ -244,7 +262,8 @@ ServerRequest::ServerRequest(ServerConnection::ptr conn)
   m_requestState(HEADERS),
   m_responseState(PENDING),
   m_willClose(false),
-  m_pipeline(false)
+  m_pipeline(false),
+  m_startTime(0)
 {
     std::ostringstream os;
     os << m_conn << "-" << m_requestNumber;
@@ -253,16 +272,8 @@ ServerRequest::ServerRequest(ServerConnection::ptr conn)
 
 ServerRequest::~ServerRequest()
 {
+    MORDOR_LOG_TRACE(g_log) << this << " " << context() << " server request destroyed";
     cancel();
-#ifndef NDEBUG
-    MORDOR_ASSERT(m_conn);
-    boost::mutex::scoped_lock lock(m_conn->m_mutex);
-    MORDOR_ASSERT(std::find(m_conn->m_pendingRequests.begin(),
-        m_conn->m_pendingRequests.end(),
-        this) == m_conn->m_pendingRequests.end());
-    MORDOR_ASSERT(m_conn->m_waitingResponses.find(this) ==
-        m_conn->m_waitingResponses.end());
-#endif
 }
 
 bool
@@ -376,7 +387,7 @@ ServerRequest::responseTrailer()
 void
 ServerRequest::processNextRequest()
 {
-    boost::mutex::scoped_lock lock(m_conn->m_mutex);
+    boost::recursive_mutex::scoped_lock lock(m_conn->m_mutex);
     m_pipeline = true;
     m_conn->invariant();
     m_conn->scheduleNextRequest(this);
@@ -387,8 +398,11 @@ ServerRequest::cancel()
 {
     if (m_requestState >= COMPLETE && m_responseState >= COMPLETE)
         return;
-    MORDOR_LOG_TRACE(g_log) << m_context << " aborting";
-    boost::mutex::scoped_lock lock(m_conn->m_mutex);
+    boost::recursive_mutex::scoped_lock lock(m_conn->m_mutex);
+    MORDOR_LOG_INFO(g_log) << " " << m_context
+        << " aborting with requestState: " << m_requestState
+        << " responseState: " << m_responseState
+        << " priorRequestFailed: " << m_conn->m_priorRequestFailed;
     m_conn->invariant();
     if (m_requestState < COMPLETE)
         m_requestState = ERROR;
@@ -411,30 +425,23 @@ ServerRequest::finish()
 {
     if (m_responseState < COMPLETE) {
         if (hasResponseBody())
-            MORDOR_LOG_WARNING(g_log) << m_context
+            MORDOR_LOG_WARNING(g_log) << " " << m_context
                 << " incomplete response";
         if (committed() && hasResponseBody()) {
+            MORDOR_LOG_INFO(g_log) << " " << m_context
+                << " committed and hasResponseBody, cancel...";
             cancel();
             return;
         }
         commit();
         if (hasResponseBody()) {
+            MORDOR_LOG_INFO(g_log) << " " << m_context
+                << " commit and hasResponseBody, cancel...";
             cancel();
             return;
         }
     }
-    if (m_requestState == BODY && !m_willClose) {
-        if (m_request.entity.contentType.type == "multipart") {
-            if (!m_requestMultipart)
-                m_requestMultipart = requestMultipart();
-            while(m_requestMultipart->nextPart());
-        } else {
-            if (!m_requestStream)
-                m_requestStream = requestStream();
-            MORDOR_ASSERT(m_requestStream);
-            transferStream(m_requestStream, NullStream::get());
-        }
-    }
+    discardRequestBody();
 }
 
 void
@@ -447,6 +454,7 @@ ServerRequest::doRequest()
         RequestParser parser(m_request);
         try {
             unsigned long long consumed = parser.run(m_conn->m_stream);
+            m_startTime = TimerManager::now();
             if (consumed == 0 && !parser.error() && !parser.complete()) {
                 // EOF
                 MORDOR_LOG_TRACE(g_log) << m_conn << " No more request";
@@ -454,35 +462,47 @@ ServerRequest::doRequest()
                 return;
             }
             if (parser.error() || !parser.complete()) {
+                MORDOR_LOG_WARNING(g_log) << " " << m_context
+                    << " parser error: " << parser.error()
+                    << " parser complete: " << parser.complete();
                 m_requestState = ERROR;
                 m_conn->m_priorRequestClosed = m_requestNumber;
                 respondError(shared_from_this(), BAD_REQUEST, "Unable to parse request.", true);
                 return;
             }
         } catch (SocketException &) {
+            MORDOR_LOG_WARNING(g_log) << " " << m_context
+                << " Unexpected SocketException";
             cancel();
             return;
         } catch (BrokenPipeException &) {
+            MORDOR_LOG_WARNING(g_log) << " " << m_context
+                << " Unexpected BrokenPipeException";
             cancel();
             return;
         } catch (UnexpectedEofException &) {
+            MORDOR_LOG_WARNING(g_log) << " " << m_context
+                << " Unexpected BrokenPipeException";
             cancel();
             return;
         }
         if (g_log->enabled(Log::DEBUG)) {
             std::string webAuth, proxyAuth;
+            bool hideAuth = false, hideProxyAuth = false;
             if (stricmp(m_request.request.authorization.scheme.c_str(), "Basic") == 0) {
                 webAuth = m_request.request.authorization.base64;
                 m_request.request.authorization.base64 = "<hidden>";
+                hideAuth = true;
             }
             if (stricmp(m_request.request.proxyAuthorization.scheme.c_str(), "Basic") == 0) {
                 proxyAuth = m_request.request.proxyAuthorization.base64;
                 m_request.request.proxyAuthorization.base64 = "<hidden>";
+                hideProxyAuth = true;
             }
             MORDOR_LOG_DEBUG(g_log) << m_context << " " << m_request;
-            if (!webAuth.empty())
+            if (hideAuth)
                 m_request.request.authorization.base64 = webAuth;
-            if (!proxyAuth.empty())
+            if (hideProxyAuth)
                 m_request.request.proxyAuthorization.base64 = proxyAuth;
         } else {
             MORDOR_LOG_VERBOSE(g_log) << m_context
@@ -591,7 +611,7 @@ ServerRequest::doRequest()
             m_request.general.connection.insert("TE");
 
         if (!Connection::hasMessageBody(m_request.general, m_request.entity,
-            m_request.requestLine.method, INVALID, false)) {
+            m_request.requestLine.method, INVALID)) {
             MORDOR_LOG_TRACE(g_log) << m_context << " no request body";
             m_conn->requestComplete(this);
         } else {
@@ -688,12 +708,12 @@ ServerRequest::commit()
     // If any transfer encodings, must include chunked, must have chunked only once, and must be the last one
     if (!transferEncoding.empty()) {
         MORDOR_ASSERT(m_response.status.ver == Version(1, 1));
-        MORDOR_ASSERT(transferEncoding.back().value == "chunked");
+        MORDOR_ASSERT(stricmp(transferEncoding.back().value.c_str(), "chunked") == 0);
         for (ParameterizedList::const_iterator it(transferEncoding.begin());
             it + 1 != transferEncoding.end();
             ++it) {
             // Only the last one can be chunked
-            MORDOR_ASSERT(it->value != "chunked");
+            MORDOR_ASSERT(stricmp(it->value.c_str(), "chunked") != 0);
             // identity is only acceptable in the TE header field
             MORDOR_ASSERT(it->value != "identity");
             if (it->value == "gzip" ||
@@ -720,7 +740,7 @@ ServerRequest::commit()
 
     bool wait = false;
     {
-        boost::mutex::scoped_lock lock(m_conn->m_mutex);
+        boost::recursive_mutex::scoped_lock lock(m_conn->m_mutex);
         m_conn->invariant();
         if (m_conn->m_priorRequestFailed < m_requestNumber ||
             m_conn->m_priorResponseClosed < m_requestNumber) {
@@ -760,7 +780,7 @@ ServerRequest::commit()
         m_fiber.reset();
         MORDOR_LOG_TRACE(g_log) << m_context << " responding";
         // Check for problems that occurred while we were waiting
-        boost::mutex::scoped_lock lock(m_conn->m_mutex);
+        boost::recursive_mutex::scoped_lock lock(m_conn->m_mutex);
         m_conn->invariant();
         if (m_conn->m_priorRequestFailed <= m_requestNumber)
             MORDOR_THROW_EXCEPTION(PriorRequestFailedException());
@@ -795,7 +815,7 @@ ServerRequest::commit()
             m_responseState = BODY;
         }
     } catch(...) {
-        boost::mutex::scoped_lock lock(m_conn->m_mutex);
+        boost::recursive_mutex::scoped_lock lock(m_conn->m_mutex);
         m_conn->invariant();
         m_conn->m_priorRequestFailed = (std::min)(m_conn->m_priorRequestFailed,
             m_requestNumber);
@@ -849,6 +869,23 @@ ServerRequest::responseDone()
     MORDOR_LOG_INFO(g_log) << m_context << " "
         << m_request.requestLine << " " << m_response.status.status;
     m_conn->responseComplete(this);
+}
+
+void
+ServerRequest::discardRequestBody()
+{
+    if (m_requestState == BODY && !m_willClose) {
+        if (m_request.entity.contentType.type == "multipart") {
+            if (!m_requestMultipart)
+                m_requestMultipart = requestMultipart();
+            while(m_requestMultipart->nextPart());
+        } else {
+            if (!m_requestStream)
+                m_requestStream = requestStream();
+            MORDOR_ASSERT(m_requestStream);
+            transferStream(m_requestStream, NullStream::get());
+        }
+    }
 }
 
 void
@@ -980,9 +1017,16 @@ respondStream(ServerRequest::ptr request, Stream &response)
             request->response().entity.contentType.subtype = "byteranges";
             request->response().entity.contentType.parameters["boundary"] =
                 Multipart::randomBoundary();
+            request->response().status.status = PARTIAL_CONTENT;
             unsigned long long currentPos = 0;
 
             if (request->request().requestLine.method != HEAD) {
+                // force use chunked encoding. Reason:
+                // - Content-Type: multipart/byteranges itself can't tell
+                //   when the response body end, and
+                // - Content-Length is not applicable here as well.
+                if (transferEncoding.empty())
+                    transferEncoding.push_back("chunked");
                 Multipart::ptr multipart = request->responseMultipart();
                 for (RangeSet::const_iterator it(range.begin());
                     it != range.end();

@@ -8,6 +8,8 @@
 
 #include <sys/epoll.h>
 
+#include <boost/exception_ptr.hpp>
+
 #include "assert.h"
 #include "atomic.h"
 #include "fiber.h"
@@ -120,27 +122,53 @@ IOManager::AsyncState::contextForEvent(Event event)
 }
 
 bool
-IOManager::AsyncState::triggerEvent(Event event, size_t *pendingEventCount,
-    Fiber::ptr *fiber, std::function<void ()> *dg)
+IOManager::AsyncState::triggerEvent(Event event, size_t &pendingEventCount)
 {
     if (!(m_events & event))
         return false;
     m_events = (Event)(m_events & ~event);
-    if (pendingEventCount) {
-        atomicDecrement(*pendingEventCount);
-        EventContext &context = contextForEvent(event);
-        if (context.dg)
-            context.scheduler->schedule(context.dg);
-        else
-            context.scheduler->schedule(context.fiber);
-        context.scheduler = NULL;
-        fiber->swap(context.fiber);
-        dg->swap(context.dg);
+    atomicDecrement(pendingEventCount);
+    EventContext &context = contextForEvent(event);
+    if (context.dg) {
+        context.scheduler->schedule(&context.dg);
+    } else {
+        context.scheduler->schedule(&context.fiber);
     }
+    context.scheduler = NULL;
     return true;
 }
 
-IOManager::IOManager(size_t threads, bool useCaller)
+void
+IOManager::AsyncState::asyncResetContext(AsyncState::EventContext& context)
+{
+    // fiber.reset is not necessary to be running under the lock.
+    // However, it is needed to acquire the lock and then unlock
+    // to ensure that this function is executed after the other
+    // fiber which scheduled this async reset call.
+    boost::mutex::scoped_lock lock(m_mutex);
+    lock.unlock();
+    context.fiber.reset();
+    context.dg = NULL;
+}
+
+void
+IOManager::AsyncState::resetContext(EventContext &context)
+{
+    // asynchronously reset fiber/dg to avoid destroying in IOManager::idle
+    // NOTE: this function has the pre-condition that the m_mutex is
+    // already acquired in upper level (which is true right now), in this
+    // way, the asyncReset will not be executed until the m_mutex is released,
+    // and it is surely run in Scheduler working fiber instead of idle fiber.
+    // it is fine to pass context address to the boost function
+    // since the address will be always valid until ~IOManager()
+    context.scheduler->schedule(std::bind(
+        &IOManager::AsyncState::asyncResetContext, this, context));
+    context.scheduler = NULL;
+    context.fiber.reset();
+    context.dg = NULL;
+}
+
+IOManager::IOManager(size_t threads, bool useCaller, bool autoStart)
     : Scheduler(threads, useCaller),
       m_pendingEventCount(0)
 {
@@ -160,25 +188,34 @@ IOManager::IOManager(size_t threads, bool useCaller)
     MORDOR_ASSERT(m_tickleFds[1] > 0);
     epoll_event event;
     memset(&event, 0, sizeof(epoll_event));
-    event.events = EPOLLIN;
+    event.events = EPOLLIN | EPOLLET;
     event.data.fd = m_tickleFds[0];
+    rc = fcntl(m_tickleFds[0], F_SETFL, O_NONBLOCK);
+    if (rc == -1) {
+        close(m_tickleFds[0]);
+        close(m_tickleFds[1]);
+        close(m_epfd);
+        MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("fcntl");
+    }
     rc = epoll_ctl(m_epfd, EPOLL_CTL_ADD, m_tickleFds[0], &event);
     MORDOR_LOG_LEVEL(g_log, rc ? Log::ERROR : Log::VERBOSE) << this
         << " epoll_ctl(" << m_epfd << ", EPOLL_CTL_ADD, " << m_tickleFds[0]
-        << ", EPOLLIN): " << rc << " (" << lastError() << ")";
+        << ", EPOLLIN | EPOLLET): " << rc << " (" << lastError() << ")";
     if (rc) {
         close(m_tickleFds[0]);
         close(m_tickleFds[1]);
         close(m_epfd);
         MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("epoll_ctl");
     }
-    try {
-        start();
-    } catch (...) {
-        close(m_tickleFds[0]);
-        close(m_tickleFds[1]);
-        close(m_epfd);
-        throw;
+    if (autoStart) {
+        try {
+            start();
+        } catch (...) {
+            close(m_tickleFds[0]);
+            close(m_tickleFds[1]);
+            close(m_epfd);
+            throw;
+        }
     }
 }
 
@@ -246,9 +283,11 @@ IOManager::registerEvent(int fd, Event event, std::function<void ()> dg)
     MORDOR_ASSERT(!context.fiber);
     MORDOR_ASSERT(!context.dg);
     context.scheduler = Scheduler::getThis();
-    if (!dg)
+    if (dg) {
+        context.dg.swap(dg);
+    } else {
         context.fiber = Fiber::getThis();
-    context.dg.swap(dg);
+    }
 }
 
 bool
@@ -286,10 +325,8 @@ IOManager::unregisterEvent(int fd, Event event)
     atomicDecrement(m_pendingEventCount);
     state.m_events = newEvents;
     AsyncState::EventContext &context = state.contextForEvent(event);
-    context.scheduler = NULL;
-    context.fiber.reset();
-    context.dg = NULL;
-
+    // spawn a dedicated fiber to do the cleanup
+    state.resetContext(context);
     return true;
 }
 
@@ -325,10 +362,7 @@ IOManager::cancelEvent(int fd, Event event)
         << " (" << lastError() << ")";
     if (rc)
         MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("epoll_ctl");
-    Fiber::ptr fiber;
-    std::function<void ()> dg;
-    state.triggerEvent(event, &m_pendingEventCount, &fiber, &dg);
-    lock2.unlock();
+    state.triggerEvent(event, m_pendingEventCount);
     return true;
 }
 
@@ -367,16 +401,21 @@ IOManager::idle()
         if (rc < 0)
             MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("epoll_wait");
         std::vector<std::function<void ()> > expired = processTimers();
-        schedule(expired.begin(), expired.end());
-        expired.clear();
+        if (!expired.empty()) {
+            schedule(expired.begin(), expired.end());
+            expired.clear();
+        }
 
+        boost::exception_ptr exception;
         for(int i = 0; i < rc; ++i) {
             epoll_event &event = events[i];
             if (event.data.fd == m_tickleFds[0]) {
                 unsigned char dummy;
-                int rc2 = read(m_tickleFds[0], &dummy, 1);
-                MORDOR_VERIFY(rc2 == 1);
-                MORDOR_LOG_VERBOSE(g_log) << this << " received tickle";
+                int rc2;
+                while((rc2 = read(m_tickleFds[0], &dummy, 1)) == 1) {
+                    MORDOR_LOG_VERBOSE(g_log) << this << " received tickle";
+                }
+                MORDOR_VERIFY(rc2 < 0 && errno == EAGAIN);
                 continue;
             }
 
@@ -390,49 +429,47 @@ IOManager::idle()
             if (event.events & (EPOLLERR | EPOLLHUP))
                 event.events |= EPOLLIN | EPOLLOUT;
 
-            bool triggered = false;
-            uint32_t toTrigger = event.events;
-            uint32_t oldEvents = state.m_events;
-            if (toTrigger & EPOLLIN)
-                triggered = state.triggerEvent(READ);
-            if (toTrigger & EPOLLOUT)
-                triggered = triggered || state.triggerEvent(WRITE);
-            if (toTrigger & EPOLLRDHUP)
-                triggered = triggered || state.triggerEvent(CLOSE);
+            int incomingEvents = NONE;
+            if (event.events & EPOLLIN)
+                incomingEvents = READ;
+            if (event.events & EPOLLOUT)
+                incomingEvents |= WRITE;
+            if (event.events & EPOLLRDHUP)
+                incomingEvents |= CLOSE;
 
-            // Nothing was triggered, probably because a prior cancelEvent call
+            // Nothing will be triggered, probably because a prior cancelEvent call
             // (probably on a different thread) already triggered it, so no
             // need to tell epoll anything
-            if (!triggered)
+            if ((state.m_events & incomingEvents) == NONE)
                 continue;
 
-            int op = state.m_events ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
-            event.events = EPOLLET | state.m_events;
+            int remainingEvents = (state.m_events & ~incomingEvents);
+            int op = remainingEvents ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
+            event.events = EPOLLET | remainingEvents;
             int rc2 = epoll_ctl(m_epfd, op, state.m_fd, &event);
             MORDOR_LOG_LEVEL(g_log, rc2 ? Log::ERROR : Log::VERBOSE) << this
                 << " epoll_ctl(" << m_epfd << ", " << (epoll_ctl_op_t)op << ", "
                 << state.m_fd << ", " << (EPOLL_EVENTS)event.events << "): " << rc2
                 << " (" << lastError() << ")";
-            if (rc2)
-                MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("epoll_ctl");
-
-            Fiber::ptr readFiber, writeFiber, closeFiber;
-            std::function<void ()> readDg, writeDg, closeDg;
-            state.m_events = (Event)oldEvents;
-            if (toTrigger & EPOLLIN)
-                state.triggerEvent(READ, &m_pendingEventCount, &readFiber,
-                    &readDg);
-            if (toTrigger & EPOLLOUT)
-                state.triggerEvent(WRITE, &m_pendingEventCount, &writeFiber,
-                    &writeDg);
-            if (toTrigger & EPOLLRDHUP)
-                state.triggerEvent(CLOSE, &m_pendingEventCount, &closeFiber,
-                    &closeDg);
-            // Make sure that the mutex is unlocked prior to the fiber/dg
-            // destructing, which may trigger a call to cancelEvent, causing
-            // a deadlock
-            lock2.unlock();
+            if (rc2) {
+                try {
+                    MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("epoll_ctl");
+                } catch (boost::exception &) {
+                    exception = boost::current_exception();
+                    continue;
+                }
+            }
+            bool triggered = false;
+            if (incomingEvents & READ)
+                triggered = state.triggerEvent(READ, m_pendingEventCount);
+            if (incomingEvents & WRITE)
+                triggered = state.triggerEvent(WRITE, m_pendingEventCount) || triggered;
+            if (incomingEvents & CLOSE)
+                triggered = state.triggerEvent(CLOSE, m_pendingEventCount) || triggered;
+            MORDOR_ASSERT(triggered);
         }
+        if (exception)
+            boost::rethrow_exception(exception);
         try {
             Fiber::yield();
         } catch (OperationAbortedException &) {
@@ -444,6 +481,10 @@ IOManager::idle()
 void
 IOManager::tickle()
 {
+    if (!hasIdleThreads()) {
+        MORDOR_LOG_VERBOSE(g_log) << this << " 0 idle thread, no tickle.";
+        return;
+    }
     int rc = write(m_tickleFds[1], "T", 1);
     MORDOR_LOG_VERBOSE(g_log) << this << " write(" << m_tickleFds[1] << ", 1): "
         << rc << " (" << lastError() << ")";

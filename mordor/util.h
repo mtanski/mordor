@@ -10,7 +10,9 @@
 #endif
 
 #ifndef WINDOWS
-// VC2008 doesn't have this, so we'll do without
+#include <stdint.h>
+#elif defined(_MSC_VER) && (_MSC_VER >= 1600)
+// VS2010 already has these types defined in <stdint.h>
 #include <stdint.h>
 #endif
 
@@ -76,7 +78,7 @@ private:
 };
 #endif
 
-#ifdef WINDOWS
+#if defined(WINDOWS) && defined(_MSC_VER) && (_MSC_VER < 1600)
 // create defined types for specific-sized integers
 typedef __int8 int8_t;
 typedef __int16 int16_t;

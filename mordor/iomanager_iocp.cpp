@@ -13,6 +13,12 @@ namespace Mordor {
 static Logger::ptr g_log = Log::lookup("mordor:iomanager");
 static Logger::ptr g_logWaitBlock = Log::lookup("mordor:iomanager:waitblock");
 
+boost::mutex IOManager::m_errorMutex;
+size_t IOManager::m_iocpAllowedErrorCount = 0;
+size_t IOManager::m_iocpErrorCountWindowInSeconds = 0;
+size_t IOManager::m_errorCount = 0;
+unsigned long long IOManager::m_firstErrorTime = 0;
+
 AsyncEvent::AsyncEvent()
 {
     memset(this, 0, sizeof(AsyncEvent));
@@ -211,21 +217,23 @@ IOManager::WaitBlock::removeEntry(int index)
     memmove(&m_recurring[index], &m_recurring[index + 1], (m_inUseCount - index) * sizeof(bool));
 }
 
-IOManager::IOManager(size_t threads, bool useCaller)
+IOManager::IOManager(size_t threads, bool useCaller, bool autoStart)
     : Scheduler(threads, useCaller)
 {
     m_pendingEventCount = 0;
     m_hCompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
     MORDOR_LOG_LEVEL(g_log, m_hCompletionPort ? Log::VERBOSE : Log::ERROR) << this <<
         " CreateIoCompletionPort(): " << m_hCompletionPort << " ("
-        << lastError() << ")";
+        << (m_hCompletionPort ? ERROR_SUCCESS : lastError()) << ")";
     if (!m_hCompletionPort)
         MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("CreateIoCompletionPort");
-    try {
-        start();
-    } catch (...) {
-        CloseHandle(m_hCompletionPort);
-        throw;
+    if (autoStart) {
+        try {
+            start();
+        } catch (...) {
+            CloseHandle(m_hCompletionPort);
+            throw;
+        }
     }
 }
 
@@ -245,10 +253,12 @@ IOManager::stopping()
 void
 IOManager::registerFile(HANDLE handle)
 {
+    // Add the handle to the existing completion port
+    MORDOR_ASSERT(m_hCompletionPort != INVALID_HANDLE_VALUE);
     HANDLE hRet = CreateIoCompletionPort(handle, m_hCompletionPort, 0, 0);
-    MORDOR_LOG_LEVEL(g_log, m_hCompletionPort ? Log::DEBUG : Log::ERROR) << this <<
+    MORDOR_LOG_LEVEL(g_log, hRet ? Log::DEBUG : Log::ERROR) << this <<
         " CreateIoCompletionPort(" << handle << ", " << m_hCompletionPort
-        << "): " << hRet << " (" << lastError() << ")";
+        << "): " << hRet << " (" << (hRet ? ERROR_SUCCESS : lastError()) << ")";
     if (hRet != m_hCompletionPort) {
         MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("CreateIoCompletionPort");
     }
@@ -372,7 +382,11 @@ IOManager::cancelEvent(HANDLE hFile, AsyncEvent *e)
 bool
 IOManager::stopping(unsigned long long &nextTimeout)
 {
+    // Check when the next timer is expected to timeout
     nextTimeout = nextTimer();
+
+    // Even if the scheduler wants to stop we return false
+    // if there is any pending work
     if (nextTimeout == ~0ull && Scheduler::stopping()) {
         if (m_pendingEventCount != 0)
             return false;
@@ -382,6 +396,9 @@ IOManager::stopping(unsigned long long &nextTimeout)
     return false;
 }
 
+
+// Each thread of this IO manager runs this method as a fiber and it is active when there is nothing
+// to do.  It must process incoming Async IO calls, expired timers and any fiber scheduled.
 void
 IOManager::idle()
 {
@@ -392,8 +409,11 @@ IOManager::idle()
         if (stopping(nextTimeout))
             return;
         DWORD timeout = INFINITE;
-        if (nextTimeout != ~0ull)
+        if (nextTimeout != ~0ull) {
+            // The maximum time we can wait in GetQueuedCompletionStatusEx is
+            // up to the point that the next timer will expire
             timeout = (DWORD)(nextTimeout / 1000) + 1;
+        }
         count = 0;
         BOOL ret = pGetQueuedCompletionStatusEx(m_hCompletionPort,
             events,
@@ -404,14 +424,17 @@ IOManager::idle()
         error_t error = lastError();
         MORDOR_LOG_DEBUG(g_log) << this << " GetQueuedCompletionStatusEx("
             << m_hCompletionPort << ", " << timeout << "): " << ret << ", ("
-            << count << ") (" << error << ")";
+            << count << ") (" << (ret ? ERROR_SUCCESS : error) << ")";
         if (!ret && error) {
             if (error == WAIT_TIMEOUT) {
+                // No tickles or AsyncIO calls have happened so check for timers
+                // that need execution
                 std::vector<std::function<void ()> > expired = processTimers();
                 if (!expired.empty()) {
                     schedule(expired.begin(), expired.end());
                     expired.clear();
                     try {
+                        // Let the timers execute
                         Fiber::yield();
                     } catch (OperationAbortedException &) {
                         return;
@@ -421,9 +444,13 @@ IOManager::idle()
             }
             MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("GetQueuedCompletionStatusEx");
         }
+
+        // Schedule any timers that are ready to execute
         std::vector<std::function<void ()> > expired = processTimers();
-        schedule(expired.begin(), expired.end());
-        expired.clear();
+        if (!expired.empty()) {
+            schedule(expired.begin(), expired.end());
+            expired.clear();
+        }
 
 #ifndef NDEBUG
         boost::mutex::scoped_lock lock(m_mutex, boost::defer_lock_t());
@@ -435,11 +462,16 @@ IOManager::idle()
                 ++tickles;
                 continue;
             }
+
+            // An Async IO call has completed, so wake up the fiber
+            // that called registerEvent()
             AsyncEvent *e = (AsyncEvent *)events[i].lpOverlapped;
 #ifndef NDEBUG
             if (!lock.owns_lock())
                 lock.lock();
 
+            // Verify that the API has been used properly,
+            // e.g. that registerEvent has been called
             std::map<OVERLAPPED *, AsyncEvent *>::iterator it =
                 m_pendingEvents.find(events[i].lpOverlapped);
             MORDOR_ASSERT(it != m_pendingEvents.end());
@@ -457,18 +489,25 @@ IOManager::idle()
             Scheduler *scheduler = e->m_scheduler;
             Fiber::ptr fiber;
             fiber.swap(e->m_fiber);
+
+            // Clean up the AsyncEvent structure which can
+            // be reused for the next Async IO call
             e->m_thread = emptytid();
             e->m_scheduler = NULL;
             scheduler->schedule(fiber);
         }
-        if (count != tickles)
+        if (count != tickles) {
+            // Subtract the number of completed Async IO calls
             atomicAdd(m_pendingEventCount, (size_t)(-(ptrdiff_t)(count - tickles)));
+        }
 #ifndef NDEBUG
         if (lock.owns_lock()) {
             MORDOR_ASSERT(m_pendingEventCount == m_pendingEvents.size());
             lock.unlock();
         }
 #endif
+        // Because we recieved either a tickle or a completed Async IO call
+        // we know that there must be some work lined up for the scheduler
         try {
             Fiber::yield();
         } catch (OperationAbortedException &) {
@@ -477,15 +516,46 @@ IOManager::idle()
     }
 }
 
+void IOManager::setIOCPErrorTolerance(size_t count, size_t seconds)
+{
+    boost::mutex::scoped_lock lock(m_errorMutex);
+    m_iocpAllowedErrorCount = count;
+    m_iocpErrorCountWindowInSeconds = seconds;
+}
+
 void
 IOManager::tickle()
 {
+    // Send a special message with distinct key ~0.  This message does not correspond to
+    // any real completed Async IO call, rather it is used to force the idle() method
+    // out of a GetQueuedCompletionStatusEx status
     BOOL bRet = PostQueuedCompletionStatus(m_hCompletionPort, 0, ~0, NULL);
     MORDOR_LOG_LEVEL(g_log, bRet ? Log::DEBUG : Log::ERROR) << this
         << " PostQueuedCompletionStatus(" << m_hCompletionPort
-        << ", 0, ~0, NULL): " << bRet << " (" << lastError() << ")";
-    if (!bRet)
+        << ", 0, ~0, NULL): " << bRet << " (" << (bRet ? ERROR_SUCCESS : lastError()) << ")";
+
+    if (!bRet) {
+        boost::mutex::scoped_lock lock(m_errorMutex);
+
+        if (m_iocpAllowedErrorCount != 0) {
+            unsigned long long currentTime = Mordor::TimerManager::now() / 1000ULL;
+            unsigned long long secondsElapsed = (currentTime - m_firstErrorTime) / 1000;
+            if (secondsElapsed > m_iocpErrorCountWindowInSeconds) {
+                // It's been a while since we started encountering errors
+                m_firstErrorTime = currentTime;
+                m_errorCount = 0;
+            }
+
+            if (++m_errorCount <= m_iocpAllowedErrorCount) {
+                // #112528 - Swallow these errors untill we exceed the error tolerance
+                MORDOR_LOG_INFO(g_logWaitBlock) << this << "  Ignoring PostQueuedCompletionStatus failure. Error tolerance = "
+                    << m_iocpAllowedErrorCount << " Error count = " << m_errorCount;
+                return;
+            }
+        }
+
         MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("PostQueuedCompletionStatus");
+    }
 }
 
 }

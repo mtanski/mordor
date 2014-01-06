@@ -7,6 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0E01DD2615C0F28B00DC4F2B /* counter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0E01DD2415C0F28B00DC4F2B /* counter.cpp */; };
+		0E01DD2715C0F28B00DC4F2B /* counter.h in Headers */ = {isa = PBXBuildFile; fileRef = 0E01DD2515C0F28B00DC4F2B /* counter.h */; };
+		0E01DD2A15C0F29700DC4F2B /* delay.h in Headers */ = {isa = PBXBuildFile; fileRef = 0E01DD2915C0F29700DC4F2B /* delay.h */; };
+		0E01DD2C15C0F2E400DC4F2B /* counter_stream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0E01DD2B15C0F2E400DC4F2B /* counter_stream.cpp */; };
+		0E01DD2E15C0F2F800DC4F2B /* notify_stream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0E01DD2D15C0F2F800DC4F2B /* notify_stream.cpp */; };
+		0E01DD3015C0F30200DC4F2B /* timeout_stream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0E01DD2F15C0F30200DC4F2B /* timeout_stream.cpp */; };
+		0E8A702A15594EE900607636 /* hashfwd.h in Headers */ = {isa = PBXBuildFile; fileRef = 0E8A702915594EE900607636 /* hashfwd.h */; };
+		0EF3018A15E4BEF40020B13A /* statistics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0EF3018915E4BEF40020B13A /* statistics.cpp */; };
 		24BDA181151D1D7D00E0A646 /* oauth2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 24BDA17F151D1D7D00E0A646 /* oauth2.cpp */; };
 		24BDA182151D1D7D00E0A646 /* oauth2.h in Headers */ = {isa = PBXBuildFile; fileRef = 24BDA180151D1D7D00E0A646 /* oauth2.h */; };
 		34CCCE4F13982DC900E6BDBA /* compoundlistener.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 34CCCE4D13982DC900E6BDBA /* compoundlistener.cpp */; };
@@ -67,6 +75,50 @@
 		3CAC4A341151622F00F85725 /* iomanager_kqueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB271B112B096700607AEE /* iomanager_kqueue.cpp */; };
 		3CC4CE561138646D001C21F2 /* progress.h in Headers */ = {isa = PBXBuildFile; fileRef = 3CC4CE551138646D001C21F2 /* progress.h */; };
 		3F4296F01385DADC007EC0C7 /* util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3F4296EF1385DADC007EC0C7 /* util.cpp */; };
+		4620C41A1613FB91006114F3 /* lzma2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4620C4181613FB91006114F3 /* lzma2.cpp */; };
+		4620C41C1613FB91006114F3 /* lzma2.h in Headers */ = {isa = PBXBuildFile; fileRef = 4620C4191613FB91006114F3 /* lzma2.h */; };
+		4655085915E3939F0024F210 /* protobuf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4655085715E3939F0024F210 /* protobuf.cpp */; };
+		4655085A15E3939F0024F210 /* protobuf.h in Headers */ = {isa = PBXBuildFile; fileRef = 4655085815E3939F0024F210 /* protobuf.h */; };
+		46AA782B15E685AC0052192D /* zero.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46AA782915E685AC0052192D /* zero.cpp */; };
+		46AA782C15E685AC0052192D /* zero.h in Headers */ = {isa = PBXBuildFile; fileRef = 46AA782A15E685AC0052192D /* zero.h */; };
+		5C85448415756FC700589928 /* buffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB2779112B096700607AEE /* buffer.cpp */; };
+		5C85448515756FC700589928 /* buffered_stream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB277A112B096700607AEE /* buffered_stream.cpp */; };
+		5C85448615756FC700589928 /* chunked_stream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB277B112B096700607AEE /* chunked_stream.cpp */; };
+		5C85448715756FC700589928 /* coroutine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB277C112B096700607AEE /* coroutine.cpp */; };
+		5C85448815756FC700589928 /* crypto.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA9919F9142946E60069FD05 /* crypto.cpp */; };
+		5C85448915756FC700589928 /* efs_stream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB277D112B096700607AEE /* efs_stream.cpp */; };
+		5C85448A15756FC700589928 /* fibers.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB277E112B096700607AEE /* fibers.cpp */; };
+		5C85448B15756FC700589928 /* fibersync.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB277F112B096700607AEE /* fibersync.cpp */; };
+		5C85448C15756FC700589928 /* fls.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB2780112B096700607AEE /* fls.cpp */; };
+		5C85448D15756FC700589928 /* hash_stream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0EC278D31526562700F8AC65 /* hash_stream.cpp */; };
+		5C85448E15756FC700589928 /* hmac.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB2781112B096700607AEE /* hmac.cpp */; };
+		5C85448F15756FC700589928 /* iomanager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB2783112B096700607AEE /* iomanager.cpp */; };
+		5C85449015756FC700589928 /* iomanager_iocp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB2784112B096700607AEE /* iomanager_iocp.cpp */; };
+		5C85449115756FC700589928 /* json.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB2785112B096700607AEE /* json.cpp */; };
+		5C85449215756FC700589928 /* log.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB2786112B096700607AEE /* log.cpp */; };
+		5C85449315756FC700589928 /* memory_stream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB2787112B096700607AEE /* memory_stream.cpp */; };
+		5C85449415756FC700589928 /* oauth.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB2788112B096700607AEE /* oauth.cpp */; };
+		5C85449515756FC700589928 /* pch.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB2789112B096700607AEE /* pch.cpp */; };
+		5C85449615756FC700589928 /* pipe_stream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB278A112B096700607AEE /* pipe_stream.cpp */; };
+		5C85449715756FC700589928 /* ragel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0EF8669115333584009205E8 /* ragel.cpp */; };
+		5C85449815756FC700589928 /* run_tests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB278C112B096700607AEE /* run_tests.cpp */; };
+		5C85449915756FC700589928 /* scheduler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB278D112B096700607AEE /* scheduler.cpp */; };
+		5C85449A15756FC700589928 /* socket.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB278E112B096700607AEE /* socket.cpp */; };
+		5C85449B15756FC700589928 /* ssl_stream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB278F112B096700607AEE /* ssl_stream.cpp */; };
+		5C85449C15756FC700589928 /* stream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB2790112B096700607AEE /* stream.cpp */; };
+		5C85449D15756FC700589928 /* temp_stream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB2791112B096700607AEE /* temp_stream.cpp */; };
+		5C85449E15756FC700589928 /* timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB2793112B096700607AEE /* timer.cpp */; };
+		5C85449F15756FC700589928 /* transfer_stream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB2794112B096700607AEE /* transfer_stream.cpp */; };
+		5C8544A015756FC700589928 /* uri.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB2795112B096700607AEE /* uri.cpp */; };
+		5C8544A115756FC700589928 /* zlib.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB2796112B096700607AEE /* zlib.cpp */; };
+		5C8544A61575700D00589928 /* libmordor.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CAB29B1112B340600607AEE /* libmordor.a */; };
+		5C8544A71575700D00589928 /* libmordortest.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E2DE14A811E67AB400D9622F /* libmordortest.a */; };
+		5C8544D01576633000589928 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C8544CF1576633000589928 /* libz.dylib */; };
+		5C8544D21576665800589928 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C8544D11576665800589928 /* Security.framework */; };
+		5C8544D61576667D00589928 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C8544D51576667D00589928 /* SystemConfiguration.framework */; };
+		5C8544D81576669500589928 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C8544D71576669500589928 /* CoreFoundation.framework */; };
+		5C8544DC157666D400589928 /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C8544DB157666D400589928 /* CoreServices.framework */; };
+		5C8544DF1576710800589928 /* http_proxy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C8544DD157670FA00589928 /* http_proxy.cpp */; };
 		61AA83C6120A18D600D7B56B /* filter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 61AA83C4120A18D600D7B56B /* filter.cpp */; };
 		61AA83C7120A18D600D7B56B /* singleplex.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 61AA83C5120A18D600D7B56B /* singleplex.cpp */; };
 		C32025B811F949CF00E09E5A /* daemon.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C32025AD11F949CF00E09E5A /* daemon.cpp */; };
@@ -98,6 +150,8 @@
 		EA9919FF142946FC0069FD05 /* crypto.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA9919FC142946FC0069FD05 /* crypto.cpp */; };
 		EA991A00142946FC0069FD05 /* crypto.h in Headers */ = {isa = PBXBuildFile; fileRef = EA9919FD142946FC0069FD05 /* crypto.h */; };
 		EA991A01142946FC0069FD05 /* crypto.h in Headers */ = {isa = PBXBuildFile; fileRef = EA9919FD142946FC0069FD05 /* crypto.h */; };
+		FC1BF5041694A05E00B8D291 /* openssl_lock.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FC1BF5021694A05E00B8D291 /* openssl_lock.cpp */; };
+		FC1BF5051694A05E00B8D291 /* openssl_lock.h in Headers */ = {isa = PBXBuildFile; fileRef = FC1BF5031694A05E00B8D291 /* openssl_lock.h */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -114,7 +168,46 @@
 		};
 /* End PBXBuildRule section */
 
+/* Begin PBXContainerItemProxy section */
+		5C8544A21575700100589928 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0867D690FE84028FC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3CAB29B0112B340500607AEE;
+			remoteInfo = mordor;
+		};
+		5C8544A41575700100589928 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0867D690FE84028FC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E2DE14A711E67AB400D9622F;
+			remoteInfo = mordortest;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		5C85447715756F8400589928 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		0E01DD2415C0F28B00DC4F2B /* counter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = counter.cpp; sourceTree = "<group>"; };
+		0E01DD2515C0F28B00DC4F2B /* counter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = counter.h; sourceTree = "<group>"; };
+		0E01DD2915C0F29700DC4F2B /* delay.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = delay.h; sourceTree = "<group>"; };
+		0E01DD2B15C0F2E400DC4F2B /* counter_stream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = counter_stream.cpp; sourceTree = "<group>"; };
+		0E01DD2D15C0F2F800DC4F2B /* notify_stream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = notify_stream.cpp; sourceTree = "<group>"; };
+		0E01DD2F15C0F30200DC4F2B /* timeout_stream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = timeout_stream.cpp; sourceTree = "<group>"; };
+		0E8A702915594EE900607636 /* hashfwd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hashfwd.h; sourceTree = "<group>"; };
+		0EC278D31526562700F8AC65 /* hash_stream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hash_stream.cpp; sourceTree = "<group>"; };
+		0EF3018915E4BEF40020B13A /* statistics.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = statistics.cpp; sourceTree = "<group>"; };
+		0EF8669115333584009205E8 /* ragel.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ragel.cpp; sourceTree = "<group>"; };
 		24BDA17F151D1D7D00E0A646 /* oauth2.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = oauth2.cpp; sourceTree = "<group>"; };
 		24BDA180151D1D7D00E0A646 /* oauth2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = oauth2.h; sourceTree = "<group>"; };
 		34CCCE4D13982DC900E6BDBA /* compoundlistener.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = compoundlistener.cpp; sourceTree = "<group>"; };
@@ -192,8 +285,6 @@
 		3CAB271F112B096700607AEE /* log.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = log.cpp; sourceTree = "<group>"; };
 		3CAB2720112B096700607AEE /* log.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = log.h; sourceTree = "<group>"; };
 		3CAB2724112B096700607AEE /* pch.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; path = pch.h; sourceTree = "<group>"; };
-		3CAB2725112B096700607AEE /* pq.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pq.cpp; sourceTree = "<group>"; };
-		3CAB2726112B096700607AEE /* pq.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pq.h; sourceTree = "<group>"; };
 		3CAB2727112B096700607AEE /* predef.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = predef.h; sourceTree = "<group>"; };
 		3CAB2728112B096700607AEE /* ragel.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ragel.cpp; sourceTree = "<group>"; };
 		3CAB2729112B096700607AEE /* ragel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ragel.h; sourceTree = "<group>"; };
@@ -271,7 +362,6 @@
 		3CAB2774112B096700607AEE /* stdoutlistener.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stdoutlistener.h; sourceTree = "<group>"; };
 		3CAB2775112B096700607AEE /* test.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = test.cpp; sourceTree = "<group>"; };
 		3CAB2776112B096700607AEE /* test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = test.h; sourceTree = "<group>"; };
-		3CAB2778112B096700607AEE /* .gitignore */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		3CAB2779112B096700607AEE /* buffer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = buffer.cpp; sourceTree = "<group>"; };
 		3CAB277A112B096700607AEE /* buffered_stream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = buffered_stream.cpp; sourceTree = "<group>"; };
 		3CAB277B112B096700607AEE /* chunked_stream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = chunked_stream.cpp; sourceTree = "<group>"; };
@@ -281,7 +371,6 @@
 		3CAB277F112B096700607AEE /* fibersync.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = fibersync.cpp; sourceTree = "<group>"; };
 		3CAB2780112B096700607AEE /* fls.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = fls.cpp; sourceTree = "<group>"; };
 		3CAB2781112B096700607AEE /* hmac.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hmac.cpp; sourceTree = "<group>"; };
-		3CAB2782112B096700607AEE /* http.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = http.cpp; sourceTree = "<group>"; };
 		3CAB2783112B096700607AEE /* iomanager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = iomanager.cpp; sourceTree = "<group>"; };
 		3CAB2784112B096700607AEE /* iomanager_iocp.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = iomanager_iocp.cpp; sourceTree = "<group>"; };
 		3CAB2785112B096700607AEE /* json.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = json.cpp; sourceTree = "<group>"; };
@@ -290,14 +379,12 @@
 		3CAB2788112B096700607AEE /* oauth.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = oauth.cpp; sourceTree = "<group>"; };
 		3CAB2789112B096700607AEE /* pch.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pch.cpp; sourceTree = "<group>"; };
 		3CAB278A112B096700607AEE /* pipe_stream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pipe_stream.cpp; sourceTree = "<group>"; };
-		3CAB278B112B096700607AEE /* pq.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pq.cpp; sourceTree = "<group>"; };
 		3CAB278C112B096700607AEE /* run_tests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = run_tests.cpp; sourceTree = "<group>"; };
 		3CAB278D112B096700607AEE /* scheduler.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = scheduler.cpp; sourceTree = "<group>"; };
 		3CAB278E112B096700607AEE /* socket.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = socket.cpp; sourceTree = "<group>"; };
 		3CAB278F112B096700607AEE /* ssl_stream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ssl_stream.cpp; sourceTree = "<group>"; };
 		3CAB2790112B096700607AEE /* stream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = stream.cpp; sourceTree = "<group>"; };
 		3CAB2791112B096700607AEE /* temp_stream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = temp_stream.cpp; sourceTree = "<group>"; };
-		3CAB2792112B096700607AEE /* tests.vcproj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = tests.vcproj; sourceTree = "<group>"; };
 		3CAB2793112B096700607AEE /* timer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = timer.cpp; sourceTree = "<group>"; };
 		3CAB2794112B096700607AEE /* transfer_stream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = transfer_stream.cpp; sourceTree = "<group>"; };
 		3CAB2795112B096700607AEE /* uri.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = uri.cpp; sourceTree = "<group>"; };
@@ -315,6 +402,23 @@
 		3CAB29B1112B340600607AEE /* libmordor.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libmordor.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		3CC4CE551138646D001C21F2 /* progress.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = progress.h; sourceTree = "<group>"; };
 		3F4296EF1385DADC007EC0C7 /* util.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = util.cpp; sourceTree = "<group>"; };
+		4620C4181613FB91006114F3 /* lzma2.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lzma2.cpp; sourceTree = "<group>"; };
+		4620C4191613FB91006114F3 /* lzma2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lzma2.h; sourceTree = "<group>"; };
+		4655084715E390540024F210 /* libmordorprotobuf.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libmordorprotobuf.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		4655085715E3939F0024F210 /* protobuf.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = protobuf.cpp; sourceTree = "<group>"; };
+		4655085815E3939F0024F210 /* protobuf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = protobuf.h; sourceTree = "<group>"; };
+		46AA782915E685AC0052192D /* zero.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = zero.cpp; sourceTree = "<group>"; };
+		46AA782A15E685AC0052192D /* zero.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zero.h; sourceTree = "<group>"; };
+		5C85447915756F8400589928 /* run_tests */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = run_tests; sourceTree = BUILT_PRODUCTS_DIR; };
+		5C8544CD1576632300589928 /* libcrypto.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcrypto.dylib; path = SDKs/MacOSX10.7.sdk/usr/lib/libcrypto.dylib; sourceTree = DEVELOPER_DIR; };
+		5C8544CF1576633000589928 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = SDKs/MacOSX10.7.sdk/usr/lib/libz.dylib; sourceTree = DEVELOPER_DIR; };
+		5C8544D11576665800589928 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = SDKs/MacOSX10.7.sdk/System/Library/Frameworks/Security.framework; sourceTree = DEVELOPER_DIR; };
+		5C8544D31576666900589928 /* libboost_filesystem-mt.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libboost_filesystem-mt.dylib"; path = "SDKs/MacOSX10.7.sdk/usr/local/lib/libboost_filesystem-mt.dylib"; sourceTree = DEVELOPER_DIR; };
+		5C8544D51576667D00589928 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = SDKs/MacOSX10.7.sdk/System/Library/Frameworks/SystemConfiguration.framework; sourceTree = DEVELOPER_DIR; };
+		5C8544D71576669500589928 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = SDKs/MacOSX10.7.sdk/System/Library/Frameworks/CoreFoundation.framework; sourceTree = DEVELOPER_DIR; };
+		5C8544D9157666AC00589928 /* libssl.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libssl.dylib; path = SDKs/MacOSX10.7.sdk/usr/lib/libssl.dylib; sourceTree = DEVELOPER_DIR; };
+		5C8544DB157666D400589928 /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = SDKs/MacOSX10.7.sdk/System/Library/Frameworks/CoreServices.framework; sourceTree = DEVELOPER_DIR; };
+		5C8544DD157670FA00589928 /* http_proxy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = http_proxy.cpp; sourceTree = "<group>"; };
 		61AA83C4120A18D600D7B56B /* filter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = filter.cpp; sourceTree = "<group>"; };
 		61AA83C5120A18D600D7B56B /* singleplex.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = singleplex.cpp; path = streams/singleplex.cpp; sourceTree = "<group>"; };
 		C32025AD11F949CF00E09E5A /* daemon.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = daemon.cpp; sourceTree = "<group>"; };
@@ -342,6 +446,8 @@
 		EA9919F9142946E60069FD05 /* crypto.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = crypto.cpp; sourceTree = "<group>"; };
 		EA9919FC142946FC0069FD05 /* crypto.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = crypto.cpp; sourceTree = "<group>"; };
 		EA9919FD142946FC0069FD05 /* crypto.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = crypto.h; sourceTree = "<group>"; };
+		FC1BF5021694A05E00B8D291 /* openssl_lock.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = openssl_lock.cpp; sourceTree = "<group>"; };
+		FC1BF5031694A05E00B8D291 /* openssl_lock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = openssl_lock.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -349,6 +455,27 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4655084415E390540024F210 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5C85447615756F8400589928 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5C8544DC157666D400589928 /* CoreServices.framework in Frameworks */,
+				5C8544D81576669500589928 /* CoreFoundation.framework in Frameworks */,
+				5C8544D21576665800589928 /* Security.framework in Frameworks */,
+				5C8544D61576667D00589928 /* SystemConfiguration.framework in Frameworks */,
+				5C8544A61575700D00589928 /* libmordor.a in Frameworks */,
+				5C8544A71575700D00589928 /* libmordortest.a in Frameworks */,
+				5C8544D01576633000589928 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -367,6 +494,8 @@
 			children = (
 				3CAB29B1112B340600607AEE /* libmordor.a */,
 				E2DE14A811E67AB400D9622F /* libmordortest.a */,
+				5C85447915756F8400589928 /* run_tests */,
+				4655084715E390540024F210 /* libmordorprotobuf.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -374,6 +503,14 @@
 		0867D691FE84028FC02AAC07 /* mordor */ = {
 			isa = PBXGroup;
 			children = (
+				5C8544DB157666D400589928 /* CoreServices.framework */,
+				5C8544D9157666AC00589928 /* libssl.dylib */,
+				5C8544D71576669500589928 /* CoreFoundation.framework */,
+				5C8544D51576667D00589928 /* SystemConfiguration.framework */,
+				5C8544D31576666900589928 /* libboost_filesystem-mt.dylib */,
+				5C8544D11576665800589928 /* Security.framework */,
+				5C8544CF1576633000589928 /* libz.dylib */,
+				5C8544CD1576632300589928 /* libcrypto.dylib */,
 				08FB77ACFE841707C02AAC07 /* Source */,
 				0867D69AFE84028FC02AAC07 /* External Frameworks and Libraries */,
 				034768DDFF38A45A11DB9C8B /* Products */,
@@ -400,6 +537,8 @@
 		3CAB26D4112B096700607AEE /* mordor */ = {
 			isa = PBXGroup;
 			children = (
+				FC1BF5021694A05E00B8D291 /* openssl_lock.cpp */,
+				FC1BF5031694A05E00B8D291 /* openssl_lock.h */,
 				3F4296EF1385DADC007EC0C7 /* util.cpp */,
 				C32854BC120A1E750079C4A2 /* thread.cpp */,
 				C32854BD120A1E750079C4A2 /* thread.h */,
@@ -413,6 +552,8 @@
 				C32025B311F949CF00E09E5A /* main.h */,
 				C32025B411F949CF00E09E5A /* parallel.cpp */,
 				C32025B511F949CF00E09E5A /* parallel.h */,
+				4655085715E3939F0024F210 /* protobuf.cpp */,
+				4655085815E3939F0024F210 /* protobuf.h */,
 				C32025B611F949CF00E09E5A /* workerpool.cpp */,
 				C32025B711F949CF00E09E5A /* workerpool.h */,
 				C34893C811BEB1300044E9C8 /* socks.cpp */,
@@ -448,8 +589,6 @@
 				3CAB271F112B096700607AEE /* log.cpp */,
 				3CAB2720112B096700607AEE /* log.h */,
 				3CAB2724112B096700607AEE /* pch.h */,
-				3CAB2725112B096700607AEE /* pq.cpp */,
-				3CAB2726112B096700607AEE /* pq.h */,
 				3CAB2727112B096700607AEE /* predef.h */,
 				3CAB2728112B096700607AEE /* ragel.cpp */,
 				3CAB2729112B096700607AEE /* ragel.h */,
@@ -548,6 +687,10 @@
 		3CAB2737112B096700607AEE /* streams */ = {
 			isa = PBXGroup;
 			children = (
+				0E01DD2915C0F29700DC4F2B /* delay.h */,
+				0E01DD2415C0F28B00DC4F2B /* counter.cpp */,
+				0E01DD2515C0F28B00DC4F2B /* counter.h */,
+				0E8A702915594EE900607636 /* hashfwd.h */,
 				61AA83C4120A18D600D7B56B /* filter.cpp */,
 				E29FD2A81136FD1D004BC293 /* timeout.cpp */,
 				E29FD2A91136FD1D004BC293 /* timeout.h */,
@@ -607,6 +750,10 @@
 				3CAB276A112B096700607AEE /* throttle.h */,
 				3CAB276B112B096700607AEE /* transfer.cpp */,
 				3CAB276C112B096700607AEE /* transfer.h */,
+				4620C4181613FB91006114F3 /* lzma2.cpp */,
+				4620C4191613FB91006114F3 /* lzma2.h */,
+				46AA782915E685AC0052192D /* zero.cpp */,
+				46AA782A15E685AC0052192D /* zero.h */,
 				3CAB276D112B096700607AEE /* zlib.cpp */,
 				3CAB276E112B096700607AEE /* zlib.h */,
 			);
@@ -631,7 +778,10 @@
 		3CAB2777112B096700607AEE /* tests */ = {
 			isa = PBXGroup;
 			children = (
-				3CAB2778112B096700607AEE /* .gitignore */,
+				0EF3018915E4BEF40020B13A /* statistics.cpp */,
+				0E01DD2F15C0F30200DC4F2B /* timeout_stream.cpp */,
+				0E01DD2D15C0F2F800DC4F2B /* notify_stream.cpp */,
+				0E01DD2B15C0F2E400DC4F2B /* counter_stream.cpp */,
 				3CAB2779112B096700607AEE /* buffer.cpp */,
 				3CAB277A112B096700607AEE /* buffered_stream.cpp */,
 				3CAB277B112B096700607AEE /* chunked_stream.cpp */,
@@ -641,8 +791,9 @@
 				3CAB277E112B096700607AEE /* fibers.cpp */,
 				3CAB277F112B096700607AEE /* fibersync.cpp */,
 				3CAB2780112B096700607AEE /* fls.cpp */,
+				0EC278D31526562700F8AC65 /* hash_stream.cpp */,
 				3CAB2781112B096700607AEE /* hmac.cpp */,
-				3CAB2782112B096700607AEE /* http.cpp */,
+				5C8544DD157670FA00589928 /* http_proxy.cpp */,
 				3CAB2783112B096700607AEE /* iomanager.cpp */,
 				3CAB2784112B096700607AEE /* iomanager_iocp.cpp */,
 				3CAB2785112B096700607AEE /* json.cpp */,
@@ -651,14 +802,13 @@
 				3CAB2788112B096700607AEE /* oauth.cpp */,
 				3CAB2789112B096700607AEE /* pch.cpp */,
 				3CAB278A112B096700607AEE /* pipe_stream.cpp */,
-				3CAB278B112B096700607AEE /* pq.cpp */,
+				0EF8669115333584009205E8 /* ragel.cpp */,
 				3CAB278C112B096700607AEE /* run_tests.cpp */,
 				3CAB278D112B096700607AEE /* scheduler.cpp */,
 				3CAB278E112B096700607AEE /* socket.cpp */,
 				3CAB278F112B096700607AEE /* ssl_stream.cpp */,
 				3CAB2790112B096700607AEE /* stream.cpp */,
 				3CAB2791112B096700607AEE /* temp_stream.cpp */,
-				3CAB2792112B096700607AEE /* tests.vcproj */,
 				3CAB2793112B096700607AEE /* timer.cpp */,
 				3CAB2794112B096700607AEE /* transfer_stream.cpp */,
 				3CAB2795112B096700607AEE /* uri.cpp */,
@@ -698,6 +848,20 @@
 				EA991A00142946FC0069FD05 /* crypto.h in Headers */,
 				E3B2FD29151A908800E87F0F /* cxa_exception.h in Headers */,
 				24BDA182151D1D7D00E0A646 /* oauth2.h in Headers */,
+				0E8A702A15594EE900607636 /* hashfwd.h in Headers */,
+				0E01DD2715C0F28B00DC4F2B /* counter.h in Headers */,
+				0E01DD2A15C0F29700DC4F2B /* delay.h in Headers */,
+				46AA782C15E685AC0052192D /* zero.h in Headers */,
+				4620C41C1613FB91006114F3 /* lzma2.h in Headers */,
+				FC1BF5051694A05E00B8D291 /* openssl_lock.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4655084515E390540024F210 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4655085A15E3939F0024F210 /* protobuf.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -731,6 +895,42 @@
 			productName = "mordor static";
 			productReference = 3CAB29B1112B340600607AEE /* libmordor.a */;
 			productType = "com.apple.product-type.library.static";
+		};
+		4655084615E390540024F210 /* mordorprotobuf */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4655084A15E390540024F210 /* Build configuration list for PBXNativeTarget "mordorprotobuf" */;
+			buildPhases = (
+				4655084315E390540024F210 /* Sources */,
+				4655084415E390540024F210 /* Frameworks */,
+				4655084515E390540024F210 /* Headers */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = mordorprotobuf;
+			productName = mordorprotobuf;
+			productReference = 4655084715E390540024F210 /* libmordorprotobuf.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+		5C85447815756F8400589928 /* run_tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5C85448215756F8400589928 /* Build configuration list for PBXNativeTarget "run_tests" */;
+			buildPhases = (
+				5C85447515756F8400589928 /* Sources */,
+				5C85447615756F8400589928 /* Frameworks */,
+				5C85447715756F8400589928 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5C8544A31575700100589928 /* PBXTargetDependency */,
+				5C8544A51575700100589928 /* PBXTargetDependency */,
+			);
+			name = run_tests;
+			productName = run_tests;
+			productReference = 5C85447915756F8400589928 /* run_tests */;
+			productType = "com.apple.product-type.tool";
 		};
 		E2DE14A711E67AB400D9622F /* mordortest */ = {
 			isa = PBXNativeTarget;
@@ -770,7 +970,9 @@
 			projectRoot = "";
 			targets = (
 				3CAB29B0112B340500607AEE /* mordor */,
+				4655084615E390540024F210 /* mordorprotobuf */,
 				E2DE14A711E67AB400D9622F /* mordortest */,
+				5C85447815756F8400589928 /* run_tests */,
 			);
 		};
 /* End PBXProject section */
@@ -847,6 +1049,60 @@
 				EA9919FE142946FC0069FD05 /* crypto.cpp in Sources */,
 				E3B2FD27151A908800E87F0F /* cxa_exception.cpp in Sources */,
 				24BDA181151D1D7D00E0A646 /* oauth2.cpp in Sources */,
+				0E01DD2615C0F28B00DC4F2B /* counter.cpp in Sources */,
+				0EF3018A15E4BEF40020B13A /* statistics.cpp in Sources */,
+				46AA782B15E685AC0052192D /* zero.cpp in Sources */,
+				4620C41A1613FB91006114F3 /* lzma2.cpp in Sources */,
+				FC1BF5041694A05E00B8D291 /* openssl_lock.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4655084315E390540024F210 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4655085915E3939F0024F210 /* protobuf.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5C85447515756F8400589928 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5C85448415756FC700589928 /* buffer.cpp in Sources */,
+				5C85448515756FC700589928 /* buffered_stream.cpp in Sources */,
+				5C85448615756FC700589928 /* chunked_stream.cpp in Sources */,
+				5C85448715756FC700589928 /* coroutine.cpp in Sources */,
+				5C85448815756FC700589928 /* crypto.cpp in Sources */,
+				5C85448915756FC700589928 /* efs_stream.cpp in Sources */,
+				5C85448A15756FC700589928 /* fibers.cpp in Sources */,
+				5C85448B15756FC700589928 /* fibersync.cpp in Sources */,
+				5C85448C15756FC700589928 /* fls.cpp in Sources */,
+				5C85448D15756FC700589928 /* hash_stream.cpp in Sources */,
+				5C85448E15756FC700589928 /* hmac.cpp in Sources */,
+				5C85448F15756FC700589928 /* iomanager.cpp in Sources */,
+				5C85449015756FC700589928 /* iomanager_iocp.cpp in Sources */,
+				5C85449115756FC700589928 /* json.cpp in Sources */,
+				5C85449215756FC700589928 /* log.cpp in Sources */,
+				5C85449315756FC700589928 /* memory_stream.cpp in Sources */,
+				5C85449415756FC700589928 /* oauth.cpp in Sources */,
+				5C85449515756FC700589928 /* pch.cpp in Sources */,
+				5C85449615756FC700589928 /* pipe_stream.cpp in Sources */,
+				5C85449715756FC700589928 /* ragel.cpp in Sources */,
+				5C85449815756FC700589928 /* run_tests.cpp in Sources */,
+				5C85449915756FC700589928 /* scheduler.cpp in Sources */,
+				5C85449A15756FC700589928 /* socket.cpp in Sources */,
+				5C85449B15756FC700589928 /* ssl_stream.cpp in Sources */,
+				5C85449C15756FC700589928 /* stream.cpp in Sources */,
+				5C85449D15756FC700589928 /* temp_stream.cpp in Sources */,
+				5C85449E15756FC700589928 /* timer.cpp in Sources */,
+				5C85449F15756FC700589928 /* transfer_stream.cpp in Sources */,
+				5C8544A015756FC700589928 /* uri.cpp in Sources */,
+				5C8544A115756FC700589928 /* zlib.cpp in Sources */,
+				5C8544DF1576710800589928 /* http_proxy.cpp in Sources */,
+				0E01DD2C15C0F2E400DC4F2B /* counter_stream.cpp in Sources */,
+				0E01DD2E15C0F2F800DC4F2B /* notify_stream.cpp in Sources */,
+				0E01DD3015C0F30200DC4F2B /* timeout_stream.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -866,14 +1122,24 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		5C8544A31575700100589928 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3CAB29B0112B340500607AEE /* mordor */;
+			targetProxy = 5C8544A21575700100589928 /* PBXContainerItemProxy */;
+		};
+		5C8544A51575700100589928 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E2DE14A711E67AB400D9622F /* mordortest */;
+			targetProxy = 5C8544A41575700100589928 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
 		1DEB916508733D950010E9CD /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = (
-					i386,
-					x86_64,
-				);
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
@@ -881,28 +1147,29 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_MISSING_PARENTHESES = NO;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = "\"$(THIRDPARTY_LIB_ROOT)/boost/boost-1.45.0/include\"";
 				MACOSX_DEPLOYMENT_TARGET = 10.5;
 				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = macosx10.6;
+				SDKROOT = macosx;
+				VALID_ARCHS = x86_64;
 			};
 			name = Debug;
 		};
 		1DEB916608733D950010E9CD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = (
-					i386,
-					x86_64,
-				);
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_MISSING_PARENTHESES = NO;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = "\"$(THIRDPARTY_LIB_ROOT)/boost/boost-1.45.0/include\"";
 				MACOSX_DEPLOYMENT_TARGET = 10.5;
 				OTHER_CFLAGS = "-DNDEBUG";
-				SDKROOT = macosx10.6;
+				SDKROOT = macosx;
+				VALID_ARCHS = "i386 x86_64";
 			};
 			name = Release;
 		};
@@ -916,8 +1183,9 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREFIX_HEADER = mordor/pch.h;
 				HEADER_SEARCH_PATHS = (
-					"$(OPENSSL_ROOT)/include",
-					"$(BOOST_ROOT)/include",
+					"$(inherited)",
+					"\"$(THIRDPARTY_LIB_ROOT)/openssl/openssl-1.0.0e/include\"",
+					"\"$(THIRDPARTY_LIB_ROOT)/xz/5.0.4/include\"",
 				);
 				INSTALL_PATH = /usr/local/lib;
 				PRODUCT_NAME = mordor;
@@ -933,14 +1201,112 @@
 				GCC_MODEL_TUNING = G5;
 				GCC_PREFIX_HEADER = mordor/pch.h;
 				HEADER_SEARCH_PATHS = (
-					"$(OPENSSL_ROOT)/include",
-					"$(BOOST_ROOT)/include",
+					"$(inherited)",
+					"\"$(THIRDPARTY_LIB_ROOT)/openssl/openssl-1.0.0e/include\"",
+					"\"$(THIRDPARTY_LIB_ROOT)/xz/5.0.4/include\"",
 				);
 				INSTALL_PATH = /usr/local/lib;
 				PRODUCT_NAME = mordor;
 				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)";
 				USE_HEADERMAP = NO;
-				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
+		4655084815E390540024F210 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_PREFIX_HEADER = mordor/pch.h;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(THIRDPARTY_LIB_ROOT)/protobuf/protobuf-2.4.1/include\"",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)";
+			};
+			name = Debug;
+		};
+		4655084915E390540024F210 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				GCC_PREFIX_HEADER = mordor/pch.h;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(THIRDPARTY_LIB_ROOT)/protobuf/protobuf-2.4.1/include\"",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)";
+			};
+			name = Release;
+		};
+		5C85448015756F8400589928 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
+				HEADER_SEARCH_PATHS = (
+					"\"$(THIRDPARTY_LIB_ROOT)/boost/boost-1.45.0/include\"",
+					"\"$(THIRDPARTY_LIB_ROOT)/xz/5.0.4/include\"",
+				);
+				OTHER_LDFLAGS = (
+					"$(THIRDPARTY_LIB_ROOT)/openssl/openssl-1.0.0e/libcrypto-1.0.0e.a",
+					"$(THIRDPARTY_LIB_ROOT)/openssl/openssl-1.0.0e/libssl-1.0.0e.a",
+					"$(THIRDPARTY_LIB_ROOT)/boost/boost-1.45.0/lib/libboost_filesystem-mt.a",
+					"$(THIRDPARTY_LIB_ROOT)/boost/boost-1.45.0/lib/libboost_regex-mt.a",
+					"$(THIRDPARTY_LIB_ROOT)/boost/boost-1.45.0/lib/libboost_program_options-mt.a",
+					"$(THIRDPARTY_LIB_ROOT)/boost/boost-1.45.0/lib/libboost_system-mt.a",
+					"$(THIRDPARTY_LIB_ROOT)/boost/boost-1.45.0/lib/libboost_thread-mt.a",
+					"$(THIRDPARTY_LIB_ROOT)/boost/boost-1.45.0/lib/libboost_date_time-mt.a",
+					"$(THIRDPARTY_LIB_ROOT)/xz/5.0.4/lib/liblzma.a",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)";
+			};
+			name = Debug;
+		};
+		5C85448115756F8400589928 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_PREPROCESSOR_DEFINITIONS = "NDEBUG=1";
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
+				HEADER_SEARCH_PATHS = (
+					"\"$(THIRDPARTY_LIB_ROOT)/boost/boost-1.45.0/include\"",
+					"\"$(THIRDPARTY_LIB_ROOT)/xz/5.0.4/include\"",
+				);
+				OTHER_LDFLAGS = (
+					"$(THIRDPARTY_LIB_ROOT)/openssl/openssl-1.0.0e/libcrypto-1.0.0e.a",
+					"$(THIRDPARTY_LIB_ROOT)/openssl/openssl-1.0.0e/libssl-1.0.0e.a",
+					"$(THIRDPARTY_LIB_ROOT)/boost/boost-1.45.0/lib/libboost_filesystem-mt.a",
+					"$(THIRDPARTY_LIB_ROOT)/boost/boost-1.45.0/lib/libboost_regex-mt.a",
+					"$(THIRDPARTY_LIB_ROOT)/boost/boost-1.45.0/lib/libboost_program_options-mt.a",
+					"$(THIRDPARTY_LIB_ROOT)/boost/boost-1.45.0/lib/libboost_system-mt.a",
+					"$(THIRDPARTY_LIB_ROOT)/boost/boost-1.45.0/lib/libboost_thread-mt.a",
+					"$(THIRDPARTY_LIB_ROOT)/boost/boost-1.45.0/lib/libboost_date_time-mt.a",
+					"$(THIRDPARTY_LIB_ROOT)/xz/5.0.4/lib/liblzma.a",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)";
 			};
 			name = Release;
 		};
@@ -951,7 +1317,7 @@
 				COPY_PHASE_STRIP = NO;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
-				HEADER_SEARCH_PATHS = "$(BOOST_ROOT)/include";
+				HEADER_SEARCH_PATHS = "\"$(THIRDPARTY_LIB_ROOT)/boost/boost-1.45.0/include\"";
 				PRODUCT_NAME = mordortest;
 				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)";
 			};
@@ -963,7 +1329,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				HEADER_SEARCH_PATHS = "$(BOOST_ROOT)/include";
+				HEADER_SEARCH_PATHS = "\"$(THIRDPARTY_LIB_ROOT)/boost/boost-1.45.0/include\"";
 				PRODUCT_NAME = mordortest;
 				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)";
 				ZERO_LINK = NO;
@@ -987,6 +1353,24 @@
 			buildConfigurations = (
 				3CAB29B2112B340600607AEE /* Debug */,
 				3CAB29B3112B340600607AEE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4655084A15E390540024F210 /* Build configuration list for PBXNativeTarget "mordorprotobuf" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4655084815E390540024F210 /* Debug */,
+				4655084915E390540024F210 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5C85448215756F8400589928 /* Build configuration list for PBXNativeTarget "run_tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5C85448015756F8400589928 /* Debug */,
+				5C85448115756F8400589928 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

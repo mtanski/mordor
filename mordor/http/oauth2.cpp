@@ -39,7 +39,7 @@ namespace OAuth2 {
         while (true) {
             std::function<void (ClientRequest::ptr)> wrappedBodyDg = bodyDg;
             if (m_getCredentialsDg(requestHeaders.requestLine.uri, priorRequest, token, attempts++))
-                wrappedBodyDg = std::bind(&authorizeDg, std::placeholders::_1, boost::cref(token), bodyDg);
+                wrappedBodyDg = std::bind(&authorizeDg, std::placeholders::_1, std::cref(token), bodyDg);
             else if (priorRequest)
                 return priorRequest;
             if (priorRequest)

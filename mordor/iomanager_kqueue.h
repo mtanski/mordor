@@ -6,6 +6,7 @@
 #include <sys/event.h>
 
 #include <map>
+#include <memory>
 
 #include "scheduler.h"
 #include "timer.h"
@@ -34,13 +35,10 @@ private:
         Scheduler *m_scheduler, *m_schedulerClose;
         std::shared_ptr<Fiber> m_fiber, m_fiberClose;
         std::function<void ()> m_dg, m_dgClose;
-
-        bool operator<(const AsyncEvent &rhs) const
-        { if (event.ident < rhs.event.ident) return true; return event.filter < rhs.event.filter; }
     };
 
 public:
-    IOManager(size_t threads = 1, bool useCaller = true);
+    IOManager(size_t threads = 1, bool useCaller = true, bool autoStart = true);
     ~IOManager();
 
     bool stopping();

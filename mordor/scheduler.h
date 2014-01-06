@@ -69,17 +69,21 @@ public:
 
     /// Schedule a Fiber to be executed on the Scheduler
 
-    /// @param f The Fiber to schedule
+    /// @param fd The Fiber or the functor to schedule, if a pointer is passed
+    ///           in, the ownership will be transfered to this scheduler
     /// @param thread Optionally provide a specific thread for the Fiber to run
     /// on
-    void schedule(std::shared_ptr<Fiber> fiber, tid_t thread = emptytid());
-    /// Schedule a generic functor to be executed on the Scheduler
-
-    /// The functor will be executed on a new Fiber.
-    /// @param dg The functor to schedule
-    /// @param thread Optionally provide a specific thread for the functor to
-    /// run on
-    void schedule(std::function<void ()> dg, tid_t thread = emptytid());
+    template <class FiberOrDg>
+    void schedule(FiberOrDg fd, tid_t thread = emptytid())
+    {
+        bool tickleMe;
+        {
+            boost::mutex::scoped_lock lock(m_mutex);
+            tickleMe = scheduleNoLock(fd, thread);
+        }
+        if (shouldTickle(tickleMe))
+            tickle();
+    }
 
     /// Schedule multiple items to be executed at once
 
@@ -92,11 +96,11 @@ public:
         {
             boost::mutex::scoped_lock lock(m_mutex);
             while (begin != end) {
-                tickleMe = scheduleNoLock(*begin) || tickleMe;
+                tickleMe = scheduleNoLock(&*begin) || tickleMe;
                 ++begin;
             }
         }
-        if (tickleMe && Scheduler::getThis() != this)
+        if (shouldTickle(tickleMe))
             tickle();
     }
 
@@ -167,15 +171,30 @@ protected:
     virtual void tickle() = 0;
 
     bool hasWorkToDo();
+    virtual bool hasIdleThreads() const { return m_idleThreadCount != 0; }
+
+    /// determine whether tickle() is needed, to be invoked in schedule()
+    /// @param empty whether m_fibers is empty before the new task is scheduled
+    virtual bool shouldTickle(bool empty) const
+    { return empty && Scheduler::getThis() != this; }
+
+    /// set `this' to TLS so that getThis() can get correct Scheduler
+    void setThis() { t_scheduler = this; }
 
 private:
     void yieldTo(bool yieldToCallerOnTerminate);
     void run();
 
-    bool scheduleNoLock(std::shared_ptr<Fiber> fiber,
-        tid_t thread = emptytid());
-    bool scheduleNoLock(std::function<void ()> dg,
-        tid_t thread = emptytid());
+    /// @pre @c fd should be valid
+    /// @pre the task to be scheduled is not thread-targeted, or this scheduler
+    ///      owns the targeted thread.
+    template <class FiberOrDg>
+        bool scheduleNoLock(FiberOrDg fd,
+                            tid_t thread = emptytid()) {
+        bool tickleMe = m_fibers.empty();
+        m_fibers.push_back(FiberAndThread(fd, thread));
+        return tickleMe;
+    }
 
 private:
     Scheduler(const Scheduler& rhs) = delete;
@@ -185,6 +204,18 @@ private:
         std::shared_ptr<Fiber> fiber;
         std::function<void ()> dg;
         tid_t thread;
+        FiberAndThread(std::shared_ptr<Fiber> f, tid_t th)
+            : fiber(f), thread(th) {}
+        FiberAndThread(std::shared_ptr<Fiber>* f, tid_t th)
+            : thread(th) {
+            fiber.swap(*f);
+        }
+        FiberAndThread(std::function<void ()> d, tid_t th)
+            : dg(d), thread(th) {}
+        FiberAndThread(std::function<void ()> *d, tid_t th)
+            : thread(th) {
+            dg.swap(*d);
+        }
     };
     static thread_local Scheduler* t_scheduler;
     static thread_local Fiber* t_fiber;
@@ -194,7 +225,7 @@ private:
     std::shared_ptr<Fiber> m_rootFiber;
     std::shared_ptr<Fiber> m_callingFiber;
     std::vector<std::shared_ptr<Thread> > m_threads;
-    size_t m_threadCount, m_activeThreadCount;
+    size_t m_threadCount, m_activeThreadCount, m_idleThreadCount;
     bool m_stopping;
     bool m_autoStop;
     size_t m_batchSize;

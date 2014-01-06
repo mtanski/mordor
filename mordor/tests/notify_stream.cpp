@@ -1,3 +1,6 @@
+#include <functional>
+namespace bargs = std::placeholders;
+
 #include "mordor/exception.h"
 #include "mordor/streams/notify.h"
 #include "mordor/streams/memory.h"
@@ -65,10 +68,30 @@ MORDOR_UNITTEST(NotifyStream, basic)
     MORDOR_TEST_ASSERT_EQUAL(sequence, 2);
     stream.notifyOnFlush = nullptr;
 
-    stream.notifyOnClose = std::bind(onNotify, std::ref(sequence));
+    stream.notifyOnClose(std::bind(onNotify, std::ref(sequence)));
     stream.close();
     MORDOR_TEST_ASSERT_EQUAL(sequence, 3);
-    stream.notifyOnClose = nullptr;
+    stream.notifyOnClose(NULL);
+}
+
+void onNotifyClose(int &sequence, Stream::CloseType type, Stream::CloseType expected)
+{
+    MORDOR_TEST_ASSERT_EQUAL(type, expected);
+    ++sequence;
+}
+
+MORDOR_UNITTEST(NotifyStream, notifyOnClose2)
+{
+    int sequence = 0;
+    NotifyStream stream(Stream::ptr(new MemoryStream()));
+    MORDOR_TEST_ASSERT_EQUAL(sequence, 0);
+    stream.notifyOnClose2(std::bind(onNotifyClose, std::ref(sequence), bargs::_1, Stream::READ));
+    stream.close(Stream::READ);
+    MORDOR_TEST_ASSERT_EQUAL(sequence, 1);
+    stream.notifyOnClose2(std::bind(onNotifyClose, std::ref(sequence), bargs::_1, Stream::WRITE));
+    stream.close(Stream::WRITE);
+    MORDOR_TEST_ASSERT_EQUAL(sequence, 2);
+    stream.notifyOnClose2(NULL);
 }
 
 MORDOR_UNITTEST(NotifyStream, notifyOnExceptionSameThread)

@@ -87,8 +87,8 @@ PipeStream::PipeStream(size_t bufferSize)
 PipeStream::~PipeStream()
 {
     MORDOR_LOG_VERBOSE(g_log) << this << " destructing";
-    boost::mutex::scoped_lock lock(*m_mutex);
     PipeStream::ptr otherStream = m_otherStream.lock();
+    boost::mutex::scoped_lock lock(*m_mutex);
     if (otherStream) {
         MORDOR_ASSERT(!otherStream->m_pendingReader);
         MORDOR_ASSERT(!otherStream->m_pendingReaderScheduler);
@@ -119,10 +119,10 @@ PipeStream::~PipeStream()
 void
 PipeStream::close(CloseType type)
 {
+    PipeStream::ptr otherStream = m_otherStream.lock();
     boost::mutex::scoped_lock lock(*m_mutex);
     bool closeWriteFirstTime = !(m_closed & WRITE) && (type & WRITE);
     m_closed = (CloseType)(m_closed | type);
-    PipeStream::ptr otherStream = m_otherStream.lock();
     if (otherStream) {
         otherStream->m_otherClosed = m_closed;
         if (closeWriteFirstTime)
@@ -150,10 +150,10 @@ PipeStream::read(Buffer &b, size_t len)
     MORDOR_ASSERT(len != 0);
     while (true) {
         {
+            PipeStream::ptr otherStream = m_otherStream.lock();
             boost::mutex::scoped_lock lock(*m_mutex);
             if (m_closed & READ)
                 MORDOR_THROW_EXCEPTION(BrokenPipeException());
-            PipeStream::ptr otherStream = m_otherStream.lock();
             if (!otherStream && !(m_otherClosed & WRITE))
                 MORDOR_THROW_EXCEPTION(BrokenPipeException());
             size_t avail = m_readBuffer.readAvailable();
@@ -192,8 +192,8 @@ PipeStream::read(Buffer &b, size_t len)
         try {
             Scheduler::yieldTo();
         } catch (...) {
-            boost::mutex::scoped_lock lock(*m_mutex);
             PipeStream::ptr otherStream = m_otherStream.lock();
+            boost::mutex::scoped_lock lock(*m_mutex);
             if (otherStream && otherStream->m_pendingReader == Fiber::getThis()) {
                 MORDOR_ASSERT(otherStream->m_pendingReaderScheduler == Scheduler::getThis());
                 otherStream->m_pendingReader.reset();
@@ -207,9 +207,9 @@ PipeStream::read(Buffer &b, size_t len)
 void
 PipeStream::cancelRead()
 {
+    PipeStream::ptr otherStream = m_otherStream.lock();
     boost::mutex::scoped_lock lock(*m_mutex);
     m_cancelledRead = true;
-    PipeStream::ptr otherStream = m_otherStream.lock();
     if (otherStream && otherStream->m_pendingReader) {
         MORDOR_ASSERT(otherStream->m_pendingReaderScheduler);
         MORDOR_LOG_DEBUG(g_log) << this << " cancelling read";
@@ -225,10 +225,10 @@ PipeStream::write(const Buffer &b, size_t len)
     MORDOR_ASSERT(len != 0);
     while (true) {
         {
+            PipeStream::ptr otherStream = m_otherStream.lock();
             boost::mutex::scoped_lock lock(*m_mutex);
             if (m_closed & WRITE)
                 MORDOR_THROW_EXCEPTION(BrokenPipeException());
-            PipeStream::ptr otherStream = m_otherStream.lock();
             if (!otherStream || (otherStream->m_closed & READ))
                 MORDOR_THROW_EXCEPTION(BrokenPipeException());
 
@@ -261,8 +261,8 @@ PipeStream::write(const Buffer &b, size_t len)
         try {
             Scheduler::yieldTo();
         } catch (...) {
-            boost::mutex::scoped_lock lock(*m_mutex);
             PipeStream::ptr otherStream = m_otherStream.lock();
+            boost::mutex::scoped_lock lock(*m_mutex);
             if (otherStream && otherStream->m_pendingWriter == Fiber::getThis()) {
                 MORDOR_ASSERT(otherStream->m_pendingWriterScheduler == Scheduler::getThis());
                 otherStream->m_pendingWriter.reset();
@@ -276,9 +276,9 @@ PipeStream::write(const Buffer &b, size_t len)
 void
 PipeStream::cancelWrite()
 {
+    PipeStream::ptr otherStream = m_otherStream.lock();
     boost::mutex::scoped_lock lock(*m_mutex);
     m_cancelledWrite = true;
-    PipeStream::ptr otherStream = m_otherStream.lock();
     if (otherStream && otherStream->m_pendingWriter) {
         MORDOR_ASSERT(otherStream->m_pendingWriterScheduler);
         MORDOR_LOG_DEBUG(g_log) << this << " cancelling write";
@@ -293,10 +293,10 @@ PipeStream::flush(bool flushParent)
 {
     while (true) {
         {
+            PipeStream::ptr otherStream = m_otherStream.lock();
             boost::mutex::scoped_lock lock(*m_mutex);
             if (m_cancelledWrite)
                 MORDOR_THROW_EXCEPTION(OperationAbortedException());
-            PipeStream::ptr otherStream = m_otherStream.lock();
             if (!otherStream) {
                 // See if they read everything before destructing
                 if (m_otherClosed & READ)
@@ -318,8 +318,8 @@ PipeStream::flush(bool flushParent)
         try {
             Scheduler::yieldTo();
         } catch (...) {
-            boost::mutex::scoped_lock lock(*m_mutex);
             PipeStream::ptr otherStream = m_otherStream.lock();
+            boost::mutex::scoped_lock lock(*m_mutex);
             if (otherStream && otherStream->m_pendingWriter == Fiber::getThis()) {
                 MORDOR_ASSERT(otherStream->m_pendingWriterScheduler == Scheduler::getThis());
                 otherStream->m_pendingWriter.reset();

@@ -3,11 +3,9 @@
 
 # include "version.h"
 
-# ifdef WINDOWS
-// Get Vista+ APIs
-#  ifndef _WIN32_WINNT
-#    define _WIN32_WINNT 0x0600
-#  endif
+#ifdef WINDOWS
+// Get Win7+ APIs
+#define _WIN32_WINNT 0x0601
 // Don't include tons of crap from windows.h
 #  ifndef WIN32_LEAN_AND_MEAN
 #    define WIN32_LEAN_AND_MEAN
@@ -36,10 +34,15 @@
 #  define mkdir _mkdir
 #  define snprintf _snprintf
 
-#  include <ntstatus.h>
-#  define WIN32_NO_STATUS
-#  include <windows.h>
-#  include <ws2tcpip.h>
+#include <ntstatus.h>
+#define WIN32_NO_STATUS
+#include <windows.h>
+// define the PSAPI_VERSION to 1 so that we can still run on old XP systems
+// The specific function that was failing fo kalypso was GetModuleName
+/* http://msdn.microsoft.com/en-us/library/windows/desktop/ms683196(v=vs.85).aspx */
+#define PSAPI_VERSION (1)
+
+#include <ws2tcpip.h>
 
 // Take things out of the preprocessor, and put into the global namespace
 // From WinGDI.h: #define ERROR 0

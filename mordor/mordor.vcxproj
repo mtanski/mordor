@@ -65,7 +65,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(MORDOR_INCLUDE);..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>mordor/pch.h</PrecompiledHeaderFile>
@@ -121,11 +121,14 @@
     </ClCompile>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="daemon.cpp" />
+    <ClCompile Include="openssl_lock.cpp" />
     <ClCompile Include="parallel.cpp" />
+    <ClCompile Include="protobuf.cpp" />
     <ClCompile Include="socks.cpp" />
     <ClCompile Include="streams\buffer.cpp" />
     <ClCompile Include="streams\buffered.cpp" />
     <ClCompile Include="streams\cat.cpp" />
+    <ClCompile Include="streams\counter.cpp" />
     <ClCompile Include="http\chunked.cpp" />
     <ClCompile Include="http\client.cpp" />
     <ClCompile Include="config.cpp" />
@@ -171,6 +174,7 @@
       <ObjectFileName>$(IntDir)socket_stream.obj</ObjectFileName>
     </ClCompile>
     <ClCompile Include="socket.cpp" />
+    <ClCompile Include="streams\lzma2.cpp" />
     <ClCompile Include="streams\ssl.cpp" />
     <ClCompile Include="statistics.cpp" />
     <ClCompile Include="streams\std.cpp" />
@@ -184,6 +188,7 @@
     <ClCompile Include="timer.cpp" />
     <ClCompile Include="streams\transfer.cpp" />
     <ClCompile Include="streams\zlib.cpp" />
+    <ClCompile Include="streams\zero.cpp" />
     <ClCompile Include="util.cpp" />
     <ClCompile Include="workerpool.cpp" />
     <ClCompile Include="xml\dom_parser.cpp" />
@@ -203,12 +208,15 @@
     <ClInclude Include="http\servlets\config.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="daemon.h" />
+    <ClInclude Include="openssl_lock.h" />
     <ClInclude Include="parallel.h" />
     <ClInclude Include="rate_limiter.h" />
+    <ClInclude Include="protobuf.h" />
     <ClInclude Include="socks.h" />
     <ClInclude Include="streams\buffer.h" />
     <ClInclude Include="streams\buffered.h" />
     <ClInclude Include="streams\cat.h" />
+    <ClInclude Include="streams\counter.h" />
     <ClInclude Include="http\chunked.h" />
     <ClInclude Include="http\client.h" />
     <ClInclude Include="config.h" />
@@ -230,12 +238,14 @@
     <ClInclude Include="streams\gzip.h" />
     <ClInclude Include="streams\handle.h" />
     <ClInclude Include="streams\hash.h" />
+    <ClInclude Include="streams\hashfwd.h" />
     <ClInclude Include="http\http.h" />
     <ClInclude Include="streams\http.h" />
     <ClInclude Include="iomanager.h" />
     <ClInclude Include="iomanager_iocp.h" />
     <ClInclude Include="json.h" />
     <ClInclude Include="streams\limited.h" />
+    <ClInclude Include="streams\lzma2.h" />
     <ClInclude Include="log.h" />
     <ClInclude Include="streams\memory.h" />
     <ClInclude Include="http\multipart.h" />
@@ -281,6 +291,7 @@
     <ClInclude Include="util.h" />
     <ClInclude Include="version.h" />
     <ClInclude Include="streams\zlib.h" />
+    <ClInclude Include="streams\zero.h" />
     <ClInclude Include="zip.h" />
   </ItemGroup>
   <ItemGroup>

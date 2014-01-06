@@ -10,6 +10,14 @@
 namespace Mordor {
 namespace JSON {
 
+template<>
+void
+Value::set<bool>(const bool& value,
+                 boost::enable_if<boost::is_arithmetic<bool> >::type *)
+{
+    (ValueBase &)*this = value;
+}
+
 namespace {
 class BoolVisitor : public boost::static_visitor<>
 {
@@ -60,6 +68,11 @@ public:
 };
 }
 
+#if defined(GCC) && ((__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ > 6))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+
 bool
 Value::empty() const
 {
@@ -75,6 +88,10 @@ Value::size() const
     boost::apply_visitor(visitor, *this);
     return visitor.result;
 }
+
+#if defined(GCC) && ((__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ > 6))
+#pragma GCC diagnostic pop
+#endif
 
 static Value g_blank;
 
@@ -248,7 +265,7 @@ std::string unquote(const std::string &string)
     action new_key
 
     {
-        m_stack.push(&boost::get<Object>(*m_stack.top()).insert(std::make_pair(unquote(std::string(mark, fpc - mark)), Value()))->second);
+        m_stack.push(&boost::get<Object>(*m_stack.top())[unquote(std::string(mark, fpc - mark))]);
     }
     action new_element
     {
@@ -441,6 +458,12 @@ std::ostream &operator <<(std::ostream &os, const Value &json)
     JSONVisitor visitor(os);
     boost::apply_visitor(visitor, json);
     return os;
+}
+
+bool isBlank(Value value)
+{
+    boost::blank *isItBlank = boost::get<boost::blank>(&value);
+    return  !!isItBlank;
 }
 
 }}

@@ -90,12 +90,17 @@ void
 EFSStream::init()
 {
     MORDOR_ASSERT(m_context);
-    if (m_read)
-        m_fiber = Fiber::ptr(new Fiber(std::bind(&EFSStream::readFiber,
-            this)));
-    else
-        m_fiber = Fiber::ptr(new Fiber(std::bind(&EFSStream::writeFiber,
-            this)));
+    std::function<void ()> dg;
+    if (m_read) {
+        dg = std::bind(&EFSStream::readFiber, this);
+    } else {
+        dg = std::bind(&EFSStream::writeFiber, this);
+    }
+    if (m_fiber) {
+        m_fiber->reset(dg);
+    } else {
+        m_fiber.reset(new Fiber(dg));
+    }
 }
 
 EFSStream::~EFSStream()
@@ -178,7 +183,7 @@ EFSStream::seek(long long offset, Anchor anchor)
             m_fiber->call();
             MORDOR_ASSERT(m_fiber->state() == Fiber::TERM);
         }
-        m_fiber->reset();
+        init();
         m_pos = 0;
         m_todo = 0;
     } else if (m_seekTarget == m_pos) {

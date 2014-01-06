@@ -2,7 +2,13 @@
 #define __MORDOR_HTTP_CONNECTION_H__
 // Copyright (c) 2009 - Mozy, Inc.
 
+// C++
+#include <memory>
 
+// Boost
+#include <boost/thread/mutex.hpp>
+
+// Mordor
 #include "mordor/anymap.h"
 #include "http.h"
 

@@ -3,8 +3,8 @@
 
 AC_PREREQ(2.61)
 AC_INIT([libmordor],[1.3.0])
-AM_INIT_AUTOMAKE
-LT_INIT([disable-static])
+AM_INIT_AUTOMAKE([foreign])
+LT_INIT
 AC_CONFIG_SRCDIR([mordor/fiber.cpp])
 AC_CONFIG_HEADERS([autoconfig.h])
 AC_CONFIG_MACRO_DIR([m4])
@@ -27,11 +27,15 @@ AC_CHECK_PROG([PROTOC], [protoc], [protoc])
 AC_SEARCH_LIBS([pthread_create], [pthread])
 AC_SEARCH_LIBS([clock_gettime], [rt])
 AC_SEARCH_LIBS([backtrace], [execinfo])
+AC_CHECK_VALGRIND
+AM_ICONV
 AX_CHECK_OPENSSL
 AX_CHECK_ZLIB
+AX_CHECK_LZMA
 AX_BOOST_BASE([1.40],, [AC_ERROR([Missing boost headers (1.40+)])])
 AX_BOOST_PROGRAM_OPTIONS
 AX_BOOST_REGEX
+AX_BOOST_SYSTEM
 AX_BOOST_THREAD
 AX_BOOST_SYSTEM
 AX_CHECK_CORESERVICES_FRAMEWORK

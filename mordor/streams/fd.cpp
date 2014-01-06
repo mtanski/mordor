@@ -4,6 +4,9 @@
 
 #include "fd.h"
 
+#include <algorithm>
+#include <limits>
+
 #include <sys/fcntl.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
@@ -145,11 +148,12 @@ FDStream::write(const Buffer &buffer, size_t length)
         MORDOR_THROW_EXCEPTION(OperationAbortedException());
     SchedulerSwitcher switcher(m_ioManager ? NULL : m_scheduler);
     MORDOR_ASSERT(m_fd >= 0);
-    if (length > 0xfffffffe)
-        length = 0xfffffffe;
+    length = std::min(length, (size_t)std::numeric_limits<ssize_t>::max());
     const std::vector<iovec> iovs = buffer.readBuffers(length);
-    int rc = writev(m_fd, &iovs[0], iovs.size());
-    while (rc < 0 && lastError() == EAGAIN && m_ioManager) {
+    ssize_t rc = 0;
+    const int count = std::min(iovs.size(), (size_t)IOV_MAX);
+    while ((rc = writev(m_fd, &iovs[0], count)) < 0 &&
+           lastError() == EAGAIN && m_ioManager) {
         MORDOR_LOG_TRACE(g_log) << this << " writev(" << m_fd << ", " << length
             << "): " << rc << " (EAGAIN)";
         m_ioManager->registerEvent(m_fd, IOManager::WRITE);

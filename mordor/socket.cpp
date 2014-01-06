@@ -359,7 +359,8 @@ Socket::connect(const Address &to)
                 << to << "): (" << lastError() << ")";
             MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("connect");
         }
-        MORDOR_LOG_INFO(g_log) << this << " connect(" << m_sock << ", " << to << ")";
+        MORDOR_LOG_INFO(g_log) << this << " connect(" << m_sock << ", "
+            << to << ") local: " << *(localAddress());
     } else {
 #ifdef WINDOWS
         if (m_useConnectEx && ConnectEx) {
@@ -451,8 +452,8 @@ Socket::connect(const Address &to)
                     << ", " << to << "): (" << error << ")";
                 MORDOR_THROW_EXCEPTION_FROM_ERROR_API(error, "ConnectEx");
             }
-            MORDOR_LOG_INFO(g_log) << this << " ConnectEx(" << m_sock << ", "
-                << to << ")";
+            MORDOR_LOG_INFO(g_log) << this << " connectEX(" << m_sock << ", "
+                << to << ") local: " << *(localAddress());
             setOption(SOL_SOCKET, SO_UPDATE_CONNECT_CONTEXT, NULL, 0);
         } else {
 suckylsp:
@@ -464,8 +465,8 @@ suckylsp:
             if (WSAEventSelect(m_sock, m_hEvent, FD_CONNECT))
                 MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("WSAEventSelect");
             if (!::connect(m_sock, to.name(), to.nameLen())) {
-                MORDOR_LOG_INFO(g_log) << this << " connect(" << m_sock << ", "
-                    << to << ")";
+                MORDOR_LOG_INFO(g_log) << this << " connectEX(" << m_sock << ", "
+                    << to << ") local: " << *(localAddress());
                 // Worked first time
                 return;
             }
@@ -483,9 +484,10 @@ suckylsp:
                 }
                 Timer::ptr timeout;
                 if (m_sendTimeout != ~0ull)
-                    timeout = m_ioManager->registerTimer(m_sendTimeout,
+                    timeout = m_ioManager->registerConditionTimer(m_sendTimeout,
                         std::bind(&Socket::cancelIo, this,
-                            std::ref(m_cancelledSend), WSAETIMEDOUT));
+                            std::ref(m_cancelledSend), WSAETIMEDOUT),
+                        weak_ptr(shared_from_this()));
                 Scheduler::yieldTo();
 
                 m_fiber.reset();
@@ -522,8 +524,8 @@ suckylsp:
         }
 #else
         if (!::connect(m_sock, to.name(), to.nameLen())) {
-            MORDOR_LOG_INFO(g_log) << this << " connect(" << m_sock << ", " << to
-                << ")";
+            MORDOR_LOG_INFO(g_log) << this << " connect(" << m_sock << ", "
+                << to << ") local: " << *(localAddress());
             // Worked first time
             return;
         }
@@ -538,9 +540,10 @@ suckylsp:
             }
             Timer::ptr timeout;
             if (m_sendTimeout != ~0ull)
-                timeout = m_ioManager->registerTimer(m_sendTimeout, std::bind(
-                    &Socket::cancelIo, this, IOManager::WRITE,
-                    std::ref(m_cancelledSend), ETIMEDOUT));
+                timeout = m_ioManager->registerConditionTimer(m_sendTimeout,
+                    std::bind(&Socket::cancelIo, this, IOManager::WRITE,
+                        std::ref(m_cancelledSend), ETIMEDOUT),
+                    weak_ptr(shared_from_this()));
             Scheduler::yieldTo();
             if (timeout)
                 timeout->cancel();
@@ -557,8 +560,8 @@ suckylsp:
                     << "): (" << err << ")";
                 MORDOR_THROW_EXCEPTION_FROM_ERROR_API(err, "connect");
             }
-            MORDOR_LOG_INFO(g_log) << this << " connect(" << m_sock << ", " << to
-                << ")";
+            MORDOR_LOG_INFO(g_log) << this << " connect(" << m_sock << ", "
+                << to << ") local: " << *(localAddress());
         } else {
             MORDOR_LOG_ERROR(g_log) << this << " connect(" << m_sock << ", " << to
                 << "): (" << lastError() << ")";
@@ -613,7 +616,7 @@ Socket::accept(Socket &target)
         }
         target.m_sock = newsock;
         MORDOR_LOG_INFO(g_log) << this << " accept(" << m_sock << "): "
-                << newsock << " (" << *target.remoteAddress() << ')';
+                << newsock << " (" << *target.remoteAddress() << ", " << &target << ')';
     } else {
 #ifdef WINDOWS
         if (m_useAcceptEx && pAcceptEx) {
@@ -672,7 +675,7 @@ Socket::accept(Socket &target)
 
             std::ostringstream os;
             MORDOR_LOG_INFO(g_log) << this << " AcceptEx(" << m_sock << "): "
-                << target.m_sock << " (" << *target.remoteAddress() << ')';
+                << target.m_sock << " (" << *target.remoteAddress() << ", " << &target << ')';
             target.setOption(SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, &m_sock, sizeof(m_sock));
             target.m_ioManager->registerFile((HANDLE)target.m_sock);
             target.m_skipCompletionPortOnSuccess =
@@ -707,9 +710,10 @@ suckylsp:
                 m_unregistered = false;
                 Timer::ptr timeout;
                 if (m_receiveTimeout != ~0ull)
-                    timeout = m_ioManager->registerTimer(m_sendTimeout,
+                    timeout = m_ioManager->registerConditionTimer(m_sendTimeout,
                         std::bind(&Socket::cancelIo, this,
-                        std::ref(m_cancelledReceive), WSAETIMEDOUT));
+                            std::ref(m_cancelledReceive), WSAETIMEDOUT),
+                        weak_ptr(shared_from_this()));
                 Scheduler::yieldTo();
                 m_fiber.reset();
                 m_scheduler = NULL;
@@ -745,7 +749,7 @@ suckylsp:
                 ::closesocket(target.m_sock);
             target.m_sock = newsock;
             MORDOR_LOG_INFO(g_log) << this << " accept(" << m_sock << "): "
-                << newsock << " (" << *target.remoteAddress() << ')';
+                << newsock << " (" << *target.remoteAddress() << ", " << &target << ')';
             target.m_skipCompletionPortOnSuccess =
                 !!pSetFileCompletionNotificationModes((HANDLE)newsock,
                     FILE_SKIP_COMPLETION_PORT_ON_SUCCESS |
@@ -769,9 +773,10 @@ suckylsp:
             }
             Timer::ptr timeout;
             if (m_receiveTimeout != ~0ull)
-                timeout = m_ioManager->registerTimer(m_receiveTimeout, std::bind(
-                    &Socket::cancelIo, this, IOManager::READ,
-                    std::ref(m_cancelledReceive), ETIMEDOUT));
+                timeout = m_ioManager->registerConditionTimer(m_receiveTimeout,
+                    std::bind(&Socket::cancelIo, this, IOManager::READ,
+                        std::ref(m_cancelledReceive), ETIMEDOUT),
+                    weak_ptr(shared_from_this()));
             Scheduler::yieldTo();
             if (timeout)
                 timeout->cancel();
@@ -796,7 +801,7 @@ suckylsp:
         }
         target.m_sock = newsock;
         MORDOR_LOG_INFO(g_log) << this << " accept(" << m_sock << "): "
-            << newsock << " (" << *target.remoteAddress() << ')';
+            << newsock << " (" << *target.remoteAddress() << ", " << &target << ')';
 #endif
         target.m_isConnected = true;
         if (!target.m_onRemoteClose.empty())
@@ -952,7 +957,7 @@ Socket::doIO(iovec *buffers, size_t length, int &flags, Address *address)
     msghdr msg;
     memset(&msg, 0, sizeof(msghdr));
     msg.msg_iov = buffers;
-    msg.msg_iovlen = length;
+    msg.msg_iovlen = std::min(length, (size_t)IOV_MAX);
     if (address) {
         msg.msg_name = (sockaddr *)address->name();
         msg.msg_namelen = address->nameLen();
@@ -974,9 +979,9 @@ Socket::doIO(iovec *buffers, size_t length, int &flags, Address *address)
         m_ioManager->registerEvent(m_sock, event);
         Timer::ptr timer;
         if (timeout != ~0ull)
-            timer = m_ioManager->registerTimer(timeout, std::bind(
-                &Socket::cancelIo, this, event, std::ref(cancelled),
-                ETIMEDOUT));
+            timer = m_ioManager->registerConditionTimer(timeout,
+                std::bind(&Socket::cancelIo, this, event, std::ref(cancelled), ETIMEDOUT),
+                weak_ptr(shared_from_this()));
         Scheduler::yieldTo();
         if (timer)
             timer->cancel();
@@ -1122,6 +1127,7 @@ Socket::cancelConnect()
 #ifdef WINDOWS
     if (m_cancelledSend)
         return;
+    MORDOR_LOG_VERBOSE(g_log) << this << " cancelConnect(" << m_sock << ")";
     m_cancelledSend = ERROR_OPERATION_ABORTED;
     if (m_useConnectEx && ConnectEx) {
         m_ioManager->cancelEvent((HANDLE)m_sock, &m_sendEvent);
@@ -1143,6 +1149,7 @@ Socket::cancelSend()
 #ifdef WINDOWS
     if (m_cancelledSend)
         return;
+    MORDOR_LOG_VERBOSE(g_log) << this << " cancelSend(" << m_sock << ")";
     m_cancelledSend = ERROR_OPERATION_ABORTED;
     m_ioManager->cancelEvent((HANDLE)m_sock, &m_sendEvent);
 #else
@@ -1158,6 +1165,7 @@ Socket::cancelReceive()
 #ifdef WINDOWS
     if (m_cancelledReceive)
         return;
+    MORDOR_LOG_VERBOSE(g_log) << this << "cancelReceive(" << m_sock << ")";
     m_cancelledReceive = ERROR_OPERATION_ABORTED;
     m_ioManager->cancelEvent((HANDLE)m_sock, &m_receiveEvent);
 #else
@@ -1172,6 +1180,7 @@ Socket::cancelIo(error_t &cancelled, error_t error)
     MORDOR_ASSERT(error);
     if (cancelled)
         return;
+    MORDOR_LOG_VERBOSE(g_log) << this << " cancelIo(" << m_sock << ")";
     cancelled = error;
     if (m_hEvent && m_scheduler && m_fiber) {
         m_unregistered = !!m_ioManager->unregisterEvent(m_hEvent);
@@ -1185,6 +1194,9 @@ Socket::cancelIo(int event, error_t &cancelled, error_t error)
     MORDOR_ASSERT(error);
     if (cancelled)
         return;
+    MORDOR_LOG_VERBOSE(g_log) << this
+        << ((event == IOManager::READ) ? " cancelReceive(" : " cancelSend(")
+        << m_sock << ")";
     cancelled = error;
     m_ioManager->cancelEvent(m_sock, (IOManager::Event)event);
 }
@@ -1216,6 +1228,11 @@ Socket::remoteAddress()
         case AF_INET6:
             result.reset(new IPv6Address());
             break;
+#ifndef WINDOWS
+        case AF_UNIX:
+            result.reset(new UnixAddress());
+            break;
+#endif
         default:
             result.reset(new UnknownAddress(m_family));
             break;
@@ -1224,6 +1241,12 @@ Socket::remoteAddress()
     if (getpeername(m_sock, result->name(), &namelen))
         MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("getpeername");
     MORDOR_ASSERT(namelen <= result->nameLen());
+#ifndef WINDOWS
+    if (m_family == AF_UNIX) {
+        std::shared_ptr<UnixAddress> addr = std::dynamic_pointer_cast<UnixAddress>(result);
+        addr->nameLen(namelen);
+    }
+#endif
     return m_remoteAddress = result;
 }
 
@@ -1240,6 +1263,11 @@ Socket::localAddress()
         case AF_INET6:
             result.reset(new IPv6Address());
             break;
+#ifndef WINDOWS
+        case AF_UNIX:
+            result.reset(new UnixAddress());
+            break;
+#endif
         default:
             result.reset(new UnknownAddress(m_family));
             break;
@@ -1248,6 +1276,13 @@ Socket::localAddress()
     if (getsockname(m_sock, result->name(), &namelen))
         MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("getsockname");
     MORDOR_ASSERT(namelen <= result->nameLen());
+#ifndef WINDOWS
+    // set the result->nameLen() right
+    if (m_family == AF_UNIX) {
+        std::shared_ptr<UnixAddress> addr = std::dynamic_pointer_cast<UnixAddress>(result);
+        addr->nameLen(namelen);
+    }
+#endif
     return m_localAddress = result;
 }
 
@@ -1447,14 +1482,30 @@ Address::getInterfaceAddresses(int family)
         error = pGetAdaptersAddresses(AF_UNSPEC, 0, NULL, addresses, &size);
     }
     if (error && error != ERROR_CALL_NOT_IMPLEMENTED)
+    {
+        if (addresses != NULL)
+        {
+            free(addresses);
+            addresses = NULL;
+        }
         MORDOR_THROW_EXCEPTION_FROM_ERROR_API(error, "GetAdaptersAddresses");
-    // Either doesn't exist, or doesn't include netmask info to construct broadcast addr
-    if (error == ERROR_CALL_NOT_IMPLEMENTED ||
-        addresses->FirstUnicastAddress->Length < sizeof(IP_ADAPTER_UNICAST_ADDRESS_LH)) {
-        PIP_ADAPTER_INFO addresses2 = (PIP_ADAPTER_INFO)&buf[0];
-        size = (ULONG)buf.size();
-        error = GetAdaptersInfo(addresses2, &size);
-        while (ERROR_BUFFER_OVERFLOW == error && buf.size() < MAX_INTERFACE_BUFFER_SIZE)
+    }
+    else if (error == ERROR_CALL_NOT_IMPLEMENTED ||
+        NULL == addresses ||
+        NULL == addresses->FirstUnicastAddress ||
+        addresses->FirstUnicastAddress->Length < sizeof(IP_ADAPTER_UNICAST_ADDRESS_LH)) 
+    {   // Either doesn't exist, or doesn't include netmask info to construct broadcast addr
+        // cleanup the old addresses
+        if (addresses != NULL)
+        {
+            free(addresses);
+            addresses = NULL;
+        }
+
+        PIP_ADAPTER_INFO addresses2 = NULL;
+        size = buffer_size;
+        tries = 0;
+        do
         {
             buf.resize(size);
             addresses2 = (PIP_ADAPTER_INFO)&buf[0];
@@ -1881,6 +1932,8 @@ IPv6Address::insert(std::ostream &os) const
 }
 
 #ifndef WINDOWS
+const size_t UnixAddress::MAX_PATH_LEN = sizeof(((sockaddr_un *)0)->sun_path) - 1;
+
 UnixAddress::UnixAddress(const std::string &path)
 {
     sun.sun_family = AF_UNIX;
@@ -1893,6 +1946,13 @@ UnixAddress::UnixAddress(const std::string &path)
     MORDOR_ASSERT(length <= sizeof(sun.sun_path));
     memcpy(sun.sun_path, path.c_str(), length);
     length += offsetof(sockaddr_un, sun_path);
+}
+
+UnixAddress::UnixAddress()
+{
+    memset(&sun, 0, sizeof(sun));
+    sun.sun_family = AF_UNIX;
+    length = offsetof(sockaddr_un, sun_path) + MAX_PATH_LEN;
 }
 
 std::ostream &

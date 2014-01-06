@@ -40,18 +40,23 @@ private:
         };
 
         EventContext &contextForEvent(Event event);
-        bool triggerEvent(Event event, size_t *pendingEventCount = NULL,
-            std::shared_ptr<Fiber> *fiber = NULL,
-            std::function<void ()> *dg = NULL);
+        bool triggerEvent(Event event, size_t &pendingEventCount);
+        void resetContext(EventContext &);
 
         int m_fd;
         EventContext m_in, m_out, m_close;
         Event m_events;
         boost::mutex m_mutex;
+
+    private:
+        void asyncResetContext(EventContext&);
     };
 
 public:
-    IOManager(size_t threads = 1, bool useCaller = true);
+    /// @param autoStart  whether call the start() automatically in constructor
+    /// @note @p autoStart provides a more friendly behavior for derived class
+    ///      that inherits from IOManager
+    IOManager(size_t threads = 1, bool useCaller = true, bool autoStart = true);
     ~IOManager();
 
     bool stopping();

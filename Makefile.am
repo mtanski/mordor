@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS=-I m4
 AUTOMAKE_OPTIONS=nostdinc subdir-objects
-AM_CPPFLAGS=$(OPENSSL_INCLUDES) $(BOOST_CPPFLAGS) $(POSTGRESQL_CFLAGS) $(VALGRIND_CPPFLAGS) -I$(srcdir) -I$(builddir)
+AM_CPPFLAGS=$(OPENSSL_INCLUDES) $(BOOST_CPPFLAGS) $(POSTGRESQL_CFLAGS) $(INCICONV) $(VALGRIND_CPPFLAGS) -I$(top_srcdir)
 AM_CXXFLAGS=-Wall -Werror -fno-strict-aliasing -std=c++11
 
 nobase_include_HEADERS=			\
@@ -30,6 +30,7 @@ nobase_include_HEADERS=			\
 	mordor/http/multipart.h		\
 	mordor/http/negotiate.h		\
 	mordor/http/oauth.h		\
+	mordor/http/oauth2.h	\
 	mordor/http/parser.h		\
 	mordor/http/proxy.h		\
 	mordor/http/server.h		\
@@ -41,6 +42,7 @@ nobase_include_HEADERS=			\
 	mordor/json.h			\
 	mordor/log.h			\
 	mordor/main.h			\
+	mordor/openssl_lock.h		\
 	mordor/parallel.h		\
 	mordor/pq/connection.h		\
 	mordor/pq/connectionpool.h	\
@@ -63,6 +65,7 @@ nobase_include_HEADERS=			\
 	mordor/streams/buffered.h	\
 	mordor/streams/buffer.h		\
 	mordor/streams/cat.h		\
+	mordor/streams/counter.h	\
 	mordor/streams/deflate.h	\
 	mordor/streams/duplex.h		\
 	mordor/streams/fd.h		\
@@ -70,6 +73,7 @@ nobase_include_HEADERS=			\
 	mordor/streams/filter.h		\
 	mordor/streams/gzip.h		\
 	mordor/streams/hash.h		\
+	mordor/streams/hashfwd.h	\
 	mordor/streams/http.h		\
 	mordor/streams/limited.h	\
 	mordor/streams/memory.h		\
@@ -90,8 +94,10 @@ nobase_include_HEADERS=			\
 	mordor/streams/throttle.h	\
 	mordor/streams/timeout.h	\
 	mordor/streams/transfer.h	\
+	mordor/streams/zero.h		\
 	mordor/streams/zlib.h		\
 	mordor/streams/crypto.h		\
+	mordor/streams/lzma2.h		\
 	mordor/string.h			\
 	mordor/test/antxmllistener.h	\
 	mordor/test/compoundlistener.h	\
@@ -130,6 +136,7 @@ mordor_libmordor_la_SOURCES=			\
 	mordor/http/http_parser.cpp		\
 	mordor/http/multipart.cpp		\
 	mordor/http/oauth.cpp			\
+	mordor/http/oauth2.cpp			\
 	mordor/http/proxy.cpp			\
 	mordor/http/server.cpp			\
 	mordor/http/servlet.cpp			\
@@ -138,6 +145,7 @@ mordor_libmordor_la_SOURCES=			\
 	mordor/iomanager_kqueue.cpp		\
 	mordor/json.cpp				\
 	mordor/log.cpp				\
+	mordor/openssl_lock.cpp			\
 	mordor/parallel.cpp			\
 	mordor/ragel.cpp			\
 	mordor/scheduler.cpp			\
@@ -149,6 +157,7 @@ mordor_libmordor_la_SOURCES=			\
 	mordor/streams/buffer.cpp		\
 	mordor/streams/buffered.cpp		\
 	mordor/streams/cat.cpp			\
+	mordor/streams/counter.cpp		\
 	mordor/streams/fd.cpp			\
 	mordor/streams/file.cpp			\
 	mordor/streams/filter.cpp		\
@@ -170,6 +179,7 @@ mordor_libmordor_la_SOURCES=			\
 	mordor/streams/test.cpp			\
 	mordor/streams/throttle.cpp		\
 	mordor/streams/transfer.cpp		\
+	mordor/streams/zero.cpp			\
 	mordor/streams/zlib.cpp			\
 	mordor/streams/crypto.cpp		\
 	mordor/string.cpp			\
@@ -186,12 +196,25 @@ mordor_libmordor_la_CPPFLAGS=-I$(top_srcdir) -include mordor/pch.h $(AM_CPPFLAGS
 mordor_libmordor_la_LDFLAGS=			\
 	$(OPENSSL_LDFLAGS)			\
 	$(BOOST_LDFLAGS)			\
+	$(LZMA_LDFLAGS)				\
 	$(CORESERVICES_FRAMEWORK_LIBS)		\
 	$(COREFOUNDATION_FRAMEWORK_LIBS)	\
 	$(SECURITY_FRAMEWORK_LIBS)		\
 	$(SYSTEMCONFIGURATION_FRAMEWORK_LIBS)	\
 	-version-info $(LIBMORDOR_SO_VERSION)
-mordor_libmordor_la_LIBADD=$(OPENSSL_LIBS) $(BOOST_REGEX_LIB) $(BOOST_THREAD_LIB)
+mordor_libmordor_la_LIBADD = \
+	$(OPENSSL_LIBS) 		\
+	$(BOOST_REGEX_LIB)			\
+	$(BOOST_THREAD_LIB)			\
+	$(BOOST_SYSTEM_LIB)			\
+	$(LZMA_LIB)					\
+	$(LTLIBICONV)
+
+if HAVE_LZMA
+mordor_libmordor_la_SOURCES += \
+	mordor/streams/lzma2.cpp
+mordor_libmordor_la_CFLAGS = $(AM_CFLAGS) $(LZMA_CFLAGS)
+endif
 
 if HAVE_POSTGRESQL
     lib_LTLIBRARIES+=mordor/pq/libmordorpq.la
@@ -298,18 +321,22 @@ mordor_tests_run_tests_SOURCES=				\
 	mordor/tests/atomic.cpp				\
 	mordor/tests/buffer.cpp				\
 	mordor/tests/buffered_stream.cpp		\
+	mordor/tests/cat_stream.cpp				\
 	mordor/tests/chunked_stream.cpp			\
 	mordor/tests/config.cpp				\
 	mordor/tests/coroutine.cpp			\
+	mordor/tests/counter_stream.cpp		\
 	mordor/tests/endian.cpp				\
 	mordor/tests/fibers.cpp				\
 	mordor/tests/fibersync.cpp			\
 	mordor/tests/file_stream.cpp			\
 	mordor/tests/fls.cpp				\
 	mordor/tests/future.cpp				\
+	mordor/tests/hash_stream.cpp			\
 	mordor/tests/hmac.cpp				\
 	mordor/tests/http_client.cpp			\
 	mordor/tests/http_parser.cpp			\
+	mordor/tests/http_proxy.cpp			\
 	mordor/tests/http_server.cpp			\
 	mordor/tests/http_servlet_dispatcher.cpp	\
 	mordor/tests/http_stream.cpp			\
@@ -321,9 +348,11 @@ mordor_tests_run_tests_SOURCES=				\
 	mordor/tests/oauth.cpp				\
 	mordor/tests/pipe_stream.cpp			\
 	mordor/tests/rate_limiter.cpp			\
+	mordor/tests/ragel.cpp				\
 	mordor/tests/scheduler.cpp			\
 	mordor/tests/socket.cpp				\
 	mordor/tests/ssl_stream.cpp			\
+	mordor/tests/statistics.cpp			\
 	mordor/tests/stream.cpp				\
 	mordor/tests/string.cpp				\
 	mordor/tests/temp_stream.cpp			\
@@ -337,7 +366,7 @@ mordor_tests_run_tests_SOURCES=				\
 	mordor/tests/zlib.cpp				\
 	mordor/tests/crypto.cpp
 
-mordor_tests_run_tests_CPPFLAGS=-include mordor/pch.h $(AM_CPPFLAGS)
+mordor_tests_run_tests_CPPFLAGS=-I$(top_builddir) -include mordor/pch.h $(AM_CPPFLAGS)
 mordor_tests_run_tests_LDADD=mordor/libmordor.la mordor/test/libmordortest.la \
 	$(OPENSSL_LIBS)				\
 	$(BOOST_THREAD_LIB)			\
@@ -348,6 +377,9 @@ mordor_tests_run_tests_LDADD=mordor/libmordor.la mordor/test/libmordortest.la \
 	$(SECURITY_FRAMEWORK_LIBS)		\
 	$(SYSTEMCONFIGURATION_FRAMEWORK_LIBS)
 
+if HAVE_LIBYAML
+    mordor_tests_run_tests_LDADD+=mordor/libmordoryaml.la
+endif
 
 if HAVE_POSTGRESQL
 check_PROGRAMS+=mordor/pq/tests/run_tests
@@ -437,15 +469,6 @@ mordor_examples_simpleclient_LDADD=mordor/libmordor.la	\
 	$(COREFOUNDATION_FRAMEWORK_LIBS)	\
 	$(SECURITY_FRAMEWORK_LIBS)		\
 	$(SYSTEMCONFIGURATION_FRAMEWORK_LIBS)	\
-	$(BOOST_SYSTEM_LIB)			\
-	$(BOOST_THREAD_LIB)
-
-mordor_examples_simplefileserver_SOURCES=mordor/examples/simplefileserver.cpp
-mordor_examples_simplefileserver_LDADD=mordor/libmordor.la       \
-        $(CORESERVICES_FRAMEWORK_LIBS)          \
-        $(COREFOUNDATION_FRAMEWORK_LIBS)        \
-        $(SECURITY_FRAMEWORK_LIBS)              \
-        $(SYSTEMCONFIGURATION_FRAMEWORK_LIBS)	\
 	$(BOOST_SYSTEM_LIB)			\
 	$(BOOST_THREAD_LIB)
 

@@ -30,6 +30,9 @@
     <ClCompile Include="coroutine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="counter_stream.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="efs_stream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -43,6 +46,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="future.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hash_stream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="hmac.cpp">
@@ -72,6 +78,9 @@
     <ClCompile Include="pipe_stream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ragel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="run_tests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -82,6 +91,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ssl_stream.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="statistics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="stream.cpp">
@@ -141,7 +153,11 @@
     <ClCompile Include="util.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+<<<<<<< HEAD
     <ClCompile Include="rate_limiter.cpp">
+=======
+    <ClCompile Include="http_proxy.cpp">
+>>>>>>> origin/next
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

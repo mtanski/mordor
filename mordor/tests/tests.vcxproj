@@ -199,6 +199,7 @@
     <ClCompile Include="chunked_stream.cpp" />
     <ClCompile Include="config.cpp" />
     <ClCompile Include="coroutine.cpp" />
+    <ClCompile Include="counter_stream.cpp" />
     <ClCompile Include="crypto.cpp" />
     <ClCompile Include="efs_stream.cpp" />
     <ClCompile Include="endian.cpp" />
@@ -206,9 +207,11 @@
     <ClCompile Include="fibersync.cpp" />
     <ClCompile Include="fls.cpp" />
     <ClCompile Include="future.cpp" />
+    <ClCompile Include="hash_stream.cpp" />
     <ClCompile Include="hmac.cpp" />
     <ClCompile Include="http_parser.cpp" />
     <ClCompile Include="http_client.cpp" />
+    <ClCompile Include="http_proxy.cpp" />
     <ClCompile Include="http_server.cpp" />
     <ClCompile Include="http_servlet_dispatcher.cpp" />
     <ClCompile Include="http_stream.cpp" />
@@ -225,11 +228,16 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="pipe_stream.cpp" />
+<<<<<<< HEAD
     <ClCompile Include="rate_limiter.cpp" />
+=======
+    <ClCompile Include="ragel.cpp" />
+>>>>>>> origin/next
     <ClCompile Include="run_tests.cpp" />
     <ClCompile Include="scheduler.cpp" />
     <ClCompile Include="socket.cpp" />
     <ClCompile Include="ssl_stream.cpp" />
+    <ClCompile Include="statistics.cpp" />
     <ClCompile Include="stream.cpp" />
     <ClCompile Include="string.cpp" />
     <ClCompile Include="temp_stream.cpp" />

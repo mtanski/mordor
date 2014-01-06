@@ -131,9 +131,9 @@ static void enableLoggers()
     boost::regex debugRegex = buildLogRegex(g_logDebug->val(), "");
     boost::regex traceRegex = buildLogRegex(g_logTrace->val(), "");
     Log::visit(std::bind(&enableLogger, std::placeholders::_1,
-        boost::cref(errorRegex), boost::cref(warnRegex),
-        boost::cref(infoRegex), boost::cref(verboseRegex),
-        boost::cref(debugRegex), boost::cref(traceRegex)));
+        std::cref(errorRegex), boost::cref(warnRegex),
+        std::cref(infoRegex), boost::cref(verboseRegex),
+        std::cref(debugRegex), boost::cref(traceRegex)));
 }
 
 static void enableStdoutLogging()
