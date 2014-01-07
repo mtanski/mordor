@@ -126,13 +126,13 @@ MORDOR_UNITTEST(NotifyStream, notifyExceptionThreadSwitch)
     MORDOR_TEST_ASSERT_EQUAL(sequence, 0);
 
     // in poolA
-    tid_t tidA = gettid();
+    std::thread::id tidA = std::this_thread::get_id();
     MORDOR_TEST_ASSERT_EQUAL(Scheduler::getThis(), &poolA);
     Buffer buffer;
     MORDOR_TEST_ASSERT_EXCEPTION(stream.write(buffer, 65536), WriteException);
     MORDOR_TEST_ASSERT_EQUAL(sequence, 1);
     // now in poolB
-    tid_t tidB = gettid();
+    std::thread::id tidB = std::this_thread::get_id();
     MORDOR_TEST_ASSERT_EQUAL(Scheduler::getThis(), &poolB);
     MORDOR_TEST_ASSERT_NOT_EQUAL(tidA, tidB);
     poolA.switchTo();

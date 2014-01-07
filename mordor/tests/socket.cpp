@@ -355,6 +355,7 @@ MORDOR_UNITTEST(Socket, exceedIOVMAX)
 }
 #endif
 
+#if 0
 static void receiveFiber(Socket::ptr listen, size_t &sent, int &sequence)
 {
     MORDOR_TEST_ASSERT_EQUAL(++sequence, 1);
@@ -502,6 +503,7 @@ MORDOR_UNITTEST(Socket, sendReceiveForceAsync)
     ioManager.dispatch();
     MORDOR_TEST_ASSERT_EQUAL(++sequence, 20);
 }
+#endif
 
 static void closed(bool &remoteClosed)
 {

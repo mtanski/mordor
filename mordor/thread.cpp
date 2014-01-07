@@ -18,19 +18,6 @@
 
 namespace Mordor {
 
-tid_t gettid()
-{
-#ifdef WINDOWS
-    return GetCurrentThreadId();
-#elif defined(LINUX)
-    return syscall(__NR_gettid);
-#elif defined(OSX)
-    return mach_thread_self();
-#else
-    return pthread_self();
-#endif
-}
-
 #ifdef WINDOWS
 //
 // Usage: SetThreadName (-1, "MainThread");
@@ -47,7 +34,7 @@ typedef struct tagTHREADNAME_INFO
 } THREADNAME_INFO;
 }
 
-static void SetThreadName( DWORD dwThreadID, LPCSTR szThreadName)
+static void SetThreadName(DWORD dwThreadID, LPCSTR szThreadName)
 {
    THREADNAME_INFO info;
    info.dwType = 0x1000;
@@ -65,29 +52,21 @@ static void SetThreadName( DWORD dwThreadID, LPCSTR szThreadName)
 }
 #endif
 
-#ifndef LINUX
-namespace {
-struct Context {
-    std::function<void ()> dg;
-    const char *name;
-};
-}
-#endif
-
 Thread::Bookmark::Bookmark()
     : m_scheduler(Scheduler::getThis())
-    , m_tid(gettid())
+    , m_tid(std::this_thread::get_id())
 {}
 
 void
 Thread::Bookmark::switchTo()
 {
-    if (gettid() == m_tid)
+    if (std::this_thread::get_id() == m_tid)
         return;
+
     MORDOR_ASSERT(m_scheduler);
     m_scheduler->schedule(Fiber::getThis(), m_tid);
     Scheduler::yieldTo();
-    MORDOR_ASSERT(m_tid == gettid());
+    MORDOR_ASSERT(m_tid == std::this_thread::get_id());
 }
 
 // The object of this function is to start a new thread running dg, and store
@@ -103,7 +82,7 @@ Thread::Bookmark::switchTo()
 //   makes it much easier to correlate with a debugger or performance tool,
 //   instead of some random artificial thread id)
 //   Linux - there is no documented way to query a pthread for its tid, so we
-//           have to have the thread itself call gettid(), and report it back
+//           have to have the thread itself call std::this_thread::get_id(), and report it back
 //           to the constructor.  This means that a) the constructor will not
 //           return until the thread is actually running; and b) the thread
 //           neads a pointer back to the Thread object to store the tid
@@ -125,100 +104,33 @@ Thread::Bookmark::switchTo()
 //   started, so simply pass a pointer to this to the thread, which will
 //   set the tid in the object, copy the dg that is a member field onto the
 //   stack, signal the constructor that it's ready to go, and then call dg
-Thread::Thread(std::function<void ()> dg, const char *name)
+Thread::Thread(std::function<void ()> dg, const std::string& name)
+    : m_thread(&Thread::run, this, name, dg)
 {
-#ifdef LINUX
-    m_dg = dg;
-    void *arg = this;
-    m_name = name;
-#else
-    Context *pContext = new Context;
-    pContext->dg.swap(dg);
-    pContext->name = name;
-    void *arg = pContext;
-#endif
-#ifdef WINDOWS
-    m_hThread = (HANDLE)_beginthreadex(NULL, 0, &Thread::run, arg, 0,
-        (unsigned *)&m_tid);
-    if (!m_hThread) {
-        delete pContext;
-        MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("CreateThread");
-    }
-    if (name)
-        SetThreadName(m_tid, name);
-#else
-    int rc = pthread_create(&m_thread, NULL, &Thread::run, arg);
-    if (rc) {
-#ifndef LINUX
-        delete pContext;
-#endif
-        MORDOR_THROW_EXCEPTION_FROM_ERROR_API(rc, "pthread_create");
-    }
-#ifdef OSX
-    m_tid = pthread_mach_thread_np(m_thread);
-#elif defined(LINUX)
-    m_semaphore.wait();
-#else
-    m_tid = m_thread;
-#endif
-#endif
+
 }
 
 Thread::~Thread()
 {
-#ifdef WINDOWS
-    if (m_hThread)
-        CloseHandle(m_hThread);
-#else
-    if (m_thread)
-        pthread_detach(m_thread);
-#endif
+    if (m_thread.joinable())
+        m_thread.detach();
 }
 
-void
-Thread::join()
+void Thread::run(const std::string& name, std::function<void ()> dg)
 {
-#ifdef WINDOWS
-    if (WaitForSingleObject(m_hThread, INFINITE) == WAIT_FAILED)
-        MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("WaitForSingleObject");
-    CloseHandle(m_hThread);
-    m_hThread = NULL;
-#else
-    int rc = pthread_join(m_thread, NULL);
-    if (rc)
-        MORDOR_THROW_EXCEPTION_FROM_ERROR_API(rc, "pthread_join");
-    m_thread = 0;
+    if (name.size()) {
+#if defined WINDOWS
+        auto handle = m_thread.native_handle();
+        DWORD tid = GetThreadId(handle);
+        SetThreadName(tid, pContext->name.c_str());
+#elif defined LINUX
+        pthread_setname_np(m_thread.native_handle(), name.c_str());
+#elif defined __MAC_10_6
+        pthread_setname_np(name.c_str());
 #endif
-}
+    }
 
-#ifdef WINDOWS
-unsigned WINAPI
-#else
-void *
-#endif
-Thread::run(void *arg)
-{
-   std::function<void ()> dg;
-#ifdef LINUX
-   Thread *self = (Thread *)arg;
-    self->m_tid = gettid();
-    // Dg might disappear after notifying the caller that the thread is started
-    // so copy it on to the stack
-    dg.swap(self->m_dg);
-    if (self->m_name)
-        prctl(PR_SET_NAME, self->m_name, 0, 0, 0);
-    self->m_semaphore.notify();
-#else
-    Context *pContext = (Context *)arg;
-    dg.swap(pContext->dg);
-#ifdef __MAC_10_6
-    if (pContext->name)
-        pthread_setname_np(pContext->name);
-#endif
-    delete pContext;
-#endif
-    dg();
-    return 0;
+    return dg();
 }
 
 }

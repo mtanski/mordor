@@ -9,7 +9,7 @@
 #include "predef.h"
 #include <boost/date_time/posix_time/ptime.hpp>
 
-// For tid_t
+// For std::thread::id
 #include "thread.h"
 #include "version.h"
 
@@ -131,7 +131,7 @@ public:
     /// @param line The source line where the message was generated
     virtual void log(const std::string &logger,
         boost::posix_time::ptime now, unsigned long long elapsed,
-        tid_t thread, void *fiber,
+        std::thread::id thread, void *fiber,
         Log::Level level, const std::string &str,
         const char *file, int line) = 0;
 };
@@ -142,7 +142,7 @@ class StdoutLogSink : public LogSink
 public:
     void log(const std::string &logger,
         boost::posix_time::ptime now, unsigned long long elapsed,
-        tid_t thread, void *fiber,
+        std::thread::id thread, void *fiber,
         Log::Level level, const std::string &str,
         const char *file, int line);
 };
@@ -156,7 +156,7 @@ class DebugLogSink : public LogSink
 public:
     void log(const std::string &logger,
         boost::posix_time::ptime now, unsigned long long elapsed,
-        tid_t thread, void *fiber,
+        std::thread::id thread, void *fiber,
         Log::Level level, const std::string &str,
         const char *file, int line);
 };
@@ -170,7 +170,7 @@ public:
 
     void log(const std::string &logger,
         boost::posix_time::ptime now, unsigned long long elapsed,
-        tid_t thread, void *fiber,
+        std::thread::id thread, void *fiber,
         Log::Level level, const std::string &str,
         const char *file, int line);
 
@@ -199,7 +199,7 @@ public:
 
     void log(const std::string &logger,
         boost::posix_time::ptime now, unsigned long long elapsed,
-        tid_t thread, void *fiber,
+        std::thread::id thread, void *fiber,
         Log::Level level, const std::string &str,
         const char *file, int line);
 

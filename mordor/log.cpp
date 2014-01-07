@@ -207,7 +207,7 @@ static void enableFileLogging()
 void
 StdoutLogSink::log(const std::string &logger,
         boost::posix_time::ptime now, unsigned long long elapsed,
-        tid_t thread, void *fiber,
+        std::thread::id thread, void *fiber,
         Log::Level level, const std::string &str,
         const char *file, int line)
 {
@@ -223,7 +223,7 @@ StdoutLogSink::log(const std::string &logger,
 void
 DebugLogSink::log(const std::string &logger,
         boost::posix_time::ptime now, unsigned long long elapsed,
-        tid_t thread, void *fiber,
+        std::thread::id thread, void *fiber,
         Log::Level level, const std::string &str,
         const char *file, int line)
 {
@@ -241,7 +241,7 @@ SyslogLogSink::SyslogLogSink(int facility)
 void
 SyslogLogSink::log(const std::string &logger,
         boost::posix_time::ptime now, unsigned long long elapsed,
-        tid_t thread, void *fiber,
+        std::thread::id thread, void *fiber,
         Log::Level level, const std::string &string,
         const char *file, int line)
 {
@@ -309,7 +309,7 @@ FileLogSink::FileLogSink(const std::string &file)
 void
 FileLogSink::log(const std::string &logger,
         boost::posix_time::ptime now, unsigned long long elapsed,
-        tid_t thread, void *fiber,
+        std::thread::id thread, void *fiber,
         Log::Level level, const std::string &str,
         const char *file, int line)
 {
@@ -334,7 +334,7 @@ Logger::ptr Log::root()
 Logger::ptr Log::lookup(const std::string &name)
 {
     Logger::ptr log = root();
-    if(name.empty() || name == ":"){
+    if (name.empty() || name == ":"){
         return log;
     }
     std::set<Logger::ptr, LoggerLess>::iterator it;
@@ -467,7 +467,7 @@ Logger::log(Log::Level level, const std::string &str,
     unsigned long long elapsed = TimerManager::now() - g_start;
     boost::posix_time::ptime now = boost::posix_time::microsec_clock::universal_time();
     Logger::ptr _this = shared_from_this();
-    tid_t thread = gettid();
+    std::thread::id thread = std::this_thread::get_id();
     void *fiber = Fiber::getThis().get();
     bool somethingLogged = false;
     while (_this) {

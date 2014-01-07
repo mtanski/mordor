@@ -268,7 +268,7 @@ IOManager::registerEvent(AsyncEvent *e)
 {
     MORDOR_ASSERT(e);
     e->m_scheduler = Scheduler::getThis();
-    e->m_thread = gettid();
+    e->m_thread = std::this_thread::get_id();
     e->m_fiber = Fiber::getThis();
     MORDOR_ASSERT(e->m_scheduler);
     MORDOR_ASSERT(e->m_fiber);
@@ -359,7 +359,7 @@ IOManager::cancelEvent(HANDLE hFile, AsyncEvent *e)
             if (e->m_thread == emptytid()) {
                 // Nothing to cancel
                 return;
-            } else if (e->m_thread == gettid()) {
+            } else if (e->m_thread == std::this_thread::get_id()) {
                 if (!CancelIo(hFile))
                     MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("CancelIo");
             } else {

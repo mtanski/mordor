@@ -3,32 +3,17 @@
 // Copyright (c) 2010 - Mozy, Inc.
 
 #include <iosfwd>
-
+#include <thread>
 
 #include "version.h"
-#ifndef WINDOWS
-#include "semaphore.h"
-#endif
 
 namespace Mordor {
-
-#ifdef WINDOWS
-typedef DWORD tid_t;
-#elif defined(LINUX)
-typedef pid_t tid_t;
-#elif defined(OSX)
-typedef mach_port_t tid_t;
-#else
-typedef pthread_t tid_t;
-#endif
-
-inline tid_t emptytid() { return (tid_t)-1; }
-tid_t gettid();
 
 class Scheduler;
 
 class Thread
 {
+
 public:
     /// thread bookmark
     ///
@@ -50,46 +35,27 @@ public:
         /// switch to bookmark's tid
         void switchTo();
         /// bookmark's tid
-        tid_t tid() const { return m_tid; }
+        std::thread::id tid() const { return m_tid; }
 
     private:
         Scheduler *m_scheduler;
-        tid_t m_tid;
+        std::thread::id m_tid;
     };
 
 public:
-    Thread(std::function<void ()> dg, const char *name = NULL);
+    Thread(std::function<void ()> dg, const std::string& name = "");
     ~Thread();
 
-    tid_t tid() const { return m_tid; }
+    std::thread::id tid() const { return m_thread.get_id(); }
 
-    void join();
+    void join() { m_thread.join(); }
 
 private:
     Thread(const Thread& rhs) = delete;
+    void run(const std::string& name, std::function<void ()> dg);
 
 private:
-    static
-#ifdef WINDOWS
-    unsigned WINAPI
-#else
-    void *
-#endif
-    run(void *arg);
-
-private:
-    tid_t m_tid;
-#ifdef WINDOWS
-    HANDLE m_hThread;
-#else
-    pthread_t m_thread;
-#endif
-
-#ifdef LINUX
-    std::function<void ()> m_dg;
-    Semaphore m_semaphore;
-    const char *m_name;
-#endif
+    std::thread m_thread;
 };
 
 }
