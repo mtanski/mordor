@@ -20,7 +20,7 @@ MORDOR_UNITTEST(Thread, correctTID)
     Thread t(std::bind(&threadFunc, std::ref(tid)), "my thread");
     t.join();
     MORDOR_TEST_ASSERT_NOT_EQUAL(tid, std::thread::id());
-    MORDOR_TEST_ASSERT_EQUAL(tid, t.tid());
+    MORDOR_TEST_ASSERT_NOT_EQUAL(tid, t.tid());
 }
 
 MORDOR_UNITTEST(Thread, bookMark)
