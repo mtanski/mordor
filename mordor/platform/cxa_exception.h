@@ -6,7 +6,7 @@
 /// see http://www.codesourcery.com/public/cxx-abi/abi-eh.html
 
 #if defined(__GNUC__) || defined(__clang__)
-#   define CXXABIV1_EXCEPTION
+#define CXXABIV1_EXCEPTION
 // MSVC compiler has /GT option for supporting fiber-safe thread-local storage
 #endif
 
@@ -28,9 +28,9 @@ namespace __cxxabiv1 {
 #endif
     };
 }
-#endif
 
 namespace Mordor {
+namespace internal {
 
 class ExceptionStack
 {
@@ -40,11 +40,11 @@ class ExceptionStack
     /// exception stack with the one in toFiber.
     void swap(ExceptionStack &);
 private:
-#ifdef CXXABIV1_EXCEPTION
     __cxxabiv1::__cxa_eh_globals m_eh;
-#endif
 };
 
 }
+}
 
-#endif
+#endif // CXXABIV1_EXCEPTION
+#endif // __CXA_EXCEPTION_H__

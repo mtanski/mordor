@@ -8,7 +8,6 @@ nobase_include_HEADERS=			\
 	mordor/assert.h			\
 	mordor/config.h			\
 	mordor/coroutine.h		\
-	mordor/cxa_exception.h	\
 	mordor/daemon.h			\
 	mordor/date_time.h		\
 	mordor/endian.h			\
@@ -111,14 +110,15 @@ nobase_include_HEADERS=			\
 	mordor/xml/dom_parser.h		\
 	mordor/xml/parser.h		\
 	mordor/yaml.h			\
-	mordor/zip.h
+	mordor/zip.h			\
+	mordor/platform/cxa_exception.h \
+	mordor/platform/unix_fiber.h
 
 lib_LTLIBRARIES=mordor/libmordor.la mordor/test/libmordortest.la
 
 mordor_libmordor_la_SOURCES=			\
 	mordor/assert.cpp			\
 	mordor/config.cpp			\
-	mordor/cxa_exception.cpp	\
 	mordor/daemon.cpp			\
 	mordor/date_time.cpp			\
 	mordor/exception.cpp			\
@@ -189,7 +189,9 @@ mordor_libmordor_la_SOURCES=			\
 	mordor/workerpool.cpp			\
 	mordor/xml/dom_parser.cpp		\
 	mordor/xml/xml_parser.cpp		\
-	mordor/zip.cpp
+	mordor/zip.cpp				\
+	mordor/platform/cxa_exception.cpp	\
+	mordor/platform/unix_fiber.cpp		
 
 mordor_libmordor_la_CPPFLAGS=-I$(top_srcdir) -include mordor/pch.h $(AM_CPPFLAGS)
 mordor_libmordor_la_LDFLAGS=			\
@@ -445,6 +447,7 @@ mordor_examples_iombench_LDADD=mordor/libmordor.la	\
 
 mordor_examples_simplehttpfileserver_SOURCES=mordor/examples/simplehttpfileserver.cpp
 mordor_examples_simplehttpfileserver_LDADD=mordor/libmordor.la       \
+	-ljemalloc				\
         $(BOOST_SYSTEM_LIB)                     \
         $(BOOST_THREAD_LIB)                     \
         $(CORESERVICES_FRAMEWORK_LIBS)          \

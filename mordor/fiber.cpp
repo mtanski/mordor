@@ -92,47 +92,27 @@ static std::vector<bool> & g_flsIndices()
 }
 
 Fiber::Fiber()
+    : m_sp(stackid()),
+      m_state(EXEC)
 {
     g_statMaxFibers.update(++g_cntFibers);
     MORDOR_ASSERT(!t_fiber);
-    m_state = EXEC;
-    m_stack = NULL;
-    m_stacksize = 0;
-    m_sp = NULL;
     setThis(this);
-#ifdef NATIVE_WINDOWS_FIBERS
-    if (!pIsThreadAFiber())
-        m_stack = ConvertThreadToFiber(NULL);
-    m_sp = GetCurrentFiber();
-#elif defined(UCONTEXT_FIBERS)
-    m_sp = &m_ctx;
-#elif defined(SETJMP_FIBERS)
-    m_sp = &m_env;
-#endif
 }
 
 Fiber::Fiber(std::function<void ()> dg, size_t stacksize)
+    : internal::__Fiber(stacksize ? stacksize : g_defaultStackSize->val()),
+      m_dg(dg),
+      m_sp(stackid()),
+      m_state(INIT)
 {
     g_statMaxFibers.update(++g_cntFibers);
-    stacksize += g_pagesize - 1;
-    stacksize -= stacksize % g_pagesize;
-    m_dg = dg;
-    m_state = INIT;
-    m_stack = NULL;
-    m_stacksize = stacksize;
-    allocStack();
-#ifdef UCONTEXT_FIBERS
-    m_sp = &m_ctx;
-#elif defined(SETJMP_FIBERS)
-    m_sp = &m_env;
-#endif
-    initStack();
 }
 
 Fiber::~Fiber()
 {
     --g_cntFibers;
-    if (!m_stack || m_stack == m_sp) {
+    if (!stack_ptr() ) {
         // Thread entry fiber
         MORDOR_ASSERT(!m_dg);
         MORDOR_ASSERT(m_state == EXEC);
@@ -154,7 +134,6 @@ Fiber::~Fiber()
     } else {
         // Regular fiber
         MORDOR_ASSERT(m_state == TERM || m_state == INIT || m_state == EXCEPT);
-        freeStack();
     }
 }
 
@@ -162,10 +141,10 @@ void
 Fiber::reset(std::function<void ()> dg)
 {
     m_exception = boost::exception_ptr();
-    MORDOR_ASSERT(m_stack);
+    MORDOR_ASSERT(stack_ptr() != nullptr);
     MORDOR_ASSERT(m_state == TERM || m_state == INIT || m_state == EXCEPT);
     m_dg = dg;
-    initStack();
+    internal::__Fiber::reset();
     m_state = INIT;
 }
 
@@ -174,6 +153,7 @@ Fiber::getThis()
 {
     if (t_fiber)
         return t_fiber->shared_from_this();
+
     Fiber::ptr threadFiber(new Fiber());
     MORDOR_ASSERT(t_fiber == threadFiber.get());
     t_threadFiber = threadFiber;
@@ -330,9 +310,6 @@ Fiber::entryPoint()
     }
 
     exitPoint(cur, nextState);
-#ifndef NATIVE_WINDOWS_FIBERS
-    MORDOR_NOTREACHED();
-#endif
 }
 
 void
@@ -369,159 +346,6 @@ Fiber::exitPoint(Fiber::ptr &cur, State targetState)
         outer.reset();
         rawPtr->switchContext(rawPtr->m_outer.get());
     }
-}
-
-#ifdef NATIVE_WINDOWS_FIBERS
-static VOID CALLBACK native_fiber_entryPoint(PVOID lpParameter)
-{
-    void (*entryPoint)() = (void (*)())lpParameter;
-    while (true) {
-        entryPoint();
-    }
-}
-#endif
-
-void
-Fiber::allocStack()
-{
-    if (m_stacksize == 0)
-        m_stacksize = g_defaultStackSize->val();
-#ifndef NATIVE_WINDOWS_FIBERS
-    TimeStatistic<AverageMinMaxStatistic<unsigned int> > time(g_statAlloc);
-#endif
-#ifdef NATIVE_WINDOWS_FIBERS
-    // Fibers are allocated in initStack
-#elif defined(WINDOWS)
-    m_stack = VirtualAlloc(NULL, m_stacksize + g_pagesize, MEM_RESERVE, PAGE_NOACCESS);
-    if (!m_stack)
-        MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("VirtualAlloc");
-    VirtualAlloc(m_stack, g_pagesize, MEM_COMMIT, PAGE_READWRITE | PAGE_GUARD);
-    // TODO: don't commit until referenced
-    VirtualAlloc((char*)m_stack + g_pagesize, m_stacksize, MEM_COMMIT, PAGE_READWRITE);
-    m_sp = (char*)m_stack + m_stacksize + g_pagesize;
-#elif defined(POSIX)
-    m_stack = malloc(m_stacksize);
-    if (m_stack == NULL)
-        MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("malloc");
-#ifdef HAVE_VALGRIND_VALGRIND_H
-    m_valgrindStackId = VALGRIND_STACK_REGISTER(m_stack, (char *)m_stack + m_stacksize);
-#endif
-    m_sp = (char*)m_stack + m_stacksize;
-#endif
-}
-
-void
-Fiber::freeStack()
-{
-    TimeStatistic<AverageMinMaxStatistic<unsigned int> > time(g_statFree);
-#ifdef NATIVE_WINDOWS_FIBERS
-    MORDOR_ASSERT(m_stack == &m_sp);
-    DeleteFiber(m_sp);
-#elif defined(WINDOWS)
-    VirtualFree(m_stack, 0, MEM_RELEASE);
-#elif defined(POSIX)
-#ifdef HAVE_VALGRIND_VALGRIND_H
-    VALGRIND_STACK_DEREGISTER(m_valgrindStackId);
-#endif
-    free(m_stack);
-#endif
-}
-
-void
-Fiber::switchContext(Fiber *to)
-{
-#ifdef NATIVE_WINDOWS_FIBERS
-    SwitchToFiber(to->m_sp);
-
-#elif defined(UCONTEXT_FIBERS)
-#  if defined(CXXABIV1_EXCEPTION)
-    this->m_eh.swap(to->m_eh);
-#  endif
-    if (swapcontext((ucontext_t*)(this->m_sp), (ucontext_t*)to->m_sp))
-        MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("swapcontext");
-
-#elif defined(SETJMP_FIBERS)
-    if (!setjmp(*(jmp_buf*)this->m_sp)) {
-#  if defined(CXXABIV1_EXCEPTION)
-        this->m_eh.swap(to->m_eh);
-#  endif
-        longjmp(*(jmp_buf*)to->m_sp, 1);
-    }
-#endif
-}
-
-void
-Fiber::initStack()
-{
-#ifdef NATIVE_WINDOWS_FIBERS
-    if (m_stack)
-        return;
-    TimeStatistic<AverageMinMaxStatistic<unsigned int> > stat(g_statAlloc);
-    m_sp = m_stack = pCreateFiberEx(0, m_stacksize, 0, &native_fiber_entryPoint, &Fiber::entryPoint);
-    stat.finish();
-    if (!m_stack)
-        MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("CreateFiber");
-    // This is so we can distinguish from a created fiber vs. the "root" fiber
-    m_stack = &m_sp;
-#elif defined(UCONTEXT_FIBERS)
-    if (getcontext(&m_ctx))
-        MORDOR_THROW_EXCEPTION_FROM_LAST_ERROR_API("getcontext");
-    m_ctx.uc_link = NULL;
-    m_ctx.uc_stack.ss_sp = m_stack;
-    m_ctx.uc_stack.ss_size = m_stacksize;
-#ifdef OSX
-    m_ctx.uc_mcsize = sizeof(m_mctx);
-    m_ctx.uc_mcontext = (mcontext_t)m_mctx;
-#endif
-    makecontext(&m_ctx, &Fiber::entryPoint, 0);
-#elif defined(SETJMP_FIBERS)
-    if (setjmp(m_env)) {
-        Fiber::entryPoint();
-        MORDOR_NOTREACHED();
-    }
-#ifdef OSX
-#ifdef X86
-    m_env[9] = (int)m_stack + m_stacksize; // ESP
-#if defined(__GNUC__) && defined(__llvm__)
-    // see following `rbp' note for the reason of setting ebp to esp
-    m_env[8] = m_env[9]; // EBP
-#else
-    m_env[8] = 0xffffffff; // EBP
-#endif
-#elif defined(X86_64)
-    long long *env = (long long *)m_env;
-    env[2] = (long long)m_stack + m_stacksize; // RSP
-#if defined(__GNUC__) && defined(__llvm__)
-    // NOTE: `rbp' register should be cleaned because after setjmp() returns 0,
-    // this initStack() call finished, the call frame will be poped, so when
-    // setjmp() returns the second time (by longjmp), the original `rbp'
-    // register can't be used anymore as its address is invalid now.  However,
-    // with -O0 gcc+llvm compiling, there are still additional assembly
-    // instructions that refers rbp to perform writting operation, this will
-    // cause segmentation fault if `rbp' is cleared to 0 here. To workaround
-    // the issue, set `rbp' to Fiber's own stack pointer, writting junk data
-    // to Fiber's own empty stack doesn't hurt anything.
-    // This issue only happens when compiling with gcc + llvm + `-O0'
-    env[1] = env[2]; // RBP
-#else
-    env[1] = 0x0LL; // RBP
-#endif
-#elif defined(PPC)
-    m_env[0] = (int)m_stack;
-#else
-#error Architecture not supported
-#endif
-#elif defined (LINUX)
-#ifdef ARM
-    int *env = (int *)m_env;
-    env[8] = (int)m_stack + m_stacksize;
-#else
-#error Platform not supported
-#endif
-#else
-#error Platform not supported
-#endif
-#endif
 }
 
 #ifdef WINDOWS
@@ -621,6 +445,7 @@ Fiber::backtrace()
     std::vector<void *> result;
     if (m_state != HOLD)
         return result;
+
 #ifdef WINDOWS
     STACKFRAME64 frame;
     DWORD type;

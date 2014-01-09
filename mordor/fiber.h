@@ -2,58 +2,21 @@
 #define __MORDOR_FIBER_H__
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include <list>
-
-#include <boost/thread/mutex.hpp>
+#include <memory>
 
 #include "exception.h"
 #include "version.h"
 
-// Fiber impl selection
-
-#ifdef X86_64
-#   ifdef WINDOWS
-#       define NATIVE_WINDOWS_FIBERS
-#   elif defined(OSX)
-#       define SETJMP_FIBERS
-#   elif defined(POSIX)
-#       define UCONTEXT_FIBERS
-#   endif
-#elif defined(X86)
-#   ifdef WINDOWS
-#       define NATIVE_WINDOWS_FIBERS
-#   elif defined(OSX)
-#       define SETJMP_FIBERS
-#   elif defined(POSIX)
-#       define UCONTEXT_FIBERS
-#   endif
-#elif defined(PPC)
-#   define UCONTEXT_FIBERS
-#elif defined(ARM)
-#   define UCONTEXT_FIBERS
-#elif defined(MIPS)
-#   define UCONTEXT_FIBERS
+#ifdef WINDOWS
+#include "platform/windows_fiber.h"
 #else
-#   error Platform not supported
+#include "platform/unix_fiber.h"
 #endif
-
-#ifdef UCONTEXT_FIBERS
-#   ifdef __APPLE__
-#       include <sys/ucontext.h>
-#   else
-#       include <ucontext.h>
-#   endif
-#endif
-#ifdef SETJMP_FIBERS
-#include <setjmp.h>
-#endif
-
-#include "cxa_exception.h"
 
 namespace Mordor {
 
 /// Cooperative Thread
-class Fiber : public std::enable_shared_from_this<Fiber>
+class Fiber final : public std::enable_shared_from_this<Fiber>, private internal::__Fiber
 {
     template <class T> friend class FiberLocalStorageBase;
 public:
@@ -156,37 +119,18 @@ public:
 
 private:
     Fiber::ptr yieldTo(bool yieldToCallerOnTerminate, State targetState);
+
     static void setThis(Fiber *f);
-    static void entryPoint();
+
+    virtual void entryPoint();
     static void exitPoint(Fiber::ptr &cur, State targetState);
-
-    void allocStack();
-    void freeStack();
-    void initStack();
-
-    void switchContext(Fiber *toFiber);
 
 private:
     Fiber(const Fiber& rhs) = delete;
 
 private:
     std::function<void ()> m_dg;
-    void *m_stack, *m_sp;
-    size_t m_stacksize;
-#ifdef UCONTEXT_FIBERS
-    ucontext_t m_ctx;
-#ifdef OSX
-    char m_mctx[sizeof(*(mcontext_t)0)];
-#endif
-#elif defined(SETJMP_FIBERS)
-    jmp_buf m_env;
-#endif
-#if (defined(LINUX) || defined(OSX))
-    int m_valgrindStackId;
-#endif
-#ifdef CXXABIV1_EXCEPTION
-    ExceptionStack m_eh;
-#endif
+    void *m_sp;
     State m_state, m_yielderNextState;
     ptr m_outer, m_yielder;
     weak_ptr m_terminateOuter;
