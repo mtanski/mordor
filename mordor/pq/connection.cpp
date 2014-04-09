@@ -93,6 +93,45 @@ Connection::connect()
     MORDOR_LOG_INFO(g_log) << m_conn.get() << " PQconnectdb(\"" << m_conninfo << "\")";
 }
 
+#ifndef WINDOWS
+std::vector<std::string>
+Connection::listen(const std::string& channel)
+{
+    MORDOR_ASSERT(m_scheduler != nullptr);
+    if (!m_conn) {
+        connect();
+    }
+
+    // Make sure to send the LISTEN command only once per channel.
+    if (m_listened_channels.find(channel) == m_listened_channels.end()) {
+        std::string listen_request = std::string("LISTEN ") + channel;
+        execute(listen_request);
+        m_listened_channels.insert(channel);
+    }
+
+    m_scheduler->registerEvent(PQsocket(m_conn.get()), SchedulerType::READ);
+    Scheduler::yieldTo();
+
+    if (!PQconsumeInput(m_conn.get())) {
+        throwException(m_conn.get());
+    }
+
+    std::vector<std::string> results;
+    PGnotify* notify = nullptr;
+    while ((notify = PQnotifies(m_conn.get())) != nullptr) {
+        MORDOR_LOG_DEBUG(g_log) << m_conn.get() << " PQnotifies(): "
+                                << "PGnotify { relname: \"" << notify->relname
+                                << "\", be_pid: " << notify->be_pid
+                                << ", extra: \"" << notify->extra << "\"}";
+        MORDOR_ASSERT(m_listened_channels.find(notify->relname) !=
+                      m_listened_channels.end());
+        results.push_back(std::string(notify->extra));
+        PQfreemem(notify);
+    }
+    return results;
+}
+#endif  // not WINDOWS
+
 void
 Connection::reset()
 {

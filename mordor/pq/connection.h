@@ -3,6 +3,8 @@
 // Copyright (c) 2010 Mozy, Inc.
 
 #include <memory>
+#include <string>
+#include <vector>
 
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 
@@ -88,6 +90,12 @@ public:
 
 #undef PQ_EXCEPTION_WRAPPER_EXECUTE
 
+#ifndef WINDOWS
+    /// Listen for notifications (NOTIFY or pg_notify()) from Postgres.
+    /// @param channel_name the name of the channel on which to listen
+    std::vector<std::string> listen(const std::string& channel_name);
+#endif  // not WINDOWS
+
     /// Bulk copy data to the server
     struct CopyParams
     {
@@ -166,6 +174,9 @@ private:
     SchedulerType *m_scheduler;
     std::shared_ptr<PGconn> m_conn;
     bool m_exceptioned;
+#ifndef WINDOWS
+    std::set<std::string> m_listened_channels;
+#endif  // not WINDOWS
 };
 
 // Internal functions
