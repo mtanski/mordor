@@ -90,10 +90,40 @@ public:
 
 #undef PQ_EXCEPTION_WRAPPER_EXECUTE
 
+    /// Send a notification to anyone listening on channel_name. Optionally,
+    /// extra data may be sent with the payload argument.
+    void notify(const std::string& channel_name,
+                const std::string& payload = "");
+
 #ifndef WINDOWS
+    /// Register to listen for notifications on the given channel.
+    /// This needs to be called before 'listen()' can produce any results.
+    void registerForNotification(const std::string& channel_name);
+
+    struct Notification
+    {
+        /// The name of the channel from which this notification came.
+        std::string channel_name;
+        /// The payload, if any, that was sent as extra data with the
+        /// notification.
+        std::string payload;
+        /// The PID of the process sending the notification.
+        int sender_pid;
+    };
+
     /// Listen for notifications (NOTIFY or pg_notify()) from Postgres.
-    /// @param channel_name the name of the channel on which to listen
-    std::vector<std::string> listen(const std::string& channel_name);
+    /// NOTE: Even if the notification comes from the listening process, listen
+    ///     will nonetheless return that notification. If this is a problem,
+    ///     check the sender_pid against the PID of the current process.
+    ///
+    /// If no channels have been registered for listening on, then a
+    /// ListenWithoutRegisteredChannels exception is thrown.
+    ///
+    /// @return a Notification struct with the details of the notification.
+    ///     If this fiber is being stopped, the Notification will contain an
+    ///     empty channel_name and a zero sender_pid.
+    Notification listen() const;
+
 #endif  // not WINDOWS
 
     /// Bulk copy data to the server

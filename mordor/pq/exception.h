@@ -140,6 +140,8 @@ DEFINE_MORDOR_PQ_EXCEPTION(InternalError, Exception);
 DEFINE_MORDOR_PQ_EXCEPTION(DataCorruptedException, InternalError);
 DEFINE_MORDOR_PQ_EXCEPTION(IndexCorruptedException, InternalError);
 
+DEFINE_MORDOR_PQ_EXCEPTION(ListenWithoutRegisteredChannels, Exception);
+
 void throwException(PGconn *conn);
 void throwException(PGresult *result);
 
