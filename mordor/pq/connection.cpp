@@ -94,6 +94,87 @@ Connection::connect()
 }
 
 void
+Connection::notify(const std::string& channel_name,
+                   const std::string& payload)
+{
+    if (payload.empty()) {
+        execute("NOTIFY " + channel_name);
+    } else {
+        execute("NOTIFY " + channel_name + ", '" + payload + "'");
+    }
+}
+
+#ifndef WINDOWS
+void
+Connection::registerForNotification(const std::string& channel_name)
+{
+    if (!m_conn) {
+        connect();
+    }
+
+    // Make sure to send the LISTEN command only once per channel.
+    if (m_listened_channels.find(channel_name) == m_listened_channels.end()) {
+        execute("LISTEN " + channel_name);
+        m_listened_channels.insert(channel_name);
+    }
+}
+
+Connection::Notification
+Connection::listen() const
+{
+    if (m_listened_channels.empty()) {
+        MORDOR_THROW_EXCEPTION(
+            ListenWithoutRegisteredChannels(
+                "Attempting to listen on notifications without having "
+                "registered any channels on which to listen. Call "
+                "'Connection::registerForNotification()' first."));;
+    }
+
+    MORDOR_ASSERT(m_scheduler != nullptr);
+
+    while (!m_scheduler->stopping()) {
+        // First check if there are any notifications already queued up.
+        PGnotify* notify = PQnotifies(m_conn.get());
+        if (notify != nullptr) {
+            MORDOR_LOG_DEBUG(g_log) << m_conn.get() << " (queued) PQnotifies(): "
+                                    << "PGnotify { relname: \"" << notify->relname
+                                    << "\", be_pid: " << notify->be_pid
+                                    << ", extra: \"" << notify->extra << "\"}";
+            MORDOR_ASSERT(m_listened_channels.find(notify->relname) !=
+                          m_listened_channels.end());
+            Notification notification {
+                notify->relname, notify->extra, notify->be_pid };
+            PQfreemem(notify);
+            return notification;
+        }
+
+        m_scheduler->registerEvent(PQsocket(m_conn.get()), SchedulerType::READ);
+        Scheduler::yieldTo();
+
+        if (!PQconsumeInput(m_conn.get())) {
+            throwException(m_conn.get());
+        }
+
+        if ((notify = PQnotifies(m_conn.get())) != nullptr) {
+            MORDOR_LOG_DEBUG(g_log) << m_conn.get() << " (new) PQnotifies(): "
+                                    << "PGnotify { relname: \"" << notify->relname
+                                    << "\", be_pid: " << notify->be_pid
+                                    << ", extra: \"" << notify->extra << "\"}";
+            MORDOR_ASSERT(m_listened_channels.find(notify->relname) !=
+                          m_listened_channels.end());
+            Notification notification {
+                notify->relname, notify->extra, notify->be_pid };
+            PQfreemem(notify);
+            return notification;
+        }
+    }
+    // This should only occur when this fiber is being stopped.
+    Notification empty;
+    return empty;
+}
+#endif  // not WINDOWS
+
+void
 Connection::reset()
 {
     m_exceptioned = false;

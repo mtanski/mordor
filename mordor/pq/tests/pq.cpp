@@ -7,6 +7,7 @@
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 
 #include "mordor/config.h"
+#include "mordor/fibersynchronization.h"
 #include "mordor/iomanager.h"
 #include "mordor/main.h"
 #include "mordor/pq/connection.h"
@@ -30,6 +31,22 @@ static ConfigVar<std::string>::ptr g_xmlDirectory = Config::lookup<std::string>(
 std::string g_goodConnString;
 std::string g_badConnString;
 
+
+// PREREQUISITES:
+//  - A running Postgres instance.
+//  - A user has been created in said Postgres instance.
+//    (Defaults to the user's username, if not specified in the connection
+//    string)
+//  - A database has been created in said Postgres instance.
+//    (Defaults to the aforementioned database user, if not specified in the
+//    connection string).
+//
+// HOW TO EXECUTE:
+// The test gets invoked with a connection string as argument, e.g.,
+//     mordor/pq/tests/run_tests "host=localhost port=1234 user=mordortest password=password"
+// If the database has a different name than the user, then that name should be
+// provided in the connection string with dbname=<name>.
+//
 MORDOR_MAIN(int argc, char **argv)
 {
     if (argc < 2) {
@@ -331,3 +348,128 @@ static void copyOut(IOManager *ioManager = NULL)
 
 MORDOR_PQ_UNITTEST(copyOut)
 { copyOut(ioManager); }
+
+#ifndef WINDOWS
+MORDOR_PQ_UNITTEST(listenWithoutRegisteredChannels)
+{
+    Connection listen_conn(g_goodConnString, ioManager);
+    MORDOR_TEST_ASSERT_EXCEPTION(
+        listen_conn.listen(),
+        ListenWithoutRegisteredChannels);
+}
+
+static void listen_func(const std::string& channel1,
+                        const std::string& channel2,
+                        FiberSemaphore* checkpoint,
+                        const std::string& connection_string,
+                        IOManager* ioManager)
+{
+    Connection listen_conn(connection_string, ioManager);
+    listen_conn.registerForNotification(channel1);
+    listen_conn.registerForNotification(channel2);
+
+    checkpoint->notify();
+
+    Connection::Notification result;
+    result = listen_conn.listen();
+    MORDOR_TEST_ASSERT_EQUAL(result.channel_name, channel1);
+    MORDOR_TEST_ASSERT_EQUAL(result.payload, "First notification with arg");
+    result = listen_conn.listen();
+    MORDOR_TEST_ASSERT_EQUAL(result.channel_name, channel2);
+    MORDOR_TEST_ASSERT_EQUAL(result.payload, "");
+    result = listen_conn.listen();
+    MORDOR_TEST_ASSERT_EQUAL(result.channel_name, channel1);
+    MORDOR_TEST_ASSERT_EQUAL(result.payload, "");
+    result = listen_conn.listen();
+    MORDOR_TEST_ASSERT_EQUAL(result.channel_name, channel2);
+    MORDOR_TEST_ASSERT_EQUAL(result.payload, "Second notification with arg");
+
+    checkpoint->notify();
+}
+
+MORDOR_UNITTEST(PQ, notifyAsync)
+{
+    const std::string channel1("conn_notify_test_channel_1");
+    const std::string channel2("conn_notify_test_channel_2");
+    IOManager ioManager;
+    FiberSemaphore checkpoint;
+
+    ioManager.schedule(
+        std::bind(listen_func, channel1, channel2, &checkpoint,
+                  g_goodConnString, &ioManager));
+    // Allow the listen_func thread to spin up.
+    checkpoint.wait();
+
+    Connection notify_conn(g_goodConnString, &ioManager);
+    notify_conn.notify(channel1, "First notification with arg");
+    notify_conn.notify(channel2);
+    notify_conn.notify("other_channel", "NOTIFY on other_channel");
+    notify_conn.notify(channel1);
+    notify_conn.notify("other_channel2", "NOTIFY on other_channel2");
+    notify_conn.notify(channel2, "Second notification with arg");
+
+    // Make sure the listen_func thread is able to complete.
+    checkpoint.wait();
+}
+
+MORDOR_UNITTEST(PQ, notifyWithExecuteNotifyAsync)
+{
+    const std::string channel1("notify_test_channel_1");
+    const std::string channel2("notify_test_channel_2");
+    IOManager ioManager;
+    FiberSemaphore checkpoint;
+
+    ioManager.schedule(
+        std::bind(listen_func, channel1, channel2, &checkpoint,
+                  g_goodConnString, &ioManager));
+
+    // Allow the listen_func thread to spin up.
+    checkpoint.wait();
+
+    Connection notify_conn(g_goodConnString, &ioManager);
+    notify_conn.execute("NOTIFY " + channel1 +
+                        ", 'First notification with arg'");
+    notify_conn.execute(
+        "NOTIFY other_notify_channel, 'NOTIFY on other_notify_channel'");
+    notify_conn.execute("NOTIFY " + channel2);
+    notify_conn.execute("NOTIFY " + channel1);
+    notify_conn.execute(
+        "NOTIFY other_notify_channel2, 'NOTIFY on other_notify_channel2'");
+    notify_conn.execute("NOTIFY " + channel2 +
+                        ", 'Second notification with arg'");
+
+    // Make sure the listen_func thread is able to complete.
+    checkpoint.wait();
+}
+
+MORDOR_UNITTEST(PQ, notifyWithExecutePGNotifyAsync)
+{
+    const std::string channel1("pg_notify_test_channel_1");
+    const std::string channel2("pg_notify_test_channel_2");
+    IOManager ioManager;
+    FiberSemaphore checkpoint;
+
+    ioManager.schedule(
+        std::bind(listen_func, channel1, channel2, &checkpoint,
+                  g_goodConnString, &ioManager));
+
+    // Allow the listen_func thread to spin up.
+    checkpoint.wait();
+
+    Connection notify_conn(g_goodConnString, &ioManager);
+    notify_conn.execute("SELECT pg_notify('" + channel1 +
+                        "', 'First notification with arg')");
+    notify_conn.execute("SELECT pg_notify('other_pg_notify_channel2', "
+                        "'pg_notify on other_pg_notify_channel2')");
+    notify_conn.execute("SELECT pg_notify('" + channel2 + "', '')");
+    notify_conn.execute("SELECT pg_notify('" + channel1 + "', '')");
+    notify_conn.execute("SELECT pg_notify('other_pg_notify_channel2', "
+                        "'pg_notify on other_pg_notify_channel2')");
+    notify_conn.execute("SELECT pg_notify('" + channel2 +
+                        "', 'Second notification with arg')");
+
+    // Make sure the listen_func thread is able to complete.
+    checkpoint.wait();
+}
+
+#endif  // not WINDOWS
