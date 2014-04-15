@@ -3,6 +3,7 @@
 // Copyright (c) 2010 Mozy, Inc.
 
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
