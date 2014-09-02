@@ -6,11 +6,11 @@
 #include <boost/scoped_array.hpp>
 #include <boost/shared_array.hpp>
 
-#include "mordor/exception.h"
-#include "mordor/fiber.h"
-#include "mordor/iomanager.h"
-#include "mordor/socket.h"
-#include "mordor/test/test.h"
+#include "../exception.h"
+#include "../fiber.h"
+#include "../iomanager.h"
+#include "../socket.h"
+#include "../test/test.h"
 
 using namespace Mordor;
 using namespace Mordor::Test;

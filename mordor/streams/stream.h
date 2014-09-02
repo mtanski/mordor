@@ -6,7 +6,7 @@
 
 #include <boost/signals2/signal.hpp>
 
-#include "mordor/predef.h"
+#include "../predef.h"
 
 namespace Mordor {
 

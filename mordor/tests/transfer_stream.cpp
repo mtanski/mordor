@@ -1,9 +1,9 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include "mordor/streams/memory.h"
-#include "mordor/streams/test.h"
-#include "mordor/streams/transfer.h"
-#include "mordor/test/test.h"
+#include "../streams/memory.h"
+#include "../streams/test.h"
+#include "../streams/transfer.h"
+#include "../test/test.h"
 
 using namespace Mordor;
 

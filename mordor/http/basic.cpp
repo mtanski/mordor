@@ -3,7 +3,7 @@
 #include "basic.h"
 
 #include "http.h"
-#include "mordor/string.h"
+#include "../string.h"
 
 namespace Mordor {
 namespace HTTP {

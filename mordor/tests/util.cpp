@@ -1,8 +1,8 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
 
-#include "mordor/util.h"
-#include "mordor/test/test.h"
+#include "../util.h"
+#include "../test/test.h"
 
 using namespace Mordor;
 using namespace Mordor::Test;

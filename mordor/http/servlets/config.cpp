@@ -1,14 +1,14 @@
 // Copyright (c) 2010 - Mozy, Inc.
 
-#include "mordor/http/servlets/config.h"
+#include "config.h"
 
-#include "mordor/config.h"
-#include "mordor/http/server.h"
-#include "mordor/json.h"
-#include "mordor/streams/buffered.h"
-#include "mordor/streams/limited.h"
-#include "mordor/streams/memory.h"
-#include "mordor/streams/transfer.h"
+#include "../../config.h"
+#include "../server.h"
+#include "../../json.h"
+#include "../../streams/buffered.h"
+#include "../../streams/limited.h"
+#include "../../streams/memory.h"
+#include "../../streams/transfer.h"
 
 namespace Mordor {
 namespace HTTP {

@@ -4,7 +4,7 @@
 
 #include <windows.h>
 
-#include "mordor/iomanager.h"
+#include "../iomanager.h"
 #include "stream.h"
 
 namespace Mordor {

@@ -1,14 +1,14 @@
 // Copyright (c) 2010 Mozy, Inc.
 
-#include "mordor/predef.h"
+#include "../predef.h"
 
 #include "connectionpool.h"
 
 
-#include "mordor/config.h"
-#include "mordor/iomanager.h"
-#include "mordor/log.h"
-#include "mordor/util.h"
+#include "../config.h"
+#include "../iomanager.h"
+#include "../log.h"
+#include "../util.h"
 
 #include "connection.h"
 

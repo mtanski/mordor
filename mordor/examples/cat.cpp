@@ -1,15 +1,15 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include "mordor/predef.h"
+#include "../predef.h"
 
 #include <iostream>
 
-#include "mordor/config.h"
-#include "mordor/main.h"
-#include "mordor/streams/file.h"
-#include "mordor/streams/std.h"
-#include "mordor/streams/transfer.h"
-#include "mordor/workerpool.h"
+#include "../config.h"
+#include "../main.h"
+#include "../streams/file.h"
+#include "../streams/std.h"
+#include "../streams/transfer.h"
+#include "../workerpool.h"
 
 using namespace Mordor;
 

@@ -2,11 +2,11 @@
 
 #include "timeout.h"
 
-#include "mordor/assert.h"
-#include "mordor/exception.h"
-#include "mordor/log.h"
-#include "mordor/socket.h"
-#include "mordor/timer.h"
+#include "../assert.h"
+#include "../exception.h"
+#include "../log.h"
+#include "../socket.h"
+#include "../timer.h"
 
 namespace Mordor {
 

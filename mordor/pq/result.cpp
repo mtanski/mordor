@@ -1,14 +1,14 @@
 // Copyright (c) 2010 - Mozy, Inc.
 
-#include "mordor/predef.h"
+#include "../predef.h"
 
 #include "result.h"
 
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 
-#include "mordor/assert.h"
-#include "mordor/endian.h"
-#include "mordor/socket.h"
+#include "../assert.h"
+#include "../endian.h"
+#include "../socket.h"
 
 #define BOOLOID 16
 #define CHAROID 18

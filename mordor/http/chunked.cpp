@@ -5,9 +5,9 @@
 #include <sstream>
 #include <stdexcept>
 
-#include "mordor/assert.h"
-#include "mordor/streams/buffer.h"
-#include "mordor/version.h"
+#include "../assert.h"
+#include "../streams/buffer.h"
+#include "../version.h"
 
 namespace Mordor {
 namespace HTTP {

@@ -1,14 +1,14 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include "mordor/predef.h"
+#include "../predef.h"
 
 #include <iostream>
 
-#include "mordor/config.h"
-#include "mordor/fiber.h"
-#include "mordor/iomanager.h"
-#include "mordor/main.h"
-#include "mordor/socket.h"
+#include "../config.h"
+#include "../fiber.h"
+#include "../iomanager.h"
+#include "../main.h"
+#include "../socket.h"
 
 using namespace Mordor;
 

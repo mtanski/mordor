@@ -2,7 +2,7 @@
 
 #include "std.h"
 
-#include "mordor/exception.h"
+#include "../exception.h"
 
 namespace Mordor {
 

@@ -2,11 +2,11 @@
 
 #include "namedpipe.h"
 
-#include "mordor/assert.h"
-#include "mordor/exception.h"
-#include "mordor/log.h"
-#include "mordor/runtime_linking.h"
-#include "mordor/string.h"
+#include "../assert.h"
+#include "../exception.h"
+#include "../log.h"
+#include "../runtime_linking.h"
+#include "../string.h"
 
 namespace Mordor {
 

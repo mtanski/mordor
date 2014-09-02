@@ -3,8 +3,8 @@
 #include "negotiate.h"
 
 #include "http.h"
-#include "mordor/log.h"
-#include "mordor/string.h"
+#include "../log.h"
+#include "../string.h"
 
 #pragma comment(lib, "secur32.lib")
 

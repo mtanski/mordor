@@ -6,10 +6,10 @@
 
 #include "agent.h"
 #include "channel.h"
-#include "mordor/exception.h"
-#include "mordor/iomanager.h"
-#include "mordor/log.h"
-#include "mordor/socket.h"
+#include "../exception.h"
+#include "../iomanager.h"
+#include "../log.h"
+#include "../socket.h"
 
 namespace {
 

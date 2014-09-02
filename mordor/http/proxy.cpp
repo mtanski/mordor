@@ -3,23 +3,23 @@
 #include "proxy.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
-#include "mordor/config.h"
-#include "mordor/http/broker.h"
-#include "mordor/http/client.h"
-#include "mordor/socket.h"
+#include "../config.h"
+#include "../http/broker.h"
+#include "../http/client.h"
+#include "../socket.h"
 
 #ifdef WINDOWS
-#include "mordor/runtime_linking.h"
+#include "../runtime_linking.h"
 #elif defined (OSX)
 #include <CoreServices/CoreServices.h>
 #include <SystemConfiguration/SystemConfiguration.h>
-#include "mordor/util.h"
-#include "mordor/streams/file.h"
-#include "mordor/streams/http.h"
-#include "mordor/streams/limited.h"
-#include "mordor/streams/memory.h"
-#include "mordor/streams/transfer.h"
-#include "mordor/sleep.h"
+#include "../util.h"
+#include "../streams/file.h"
+#include "../streams/http.h"
+#include "../streams/limited.h"
+#include "../streams/memory.h"
+#include "../streams/transfer.h"
+#include "../sleep.h"
 #endif
 
 namespace Mordor {

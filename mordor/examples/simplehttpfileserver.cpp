@@ -1,19 +1,19 @@
-#include "mordor/predef.h"
+#include "../predef.h"
 
 #include <memory>
 #include <iostream>
 
 #include <boost/thread.hpp>
 
-#include "mordor/config.h"
-#include "mordor/http/server.h"
-#include "mordor/iomanager.h"
-#include "mordor/main.h"
-#include "mordor/socket.h"
-#include "mordor/streams/file.h"
-#include "mordor/streams/socket.h"
-#include "mordor/streams/transfer.h"
-#include "mordor/streams/ssl.h"
+#include "../config.h"
+#include "../http/server.h"
+#include "../iomanager.h"
+#include "../main.h"
+#include "../socket.h"
+#include "../streams/file.h"
+#include "../streams/socket.h"
+#include "../streams/transfer.h"
+#include "../streams/ssl.h"
 
 using namespace Mordor;
 

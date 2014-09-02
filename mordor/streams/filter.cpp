@@ -2,7 +2,7 @@
 
 #include "filter.h"
 
-#include "mordor/assert.h"
+#include "../assert.h"
 
 namespace Mordor {
 

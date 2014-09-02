@@ -1,7 +1,7 @@
 #include "crypto.h"
 #include "ssl.h" // for OpenSSLException
-#include "mordor/assert.h"
-#include "mordor/streams/random.h"
+#include "../assert.h"
+#include "../streams/random.h"
 
 namespace Mordor {
 

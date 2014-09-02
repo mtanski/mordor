@@ -3,13 +3,13 @@
 #include <atomic>
 #include <boost/thread/mutex.hpp>
 
-#include "mordor/fiber.h"
-#include "mordor/iomanager.h"
-#include "mordor/parallel.h"
-#include "mordor/sleep.h"
-#include "mordor/test/test.h"
-#include "mordor/workerpool.h"
-#include "mordor/util.h"
+#include "../fiber.h"
+#include "../iomanager.h"
+#include "../parallel.h"
+#include "../sleep.h"
+#include "../test/test.h"
+#include "../workerpool.h"
+#include "../util.h"
 
 using namespace Mordor;
 using namespace Mordor::Test;

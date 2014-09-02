@@ -4,7 +4,7 @@
 
 #include <libssh2.h>
 
-#include "mordor/fibersynchronization.h"
+#include "../fibersynchronization.h"
 
 namespace Mordor {
 

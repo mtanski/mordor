@@ -5,7 +5,7 @@
 #include <openssl/ssl.h>
 
 #include "http.h"
-#include "mordor/fibersynchronization.h"
+#include "../fibersynchronization.h"
 
 #include <atomic>
 #include <memory>

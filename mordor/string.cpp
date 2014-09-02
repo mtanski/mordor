@@ -14,8 +14,8 @@
 #endif
 #endif
 
-#include "mordor/string.h"
-#include "mordor/util.h"
+#include "string.h"
+#include "util.h"
 
 #include "assert.h"
 #include "exception.h"

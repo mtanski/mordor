@@ -1,6 +1,6 @@
 // Copyright (c) 2010 - Mozy, Inc.
 
-#include "mordor/predef.h"
+#include "../predef.h"
 
 #include "antxmllistener.h"
 
@@ -8,11 +8,11 @@
 
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 
-#include "mordor/config.h"
-#include "mordor/log.h"
-#include "mordor/streams/file.h"
-#include "mordor/string.h"
-#include "mordor/timer.h"
+#include "../config.h"
+#include "../log.h"
+#include "../streams/file.h"
+#include "../string.h"
+#include "../timer.h"
 
 namespace Mordor {
 namespace Test {

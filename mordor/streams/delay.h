@@ -1,8 +1,8 @@
 #ifndef __MORDOR_DELAY_STREAM_H_
 #define __MORDOR_DELAY_STREAM_H_
 
-#include "mordor/sleep.h"
-#include "mordor/streams/filter.h"
+#include "../sleep.h"
+#include "../streams/filter.h"
 
 namespace Mordor {
 

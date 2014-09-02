@@ -1,14 +1,14 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
 
-#include "mordor/exception.h"
-#include "mordor/fiber.h"
-#include "mordor/scheduler.h"
-#include "mordor/streams/buffer.h"
-#include "mordor/streams/stream.h"
-#include "mordor/streams/pipe.h"
-#include "mordor/test/test.h"
-#include "mordor/workerpool.h"
+#include "../exception.h"
+#include "../fiber.h"
+#include "../scheduler.h"
+#include "../streams/buffer.h"
+#include "../streams/stream.h"
+#include "../streams/pipe.h"
+#include "../test/test.h"
+#include "../workerpool.h"
 
 using namespace Mordor;
 using namespace Mordor::Test;

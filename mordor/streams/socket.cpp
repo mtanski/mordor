@@ -3,8 +3,8 @@
 #include "socket.h"
 
 #include "buffer.h"
-#include "mordor/assert.h"
-#include "mordor/socket.h"
+#include "../assert.h"
+#include "../socket.h"
 
 namespace Mordor {
 

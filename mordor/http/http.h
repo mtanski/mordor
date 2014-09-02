@@ -10,10 +10,10 @@
 #include <boost/variant.hpp>
 #include <boost/date_time.hpp>
 
-#include "mordor/predef.h"
-#include "mordor/string.h"
-#include "mordor/uri.h"
-#include "mordor/version.h"
+#include "../predef.h"
+#include "../string.h"
+#include "../uri.h"
+#include "../version.h"
 
 namespace Mordor {
 namespace HTTP {

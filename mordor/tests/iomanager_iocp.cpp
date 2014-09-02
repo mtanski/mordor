@@ -3,8 +3,8 @@
 #ifdef WINDOWS
 
 
-#include "mordor/iomanager.h"
-#include "mordor/test/test.h"
+#include "../iomanager.h"
+#include "../test/test.h"
 
 using namespace Mordor;
 using namespace Mordor::Test;

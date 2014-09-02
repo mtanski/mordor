@@ -3,7 +3,7 @@
 // Copyright (c) 2010 - Mozy, Inc.
 
 
-#include "mordor/http/servlet.h"
+#include "../servlet.h"
 
 namespace Mordor {
 namespace HTTP {

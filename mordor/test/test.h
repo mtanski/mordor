@@ -7,7 +7,7 @@
 #include <typeinfo>
 #include <vector>
 
-#include "mordor/assert.h"
+#include "../assert.h"
 
 namespace Mordor {
 namespace Test {

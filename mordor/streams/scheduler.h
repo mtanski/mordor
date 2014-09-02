@@ -3,7 +3,7 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
 #include "filter.h"
-#include "mordor/scheduler.h"
+#include "../scheduler.h"
 
 namespace Mordor {
 

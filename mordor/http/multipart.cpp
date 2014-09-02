@@ -3,12 +3,12 @@
 #include "multipart.h"
 
 
-#include "mordor/assert.h"
-#include "mordor/streams/buffer.h"
-#include "mordor/streams/buffered.h"
-#include "mordor/streams/notify.h"
-#include "mordor/streams/null.h"
-#include "mordor/streams/transfer.h"
+#include "../assert.h"
+#include "../streams/buffer.h"
+#include "../streams/buffered.h"
+#include "../streams/notify.h"
+#include "../streams/null.h"
+#include "../streams/transfer.h"
 #include "parser.h"
 
 namespace Mordor {

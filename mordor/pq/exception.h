@@ -4,7 +4,7 @@
 
 #include <libpq-fe.h>
 
-#include "mordor/exception.h"
+#include "../exception.h"
 
 namespace Mordor {
 namespace PQ {

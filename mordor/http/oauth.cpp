@@ -3,8 +3,8 @@
 #include "oauth.h"
 
 #include "client.h"
-#include "mordor/date_time.h"
-#include "mordor/streams/stream.h"
+#include "../date_time.h"
+#include "../streams/stream.h"
 
 namespace Mordor {
 namespace HTTP {

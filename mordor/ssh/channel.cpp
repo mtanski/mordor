@@ -2,8 +2,8 @@
 
 #include "channel.h"
 
-#include "mordor/exception.h"
-#include "mordor/log.h"
+#include "../exception.h"
+#include "../log.h"
 #include "session.h"
 
 namespace Mordor {

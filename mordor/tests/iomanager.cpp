@@ -1,11 +1,11 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
 
-#include "mordor/future.h"
-#include "mordor/iomanager.h"
-#include "mordor/sleep.h"
-#include "mordor/streams/pipe.h"
-#include "mordor/test/test.h"
+#include "../future.h"
+#include "../iomanager.h"
+#include "../sleep.h"
+#include "../streams/pipe.h"
+#include "../test/test.h"
 
 using namespace Mordor;
 using namespace Mordor::Test;

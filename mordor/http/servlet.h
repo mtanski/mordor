@@ -4,8 +4,8 @@
 
 #include <boost/variant.hpp>
 
-#include "mordor/factory.h"
-#include "mordor/uri.h"
+#include "../factory.h"
+#include "../uri.h"
 
 namespace Mordor {
 namespace HTTP {

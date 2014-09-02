@@ -1,17 +1,17 @@
 // Copyright (c) 2010 - Mozy, Inc.
 
-#include "mordor/predef.h"
+#include "../predef.h"
 
 #include <iostream>
 
-#include "mordor/config.h"
-#include "mordor/http/server.h"
-#include "mordor/iomanager.h"
-#include "mordor/main.h"
-#include "mordor/socket.h"
-#include "mordor/streams/memory.h"
-#include "mordor/streams/socket.h"
-#include "mordor/streams/transfer.h"
+#include "../config.h"
+#include "../http/server.h"
+#include "../iomanager.h"
+#include "../main.h"
+#include "../socket.h"
+#include "../streams/memory.h"
+#include "../streams/socket.h"
+#include "../streams/transfer.h"
 
 using namespace Mordor;
 

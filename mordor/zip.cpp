@@ -2,16 +2,16 @@
 
 #include "zip.h"
 
-#include "mordor/assert.h"
-#include "mordor/log.h"
-#include "mordor/streams/buffered.h"
-#include "mordor/streams/deflate.h"
-#include "mordor/streams/hash.h"
-#include "mordor/streams/limited.h"
-#include "mordor/streams/notify.h"
-#include "mordor/streams/null.h"
-#include "mordor/streams/singleplex.h"
-#include "mordor/streams/transfer.h"
+#include "assert.h"
+#include "log.h"
+#include "streams/buffered.h"
+#include "streams/deflate.h"
+#include "streams/hash.h"
+#include "streams/limited.h"
+#include "streams/notify.h"
+#include "streams/null.h"
+#include "streams/singleplex.h"
+#include "streams/transfer.h"
 
 namespace {
 #pragma pack(push)

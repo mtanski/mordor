@@ -16,8 +16,8 @@
 #include "assert.h"
 #include "config.h"
 #include "fiber.h"
-#include "mordor/streams/file.h"
-#include "mordor/string.h"
+#include "streams/file.h"
+#include "string.h"
 #include "timer.h"
 
 namespace Mordor {

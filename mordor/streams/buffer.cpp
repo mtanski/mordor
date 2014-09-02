@@ -5,8 +5,8 @@
 #include <string.h>
 #include <algorithm>
 
-#include "mordor/assert.h"
-#include "mordor/util.h"
+#include "../assert.h"
+#include "../util.h"
 
 #ifdef WINDOWS
 static u_long iovLength(size_t length)

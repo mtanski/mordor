@@ -1,10 +1,10 @@
 // Copyright (c) 2010 - Mozy, Inc.
 
-#include "mordor/predef.h"
+#include "../predef.h"
 
 #include "exception.h"
 
-#include "mordor/log.h"
+#include "../log.h"
 
 namespace Mordor {
 namespace PQ {

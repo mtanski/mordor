@@ -12,8 +12,8 @@
 #include <sys/uio.h>
 
 #include "buffer.h"
-#include "mordor/assert.h"
-#include "mordor/iomanager.h"
+#include "../assert.h"
+#include "../iomanager.h"
 
 namespace Mordor {
 

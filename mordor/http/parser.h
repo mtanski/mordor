@@ -3,7 +3,7 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
 #include "http.h"
-#include "mordor/ragel.h"
+#include "../ragel.h"
 
 namespace Mordor {
 namespace HTTP {

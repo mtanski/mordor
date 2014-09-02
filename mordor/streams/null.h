@@ -3,7 +3,7 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
 #include "stream.h"
-#include "mordor/util.h"
+#include "../util.h"
 
 namespace Mordor {
 

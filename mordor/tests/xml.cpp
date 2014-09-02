@@ -1,9 +1,9 @@
 // Copyright (c) 2010 - Mozy, Inc.
 
 
-#include "mordor/xml/dom_parser.h"
-#include "mordor/test/test.h"
-#include "mordor/string.h"
+#include "../xml/dom_parser.h"
+#include "../test/test.h"
+#include "../string.h"
 
 using namespace Mordor;
 

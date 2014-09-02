@@ -3,12 +3,12 @@
 #include "server.h"
 
 
-#include "mordor/fiber.h"
-#include "mordor/scheduler.h"
-#include "mordor/socket.h"
-#include "mordor/streams/null.h"
-#include "mordor/streams/transfer.h"
-#include "mordor/timer.h"
+#include "../fiber.h"
+#include "../scheduler.h"
+#include "../socket.h"
+#include "../streams/null.h"
+#include "../streams/transfer.h"
+#include "../timer.h"
 #include "multipart.h"
 #include "parser.h"
 

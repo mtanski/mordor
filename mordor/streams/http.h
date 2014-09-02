@@ -3,9 +3,9 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
 #include "filter.h"
-#include "mordor/exception.h"
-#include "mordor/future.h"
-#include "mordor/http/broker.h"
+#include "../exception.h"
+#include "../future.h"
+#include "../http/broker.h"
 
 namespace Mordor {
 

@@ -3,12 +3,12 @@
 #include "connection.h"
 
 #include "chunked.h"
-#include "mordor/streams/buffered.h"
-#include "mordor/streams/gzip.h"
-#include "mordor/streams/limited.h"
-#include "mordor/streams/notify.h"
-#include "mordor/streams/singleplex.h"
-#include "mordor/streams/zlib.h"
+#include "../streams/buffered.h"
+#include "../streams/gzip.h"
+#include "../streams/limited.h"
+#include "../streams/notify.h"
+#include "../streams/singleplex.h"
+#include "../streams/zlib.h"
 
 namespace Mordor {
 namespace HTTP {

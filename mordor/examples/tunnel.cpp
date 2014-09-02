@@ -1,23 +1,23 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include "mordor/predef.h"
+#include "../predef.h"
 
 #include <iostream>
 #include <functional>
 namespace barg = std::placeholders;
 
-#include "mordor/config.h"
-#include "mordor/http/auth.h"
-#include "mordor/http/client.h"
-#include "mordor/http/proxy.h"
-#include "mordor/iomanager.h"
-#include "mordor/main.h"
-#include "mordor/socket.h"
-#include "mordor/streams/duplex.h"
-#include "mordor/streams/socket.h"
-#include "mordor/streams/ssl.h"
-#include "mordor/streams/std.h"
-#include "mordor/streams/transfer.h"
+#include "../config.h"
+#include "../http/auth.h"
+#include "../http/client.h"
+#include "../http/proxy.h"
+#include "../iomanager.h"
+#include "../main.h"
+#include "../socket.h"
+#include "../streams/duplex.h"
+#include "../streams/socket.h"
+#include "../streams/ssl.h"
+#include "../streams/std.h"
+#include "../streams/transfer.h"
 
 using namespace Mordor;
 

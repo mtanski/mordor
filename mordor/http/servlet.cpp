@@ -2,7 +2,7 @@
 
 #include "servlet.h"
 
-#include "mordor/assert.h"
+#include "../assert.h"
 #include "server.h"
 
 namespace Mordor {

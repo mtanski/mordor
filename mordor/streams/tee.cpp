@@ -6,10 +6,10 @@ namespace barg = std::placeholders;
 
 #include "tee.h"
 
-#include "mordor/assert.h"
-#include "mordor/log.h"
-#include "mordor/parallel.h"
-#include "mordor/streams/buffer.h"
+#include "../assert.h"
+#include "../log.h"
+#include "../parallel.h"
+#include "../streams/buffer.h"
 
 namespace Mordor {
 

@@ -2,9 +2,9 @@
 
 #include "buffered.h"
 
-#include "mordor/config.h"
-#include "mordor/exception.h"
-#include "mordor/log.h"
+#include "../config.h"
+#include "../exception.h"
+#include "../log.h"
 
 namespace Mordor {
 

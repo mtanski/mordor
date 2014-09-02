@@ -1,13 +1,13 @@
 // Copyright (c) 2010 - Mozy, Inc.
 
-#include "mordor/predef.h"
+#include "../predef.h"
 
 #include "preparedstatement.h"
 
-#include "mordor/assert.h"
-#include "mordor/endian.h"
-#include "mordor/log.h"
-#include "mordor/iomanager.h"
+#include "../assert.h"
+#include "../endian.h"
+#include "../log.h"
+#include "../iomanager.h"
 
 #include "connection.h"
 #include "exception.h"

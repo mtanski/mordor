@@ -1,8 +1,8 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include "mordor/uri.h"
-#include "mordor/streams/buffer.h"
-#include "mordor/test/test.h"
+#include "../uri.h"
+#include "../streams/buffer.h"
+#include "../test/test.h"
 
 using namespace Mordor;
 using namespace Mordor::Test;

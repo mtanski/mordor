@@ -4,7 +4,7 @@
 #include <list>
 
 
-#include "mordor/fibersynchronization.h"
+#include "../fibersynchronization.h"
 
 namespace Mordor {
 

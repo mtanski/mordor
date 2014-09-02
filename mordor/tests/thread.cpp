@@ -1,9 +1,9 @@
 // Copyright (c) 2010 - Mozy, Inc.
 
 
-#include "mordor/test/test.h"
-#include "mordor/thread.h"
-#include "mordor/workerpool.h"
+#include "../test/test.h"
+#include "../thread.h"
+#include "../workerpool.h"
 
 using namespace Mordor;
 
