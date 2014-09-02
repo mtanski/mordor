@@ -447,7 +447,6 @@ mordor_examples_iombench_LDADD=mordor/libmordor.la	\
 
 mordor_examples_simplehttpfileserver_SOURCES=mordor/examples/simplehttpfileserver.cpp
 mordor_examples_simplehttpfileserver_LDADD=mordor/libmordor.la       \
-	-ljemalloc				\
         $(BOOST_SYSTEM_LIB)                     \
         $(BOOST_THREAD_LIB)                     \
         $(CORESERVICES_FRAMEWORK_LIBS)          \
