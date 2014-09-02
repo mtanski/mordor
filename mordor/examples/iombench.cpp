@@ -303,6 +303,8 @@ MORDOR_MAIN(int argc, char *argv[])
         NetBench bench(argc, argv);
 
         Config::loadFromEnvironment();
+
+	MORDOR_LOG_INFO(g_log) << "Running " << g_iomThreads->val() << " threads";
         IOManager iom(g_iomThreads->val());
 
         IOMBenchServer server(iom);
