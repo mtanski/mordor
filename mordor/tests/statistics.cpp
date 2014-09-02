@@ -1,5 +1,5 @@
-#include "mordor/statistics.h"
-#include "mordor/test/test.h"
+#include "../statistics.h"
+#include "../test/test.h"
 
 using namespace Mordor;
 

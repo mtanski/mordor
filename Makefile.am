@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS=-I m4
 AUTOMAKE_OPTIONS=nostdinc subdir-objects
-AM_CPPFLAGS=$(OPENSSL_INCLUDES) $(BOOST_CPPFLAGS) $(POSTGRESQL_CFLAGS) $(INCICONV) $(VALGRIND_CPPFLAGS) -I$(top_srcdir)
+AM_CPPFLAGS=$(OPENSSL_INCLUDES) $(BOOST_CPPFLAGS) $(POSTGRESQL_CFLAGS) $(INCICONV) $(VALGRIND_CPPFLAGS)
 AM_CXXFLAGS=-Wall -Werror -fno-strict-aliasing -std=c++11
 
 nobase_include_HEADERS=			\
@@ -193,7 +193,7 @@ mordor_libmordor_la_SOURCES=			\
 	mordor/platform/cxa_exception.cpp	\
 	mordor/platform/unix_fiber.cpp		
 
-mordor_libmordor_la_CPPFLAGS=-I$(top_srcdir) -include mordor/pch.h $(AM_CPPFLAGS)
+mordor_libmordor_la_CPPFLAGS=-include mordor/pch.h $(AM_CPPFLAGS)
 mordor_libmordor_la_LDFLAGS=			\
 	$(OPENSSL_LDFLAGS)			\
 	$(BOOST_LDFLAGS)			\
@@ -230,7 +230,7 @@ mordor_pq_libmordorpq_la_SOURCES=		\
 	mordor/pq/result.cpp			\
 	mordor/pq/transaction.cpp
 
-mordor_pq_libmordorpq_la_CPPFLAGS=-I$(top_srcdir) -include mordor/pch.h $(AM_CPPFLAGS)
+mordor_pq_libmordorpq_la_CPPFLAGS=-include mordor/pch.h $(AM_CPPFLAGS)
 mordor_pq_libmordorpq_la_LDFLAGS=$(POSTGRESQL_LDFLAGS)
 mordor_pq_libmordorpq_la_LIBADD=mordor/libmordor.la
 
@@ -240,7 +240,7 @@ endif
 
 mordor_libmordorprotobuf_la_SOURCES=mordor/protobuf.cpp
 mordor_libmordorprotobuf_la_LDFLAGS=$(PROTOBUF_LIBS)
-mordor_libmordorprotobuf_la_CPPFLAGS=-I$(top_srcdir) $(PROTOBUF_CFLAGS) $(AM_CPPFLAGS)
+mordor_libmordorprotobuf_la_CPPFLAGS=$(PROTOBUF_CFLAGS) $(AM_CPPFLAGS)
 mordor_libmordorprotobuf_la_LIBADD=mordor/libmordor.la
 
 if HAVE_LIBYAML
@@ -249,7 +249,7 @@ endif
 
 mordor_libmordoryaml_la_SOURCES=mordor/yaml.cpp
 mordor_libmordoryaml_la_LDFLAGS=$(LIBYAML)
-mordor_libmordoryaml_la_CPPFLAGS=-I$(top_srcdir) $(AM_CPPFLAGS)
+mordor_libmordoryaml_la_CPPFLAGS=$(AM_CPPFLAGS)
 mordor_libmordoryaml_la_LIBADD=mordor/libmordor.la
 
 if HAVE_LIBSSH2
@@ -261,7 +261,7 @@ mordor_libmordorssh_la_SOURCES=	\
 	mordor/ssh/channel.cpp	\
 	mordor/ssh/session.cpp
 mordor_libmordorssh_la_LDFLAGS=$(LIBSSH2)
-mordor_libmordorssh_la_CPPFLAGS=-I$(top_srcdir) $(AM_CPPFLAGS)
+mordor_libmordorssh_la_CPPFLAGS=$(AM_CPPFLAGS)
 mordor_libmordorssh_la_LIBADD=mordor/libmordor.la
 
 pkgconfigdir=$(libdir)/pkgconfig
@@ -366,7 +366,7 @@ mordor_tests_run_tests_SOURCES=				\
 	mordor/tests/zlib.cpp				\
 	mordor/tests/crypto.cpp
 
-mordor_tests_run_tests_CPPFLAGS=-I$(top_builddir) -include mordor/pch.h $(AM_CPPFLAGS)
+mordor_tests_run_tests_CPPFLAGS=-include mordor/pch.h $(AM_CPPFLAGS)
 mordor_tests_run_tests_LDADD=mordor/libmordor.la mordor/test/libmordortest.la \
 	$(OPENSSL_LIBS)				\
 	$(BOOST_THREAD_LIB)			\

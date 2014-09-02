@@ -2,12 +2,12 @@
 
 #include <functional>
 
-#include "mordor/iomanager.h"
-#include "mordor/streams/buffer.h"
-#include "mordor/streams/delay.h"
-#include "mordor/streams/pipe.h"
-#include "mordor/streams/timeout.h"
-#include "mordor/test/test.h"
+#include "../iomanager.h"
+#include "../streams/buffer.h"
+#include "../streams/delay.h"
+#include "../streams/pipe.h"
+#include "../streams/timeout.h"
+#include "../test/test.h"
 
 using namespace Mordor;
 

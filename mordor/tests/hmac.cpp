@@ -1,7 +1,7 @@
-#include "mordor/pch.h"
+#include "../pch.h"
 
-#include "mordor/string.h"
-#include "mordor/test/test.h"
+#include "../string.h"
+#include "../test/test.h"
 
 using namespace Mordor;
 using namespace Mordor::Test;

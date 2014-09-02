@@ -1,9 +1,9 @@
 // Copyright (c) 2010 - Mozy, Inc.
 
-#include "mordor/pch.h"
+#include "../pch.h"
 
-#include "mordor/streams/file.h"
-#include "mordor/test/test.h"
+#include "../streams/file.h"
+#include "../test/test.h"
 
 using namespace Mordor;
 

@@ -1,14 +1,14 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include "mordor/pch.h"
+#include "../pch.h"
 
-#include "mordor/http/parser.h"
+#include "parser.h"
 
 #include <locale>
 #include <sstream>
 #include <string>
 
-#include "mordor/version.h"
+#include "../version.h"
 
 namespace Mordor {
 

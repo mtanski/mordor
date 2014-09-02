@@ -1,11 +1,11 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include "mordor/pch.h"
+#include "pch.h"
 
-#include "mordor/json.h"
+#include "json.h"
 
-#include "mordor/assert.h"
-#include "mordor/string.h"
+#include "assert.h"
+#include "string.h"
 
 namespace Mordor {
 namespace JSON {

@@ -3,9 +3,8 @@
    ragel uri.rl -G2 -o uri.cpp
 */
 
-#include "mordor/pch.h"
-
-#include "mordor/uri.h"
+#include "pch.h"
+#include "uri.h"
 
 #include <sstream>
 

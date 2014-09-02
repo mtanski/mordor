@@ -2,13 +2,13 @@
 
 #include <iostream>
 
-#include "mordor/config.h"
-#include "mordor/main.h"
-#include "mordor/version.h"
-#include "mordor/statistics.h"
-#include "mordor/test/antxmllistener.h"
-#include "mordor/test/compoundlistener.h"
-#include "mordor/test/stdoutlistener.h"
+#include "../config.h"
+#include "../main.h"
+#include "../version.h"
+#include "../statistics.h"
+#include "../test/antxmllistener.h"
+#include "../test/compoundlistener.h"
+#include "../test/stdoutlistener.h"
 
 using namespace Mordor;
 using namespace Mordor::Test;

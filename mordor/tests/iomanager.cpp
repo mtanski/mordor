@@ -96,7 +96,7 @@ namespace {
 class TickleAccessibleIOManager : public IOManager
 {
 public:
-    void tickle() { IOManager::tickle(); }
+    virtual void tickle() { IOManager::tickle(); }
 };
 }
 

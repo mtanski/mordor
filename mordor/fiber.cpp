@@ -5,7 +5,7 @@
 #include "fiber.h"
 
 #ifdef HAVE_CONFIG_H
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #ifdef HAVE_VALGRIND_VALGRIND_H

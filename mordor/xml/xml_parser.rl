@@ -1,8 +1,8 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include "mordor/pch.h"
+#include "../pch.h"
 
-#include "mordor/xml/parser.h"
+#include "parser.h"
 
 using namespace Mordor;
 

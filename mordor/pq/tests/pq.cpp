@@ -1,25 +1,25 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include "mordor/predef.h"
+#include "../../predef.h"
 
 #include <iostream>
 
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 
-#include "mordor/config.h"
-#include "mordor/fibersynchronization.h"
-#include "mordor/iomanager.h"
-#include "mordor/main.h"
-#include "mordor/pq/connection.h"
-#include "mordor/pq/exception.h"
-#include "mordor/pq/transaction.h"
-#include "mordor/version.h"
-#include "mordor/statistics.h"
-#include "mordor/streams/memory.h"
-#include "mordor/streams/transfer.h"
-#include "mordor/test/antxmllistener.h"
-#include "mordor/test/test.h"
-#include "mordor/test/stdoutlistener.h"
+#include "../../config.h"
+#include "../../fibersynchronization.h"
+#include "../../iomanager.h"
+#include "../../main.h"
+#include "../../pq/connection.h"
+#include "../../pq/exception.h"
+#include "../../pq/transaction.h"
+#include "../../version.h"
+#include "../../statistics.h"
+#include "../../streams/memory.h"
+#include "../../streams/transfer.h"
+#include "../../test/antxmllistener.h"
+#include "../../test/test.h"
+#include "../../test/stdoutlistener.h"
 
 using namespace Mordor;
 using namespace Mordor::PQ;
