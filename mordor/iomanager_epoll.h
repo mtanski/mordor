@@ -16,7 +16,7 @@ namespace Mordor {
 
 class Fiber;
 
-class IOManager : public Scheduler, public TimerManager
+class IOManager final : public Scheduler, public TimerManager
 {
 public:
     enum Event {
@@ -37,7 +37,7 @@ private:
         {
             EventContext() : scheduler(NULL) {}
             Scheduler *scheduler;
-            std::shared_ptr<Fiber> fiber;
+            Fiber::ptr fiber;
             std::function<void ()> dg;
         };
 
@@ -72,10 +72,15 @@ public:
     bool cancelEvent(int fd, Event events);
 
 protected:
-    bool stopping(unsigned long long &nextTimeout);
-    void idle();
-    void tickle();
 
+    void idle(const std::atomic<unsigned>& ec);
+
+    virtual void tickle(const std::atomic<unsigned>& ec)
+    { tickle(); }
+
+    bool stopping(unsigned long long &nextTimeout);
+
+    void tickle();
     void onTimerInsertedAtFront() { tickle(); }
 
 private:

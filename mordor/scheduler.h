@@ -2,12 +2,17 @@
 #define __MORDOR_SCHEDULER_H__
 // Copyright (c) 2009 - Mozy, Inc.
 
+// C++
 #include <atomic>
+#include <deque>
 #include <functional>
 #include <list>
+#include <thread>
 
-#include <boost/thread/mutex.hpp>
+// Boost
+#include <boost/thread/shared_mutex.hpp>
 
+#include "fiber.h"
 #include "thread.h"
 
 namespace Mordor {
@@ -28,6 +33,13 @@ class Fiber;
 /// stop(). stop() will return only after there are no more Fibers scheduled.
 class Scheduler
 {
+public:
+    enum State {
+        RUNNING,
+        STOPPING,
+        STOPPED,
+    };
+
 public:
     /// Default constructor
 
@@ -76,7 +88,7 @@ public:
     /// @param thread Optionally provide a specific thread for the Fiber to run
     /// on
     template <class FiberOrDg>
-    void schedule(FiberOrDg fd, std::thread::id thread = {});
+    void schedule(FiberOrDg&& fd, std::thread::id thread = {});
 
     /// Schedule multiple items to be executed at once
 
@@ -118,16 +130,16 @@ public:
     /// @pre this is a hijacking Scheduler
     void dispatch();
 
-    size_t threadCount() const;
+    unsigned threadCount() const;
 
     /// Change the number of threads in this scheduler
-    void threadCount(size_t threads);
+    void threadCount(unsigned threads);
 
-    const std::vector<std::shared_ptr<Thread> >& threads() const;
-
-    std::thread::id rootThreadId() const { return m_rootThread; }
+    // Get the list of thread ids in the current scheduler
+    const std::list<std::thread::id> threads() const;
 
 protected:
+
     /// Derived classes can query stopping() to see if the Scheduler is trying
     /// to stop, and should return from the idle Fiber as soon as possible.
     ///
@@ -142,64 +154,68 @@ protected:
     ///
     /// Implementors should Fiber::yield() when it believes there is work
     /// scheduled on the Scheduler.
-    virtual void idle() = 0;
+    virtual void idle(const std::atomic<unsigned>& ec) = 0;
     /// The Scheduler wants to force the idle fiber to Fiber::yield(), because
     /// new work has been scheduled.
-    virtual void tickle() = 0;
 
-    bool hasWorkToDo();
-    virtual bool hasIdleThreads() const;
-    /// determine whether tickle() is needed, to be invoked in schedule()
-    /// @param empty whether m_fibers is empty before the new task is scheduled
-    virtual bool shouldTickle(bool empty) const;
-
-    /// set `this' to TLS so that getThis() can get correct Scheduler
-    void setThis();
-
-private:
-    void yieldTo(bool yieldToCallerOnTerminate);
-    void run();
-
-    /// @pre @c fd should be valid
-    /// @pre the task to be scheduled is not thread-targeted, or this scheduler
-    ///      owns the targeted thread.
-    template <class FiberOrDg>
-    bool scheduleNoLock(FiberOrDg fd, std::thread::id thread = {});
+    virtual void tickle(const std::atomic<unsigned>& ec) = 0;
 
 private:
     Scheduler(const Scheduler& rhs) = delete;
 
+// Lockless queue (and queue entry)
 private:
-    struct FiberAndThread {
-        std::shared_ptr<Fiber> fiber;
+
+    struct Task
+    {
+        Fiber::ptr fiber;
         std::function<void ()> dg;
         std::thread::id thread;
-        FiberAndThread(std::shared_ptr<Fiber> f, std::thread::id th)
+        Task(const Fiber::ptr& f, std::thread::id th)
             : fiber(f), thread(th) 
         { }
-        FiberAndThread(std::shared_ptr<Fiber>* f, std::thread::id th)
+
+        Task(Fiber::ptr* f, std::thread::id th)
             : thread(th)
         { fiber.swap(*f); }
-        FiberAndThread(std::function<void ()> d, std::thread::id th)
+
+        Task(std::function<void ()> d, std::thread::id th)
             : dg(d), thread(th) 
         { }
-        FiberAndThread(std::function<void ()> *d, std::thread::id th)
+
+        Task(std::function<void ()> *d, std::thread::id th)
             : thread(th)
         { dg.swap(*d); }
     };
-    static thread_local Scheduler* t_scheduler;
+
+    // Worker classes (hidden from user)
+    struct Worker;
+    struct ThreadWorker;
+    struct HijackWorker;
+    friend struct Worker;
+    //
+    struct WorkerList;
+
+private:
+    void yieldTo(bool yieldToCallerOnTerminate);
+    void schedule(std::unique_ptr<Task> task);
+
+private:
     static thread_local Fiber* t_fiber;
-    boost::mutex m_mutex;
-    std::list<FiberAndThread> m_fibers;
-    std::thread::id m_rootThread;
-    std::shared_ptr<Fiber> m_rootFiber;
-    std::shared_ptr<Fiber> m_callingFiber;
-    std::vector<std::shared_ptr<Thread> > m_threads;
-    size_t m_threadCount, m_activeThreadCount;
-    std::atomic<size_t> m_idleThreadCount;
-    bool m_stopping;
-    bool m_autoStop;
+    static thread_local Worker* t_worker;
+
+    bool m_hijack;
     size_t m_batchSize;
+    unsigned m_threadCount;
+
+    boost::shared_mutex m_lock;
+
+    std::atomic<State> m_state;
+    std::unique_ptr<WorkerList> worker_list;
+    Fiber::ptr context;
+
+    std::atomic<unsigned> work_count;
+    std::atomic<unsigned> done_count;
 };
 
 /// Automatic Scheduler switcher
@@ -224,53 +240,17 @@ private:
 // Implementation
 
 template <class FiberOrDg>
-inline void Scheduler::schedule(FiberOrDg fd, std::thread::id thread)
+inline void Scheduler::schedule(FiberOrDg&& fd, std::thread::id tid)
 {
-    bool tickleMe;
-    {
-        boost::mutex::scoped_lock lock(m_mutex);
-        tickleMe = scheduleNoLock(fd, thread);
-    }
-    if (shouldTickle(tickleMe))
-        tickle();
+    std::unique_ptr<Task> task(new Task(std::forward<FiberOrDg>(fd), tid));
+    schedule(std::move(task));
 }
 
 template <class InputIterator>
 inline void Scheduler::schedule(InputIterator begin, InputIterator end)
 {
-    bool tickleMe = false;
-    {
-        boost::mutex::scoped_lock lock(m_mutex);
-        while (begin != end) {
-            tickleMe = scheduleNoLock(&*begin) || tickleMe;
-            ++begin;
-        }
-    }
-    if (shouldTickle(tickleMe))
-        tickle();
-}
-
-inline size_t Scheduler::threadCount() const
-{ return m_threadCount + (m_rootFiber ? 1 : 0); }
-
-inline const std::vector<std::shared_ptr<Thread> >& Scheduler::threads() const
-{ return m_threads; }
-
-inline void Scheduler::setThis()
-{ t_scheduler = this; }
-
-inline bool Scheduler::hasIdleThreads() const
-{ return m_idleThreadCount != 0; }
-
-inline bool Scheduler::shouldTickle(bool empty) const
-{ return empty && Scheduler::getThis() != this; }
-
-template <class FiberOrDg>
-inline bool Scheduler::scheduleNoLock(FiberOrDg fd, std::thread::id thread)
-{
-    bool tickleMe = m_fibers.empty();
-    m_fibers.push_back(FiberAndThread(fd, thread));
-    return tickleMe;
+    for (; begin != end; ++begin)
+        schedule(&*begin);
 }
 
 } // namespace: Mordor

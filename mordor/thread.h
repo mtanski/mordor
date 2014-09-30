@@ -2,7 +2,9 @@
 #define __MORDOR_THREAD_H__
 // Copyright (c) 2010 - Mozy, Inc.
 
+// C++
 #include <iosfwd>
+#include <mutex>
 #include <thread>
 
 #include "version.h"
@@ -19,8 +21,10 @@ public:
     ///
     /// bookmark current thread id and scheduler, allow to switch back to
     /// the same thread id later.
+    /// 
     /// @pre The process must be running with available scheduler, otherwise
     /// it is not possible to switch execution between threads with bookmark.
+    /// 
     /// @note Bookmark was designed to address the issue where we failed to
     /// rethrow an exception in catch block, because GCC C++ runtime saves the
     /// exception stack in a pthread TLS variable. and swapcontext(3) does not
