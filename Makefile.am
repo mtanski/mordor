@@ -232,7 +232,9 @@ mordor_pq_libmordorpq_la_SOURCES=		\
 
 mordor_pq_libmordorpq_la_CPPFLAGS=-include mordor/pch.h $(AM_CPPFLAGS)
 mordor_pq_libmordorpq_la_LDFLAGS=$(POSTGRESQL_LDFLAGS)
-mordor_pq_libmordorpq_la_LIBADD=mordor/libmordor.la
+mordor_pq_libmordorpq_la_LIBADD=		\
+	mordor/libmordor.la		\
+	$(BOOST_SYSTEM_LIB)
 
 if HAVE_PROTOBUF
     lib_LTLIBRARIES+=mordor/libmordorprotobuf.la
@@ -314,7 +316,10 @@ mordor_test_libmordortest_la_SOURCES=		\
 	mordor/test/stdoutlistener.cpp		\
 	mordor/test/test.cpp
 
-mordor_test_libmordortest_la_LIBADD=mordor/libmordor.la
+mordor_test_libmordortest_la_LIBADD=		\
+	mordor/libmordor.la         \
+	$(BOOST_REGEX_LIB)			\
+	$(BOOST_SYSTEM_LIB)
 
 check_PROGRAMS=mordor/tests/run_tests
 mordor_tests_run_tests_SOURCES=				\
@@ -433,7 +438,6 @@ mordor_examples_echoserver_LDADD=mordor/libmordor.la \
 	$(SYSTEMCONFIGURATION_FRAMEWORK_LIBS)	\
 	$(BOOST_SYSTEM_LIB)			\
 	$(BOOST_THREAD_LIB)
-	
 
 mordor_examples_iombench_SOURCES=	\
 	mordor/examples/iombench.cpp	\
