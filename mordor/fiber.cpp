@@ -29,12 +29,6 @@
 
 namespace Mordor {
 
-static AverageMinMaxStatistic<unsigned int> &g_statAlloc =
-    Statistics::registerStatistic("fiber.allocstack",
-    AverageMinMaxStatistic<unsigned int>("us"));
-static AverageMinMaxStatistic<unsigned int> &g_statFree=
-    Statistics::registerStatistic("fiber.freestack",
-    AverageMinMaxStatistic<unsigned int>("us"));
 static std::atomic<unsigned int> g_cntFibers(0); // Active fibers
 static MaxStatistic<unsigned int> &g_statMaxFibers=Statistics::registerStatistic("fiber.max",
     MaxStatistic<unsigned int>());
