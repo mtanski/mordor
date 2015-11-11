@@ -3,7 +3,6 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
 #include <list>
-#include <memory>
 #include <set>
 #include <sstream>
 

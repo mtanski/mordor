@@ -1,8 +1,7 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include <linux/futex.h>
-
 #include "workerpool.h"
+
 #include "fiber.h"
 #include "log.h"
 
@@ -17,12 +16,13 @@ WorkerPool::WorkerPool(size_t threads, bool useCaller, size_t batchSize)
 }
 
 void
-WorkerPool::idle(const std::atomic<unsigned>& ec)
+WorkerPool::idle()
 {
-    while (stopping()) {
-        int* uaddr = reinterpret_cast<int*>(&ec);
-        sys_futex(uaddr, FUTEX_WAIT, 1, nullptr, nullptr, 0);
-
+    while (true) {
+        if (stopping()) {
+            return;
+        }
+        m_semaphore.wait();
         try {
             Fiber::yield();
         } catch (OperationAbortedException &) {
@@ -32,12 +32,10 @@ WorkerPool::idle(const std::atomic<unsigned>& ec)
 }
 
 void
-WorkerPool::tickle(const std::atomic<unsigned>& ec)
+WorkerPool::tickle()
 {
-    int* uaddr = reinterpret_cast<int*>(&ec);
-
     MORDOR_LOG_DEBUG(g_log) << this << " tickling";
-    sys_futex(uaddr, FUTEX_WAKE, 1, nullptr, nullptr, 0);
+    m_semaphore.notify();
 }
 
 }

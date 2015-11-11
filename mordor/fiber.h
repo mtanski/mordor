@@ -83,9 +83,6 @@ public:
     /// @pre state() == INIT || state() == HOLD
     void inject(boost::exception_ptr exception);
 
-    /// Cancel fiber via operation caclened exception
-    void cancel();
-
     /// Yield execution to a specific Fiber
 
     /// The Fiber is executed by replacing the currently executing Fiber.
@@ -207,17 +204,6 @@ public:
     T & operator*() { return *FiberLocalStorageBase<T *>::get(); }
     T * operator->() { return FiberLocalStorageBase<T *>::get(); }
 };
-
-inline
-void Fiber::cancel()
-{
-    try {
-        try { throw boost::enable_current_exception(OperationAbortedException()); }
-        catch(...) { inject(boost::current_exception()); }
-    } catch (OperationAbortedException) {
-        // Nothing
-    }
-}
 
 }
 

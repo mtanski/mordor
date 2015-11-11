@@ -21,9 +21,9 @@ protected:
     /// The idle Fiber for a WorkerPool simply loops waiting on a Semaphore,
     /// and yields whenever that Semaphore is signalled, returning if
     /// stopping() is true.
-    void idle(const std::atomic<unsigned>& ec);
+    void idle();
     /// Signals the semaphore so that the idle Fiber will yield.
-    void tickle(const std::atomic<unsigned>& ec);
+    void tickle();
 
 private:
     Semaphore m_semaphore;
