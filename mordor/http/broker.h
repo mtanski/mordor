@@ -33,7 +33,7 @@ public:
     typedef std::weak_ptr<StreamBroker> weak_ptr;
 
 public:
-    virtual ~StreamBroker() {}
+    virtual ~StreamBroker() noexcept(false) {}
 
     virtual std::shared_ptr<Stream> getStream(const URI &uri) = 0;
     virtual void cancelPending() {}
