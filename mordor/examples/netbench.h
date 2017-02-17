@@ -6,7 +6,7 @@
 class NetBenchServer
 {
 public:
-    virtual ~NetBenchServer() {}
+    virtual ~NetBenchServer() noexcept(false) {}
 
     // start the implementation of the server to be benchmarked
     virtual void run(std::string& host,
@@ -21,7 +21,7 @@ public:
 class NetBenchClient
 {
 public:
-    virtual ~NetBenchClient () {}
+    virtual ~NetBenchClient () noexcept(false) {}
 
     // initialize the client to be benchmarked
     virtual void init(std::string& host,

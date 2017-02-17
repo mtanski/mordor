@@ -58,7 +58,7 @@ private:
     ClientRequest(const ClientRequest& rhs) = delete;
 
 public:
-    ~ClientRequest();
+    ~ClientRequest() noexcept(false);
 
     std::shared_ptr<ClientConnection> connection() { return m_conn; }
     State requestState() const { return m_requestState; }

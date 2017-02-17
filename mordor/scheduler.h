@@ -43,7 +43,7 @@ public:
     /// @pre if (useCaller == true) Scheduler::getThis() == NULL
     Scheduler(size_t threads = 1, bool useCaller = true, size_t batchSize = 1);
     /// Destroys the scheduler, implicitly calling stop()
-    virtual ~Scheduler();
+    virtual ~Scheduler() noexcept(false);
 
     /// @return The Scheduler controlling the currently executing thread
     static Scheduler* getThis();

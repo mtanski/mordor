@@ -59,7 +59,7 @@ public:
 
     /// Cleans up the underlying implementation, possibly by ungracefully
     /// closing it.
-    virtual ~Stream() {}
+    virtual ~Stream() noexcept(false) {}
 
     /// @return If it is valid to call close() with READ or WRITE
     virtual bool supportsHalfClose() { return false; }

@@ -34,7 +34,7 @@ Scheduler::Scheduler(size_t threads, bool useCaller, size_t batchSize)
     m_threadCount = threads;
 }
 
-Scheduler::~Scheduler()
+Scheduler::~Scheduler() noexcept(false)
 {
     MORDOR_ASSERT(m_stopping);
     if (getThis() == this) {

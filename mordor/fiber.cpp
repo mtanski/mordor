@@ -103,7 +103,7 @@ Fiber::Fiber(std::function<void ()> dg, size_t stacksize)
     g_statMaxFibers.update(++g_cntFibers);
 }
 
-Fiber::~Fiber()
+Fiber::~Fiber() noexcept(false)
 {
     --g_cntFibers;
     if (!stack_ptr() ) {

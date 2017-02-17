@@ -50,7 +50,7 @@ Semaphore::Semaphore(unsigned int count)
 #endif
 }
 
-Semaphore::~Semaphore()
+Semaphore::~Semaphore() noexcept(false)
 {
 #ifdef WINDOWS
     MORDOR_VERIFY(CloseHandle(m_semaphore));

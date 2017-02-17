@@ -499,7 +499,7 @@ ClientRequest::ClientRequest(ClientConnection::ptr conn, const Request &request)
     MORDOR_ASSERT(m_conn);
 }
 
-ClientRequest::~ClientRequest()
+ClientRequest::~ClientRequest() noexcept(false)
 {
     cancel(true);
 #ifndef NDEBUG
