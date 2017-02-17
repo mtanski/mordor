@@ -5,6 +5,7 @@
 #include <atomic>
 #include <functional>
 #include <list>
+#include <vector>
 
 #include <boost/thread/mutex.hpp>
 
