@@ -2,9 +2,9 @@
 
 #include "socks.h"
 
-#include "mordor/http/broker.h"
-#include "mordor/socket.h"
-#include "mordor/streams/stream.h"
+#include "http/broker.h"
+#include "socket.h"
+#include "streams/stream.h"
 
 namespace Mordor {
 namespace SOCKS {

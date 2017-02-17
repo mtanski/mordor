@@ -2,7 +2,7 @@
 #define __MORDOR_HTTP_PROXY_H__
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include "mordor/uri.h"
+#include "../uri.h"
 
 #ifdef WINDOWS
 #include <winhttp.h>
@@ -10,8 +10,8 @@
 #include <queue>
 #include <boost/thread.hpp>
 #include <SystemConfiguration/SystemConfiguration.h>
-#include "mordor/util.h"
-#include "mordor/http/broker.h"
+#include "../util.h"
+#include "../http/broker.h"
 #endif
 
 namespace Mordor {

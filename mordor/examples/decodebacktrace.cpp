@@ -1,15 +1,15 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include "mordor/predef.h"
+#include "../predef.h"
 
 #include <iostream>
 
 #include <DbgHelp.h>
 
-#include "mordor/config.h"
-#include "mordor/main.h"
-#include "mordor/streams/buffered.h"
-#include "mordor/streams/std.h"
+#include "../config.h"
+#include "../main.h"
+#include "../streams/buffered.h"
+#include "../streams/std.h"
 
 using namespace Mordor;
 

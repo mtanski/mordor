@@ -4,7 +4,7 @@
 
 #include <libssh2.h>
 
-#include "mordor/streams/stream.h"
+#include "../streams/stream.h"
 
 namespace Mordor {
 namespace SSH {

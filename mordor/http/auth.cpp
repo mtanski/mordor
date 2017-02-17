@@ -5,12 +5,12 @@
 #include "basic.h"
 #include "client.h"
 #include "digest.h"
-#include "mordor/socket.h"
+#include "../socket.h"
 
 #ifdef WINDOWS
 #include "negotiate.h"
 #elif defined (OSX)
-#include "mordor/util.h"
+#include "../util.h"
 
 #include <Security/SecItem.h>
 #include <Security/SecKeychain.h>

@@ -1,18 +1,18 @@
-#include "mordor/pch.h"
+#include "../pch.h"
 
 #ifdef HAVE_CONFIG_H
-#include "autoconfig.h"
+#include "../../autoconfig.h"
 #endif
 
-#include "mordor/exception.h"
+#include "../exception.h"
 
-#include "mordor/streams/deflate.h"
-#include "mordor/streams/gzip.h"
-#include "mordor/streams/lzma2.h"
-#include "mordor/streams/memory.h"
-#include "mordor/streams/singleplex.h"
-#include "mordor/streams/zlib.h"
-#include "mordor/test/test.h"
+#include "../streams/deflate.h"
+#include "../streams/gzip.h"
+#include "../streams/lzma2.h"
+#include "../streams/memory.h"
+#include "../streams/singleplex.h"
+#include "../streams/zlib.h"
+#include "../test/test.h"
 
 using namespace Mordor;
 using namespace Mordor::Test;

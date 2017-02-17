@@ -2,9 +2,9 @@
 
 #include "http.h"
 
-#include "mordor/fiber.h"
-#include "mordor/http/client.h"
-#include "mordor/socket.h"
+#include "../fiber.h"
+#include "../http/client.h"
+#include "../socket.h"
 #include "null.h"
 #include "transfer.h"
 

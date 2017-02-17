@@ -62,7 +62,7 @@ class TimerManager
 public:
     TimerManager();
     TimerManager(const TimerManager& rhs) = delete;
-    virtual ~TimerManager();
+    virtual ~TimerManager() noexcept(false);
 
     virtual Timer::ptr registerTimer(unsigned long long us,
         std::function<void ()> dg, bool recurring = false);

@@ -2,7 +2,7 @@
 #define __MORDOR_STD_STREAM_H__
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include "mordor/version.h"
+#include "../version.h"
 
 #ifdef WINDOWS
 #include "handle.h"

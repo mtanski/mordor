@@ -6,7 +6,7 @@
 
 #include "buffer.h"
 #include "filter.h"
-#include "mordor/exception.h"
+#include "../exception.h"
 
 namespace Mordor {
 

@@ -2,8 +2,8 @@
 
 #include "file.h"
 
-#include "mordor/assert.h"
-#include "mordor/string.h"
+#include "../assert.h"
+#include "../string.h"
 
 namespace Mordor {
 

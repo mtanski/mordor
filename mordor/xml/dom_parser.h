@@ -2,8 +2,8 @@
 #define __MORDOR_DOM_DOM_PARSER_H__
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include "mordor/exception.h"
-#include "mordor/xml/parser.h"
+#include "../exception.h"
+#include "../xml/parser.h"
 
 namespace Mordor {
     class Stream;

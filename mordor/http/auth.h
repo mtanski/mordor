@@ -5,7 +5,7 @@
 #include <boost/scoped_ptr.hpp>
 
 #include "broker.h"
-#include "mordor/version.h"
+#include "../version.h"
 
 namespace Mordor {
 namespace HTTP {

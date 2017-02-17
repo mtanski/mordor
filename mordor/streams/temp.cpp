@@ -2,8 +2,8 @@
 
 #include "temp.h"
 
-#include "mordor/config.h"
-#include "mordor/string.h"
+#include "../config.h"
+#include "../string.h"
 
 namespace Mordor {
 

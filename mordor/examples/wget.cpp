@@ -1,6 +1,6 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include "mordor/predef.h"
+#include "../predef.h"
 
 #include <iostream>
 #include <functional>
@@ -8,21 +8,21 @@ namespace barg = std::placeholders;
 
 #include <boost/program_options.hpp>
 
-#include "mordor/config.h"
-#include "mordor/exception.h"
-#include "mordor/http/auth.h"
-#include "mordor/http/broker.h"
-#include "mordor/http/client.h"
-#include "mordor/http/multipart.h"
-#include "mordor/http/proxy.h"
-#include "mordor/iomanager.h"
-#include "mordor/main.h"
-#include "mordor/sleep.h"
-#include "mordor/socket.h"
-#include "mordor/streams/socket.h"
-#include "mordor/streams/ssl.h"
-#include "mordor/streams/std.h"
-#include "mordor/streams/transfer.h"
+#include "../config.h"
+#include "../exception.h"
+#include "../http/auth.h"
+#include "../http/broker.h"
+#include "../http/client.h"
+#include "../http/multipart.h"
+#include "../http/proxy.h"
+#include "../iomanager.h"
+#include "../main.h"
+#include "../sleep.h"
+#include "../socket.h"
+#include "../streams/socket.h"
+#include "../streams/ssl.h"
+#include "../streams/std.h"
+#include "../streams/transfer.h"
 
 using namespace Mordor;
 namespace po = boost::program_options;

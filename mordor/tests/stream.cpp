@@ -1,7 +1,7 @@
 // Copyright (c) 2010 - Mozy, Inc.
 
-#include "mordor/streams/stream.h"
-#include "mordor/test/test.h"
+#include "../streams/stream.h"
+#include "../test/test.h"
 
 using namespace Mordor;
 

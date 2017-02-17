@@ -8,7 +8,7 @@
 
 namespace Mordor {
 
-FiberMutex::~FiberMutex()
+FiberMutex::~FiberMutex() noexcept(false)
 {
 #ifndef NDEBUG
     boost::mutex::scoped_lock scopeLock(m_mutex);
@@ -80,7 +80,7 @@ FiberSemaphore::FiberSemaphore(size_t initialConcurrency)
     : m_concurrency(initialConcurrency)
 {}
 
-FiberSemaphore::~FiberSemaphore()
+FiberSemaphore::~FiberSemaphore() noexcept(false)
 {
 #ifndef NDEBUG
     boost::mutex::scoped_lock scopeLock(m_mutex);
@@ -126,7 +126,7 @@ FiberSemaphore::notify()
     }
 }
 
-FiberCondition::~FiberCondition()
+FiberCondition::~FiberCondition() noexcept(false)
 {
 #ifndef NDEBUG
     boost::mutex::scoped_lock lock(m_mutex);
@@ -205,7 +205,7 @@ FiberCondition::broadcast()
 }
 
 
-FiberEvent::~FiberEvent()
+FiberEvent::~FiberEvent() noexcept(false)
 {
 #ifndef NDEBUG
     boost::mutex::scoped_lock lock(m_mutex);

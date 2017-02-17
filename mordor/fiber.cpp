@@ -5,7 +5,7 @@
 #include "fiber.h"
 
 #ifdef HAVE_CONFIG_H
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #ifdef HAVE_VALGRIND_VALGRIND_H
@@ -29,12 +29,6 @@
 
 namespace Mordor {
 
-static AverageMinMaxStatistic<unsigned int> &g_statAlloc =
-    Statistics::registerStatistic("fiber.allocstack",
-    AverageMinMaxStatistic<unsigned int>("us"));
-static AverageMinMaxStatistic<unsigned int> &g_statFree=
-    Statistics::registerStatistic("fiber.freestack",
-    AverageMinMaxStatistic<unsigned int>("us"));
 static std::atomic<unsigned int> g_cntFibers(0); // Active fibers
 static MaxStatistic<unsigned int> &g_statMaxFibers=Statistics::registerStatistic("fiber.max",
     MaxStatistic<unsigned int>());
@@ -109,7 +103,7 @@ Fiber::Fiber(std::function<void ()> dg, size_t stacksize)
     g_statMaxFibers.update(++g_cntFibers);
 }
 
-Fiber::~Fiber()
+Fiber::~Fiber() noexcept(false)
 {
     --g_cntFibers;
     if (!stack_ptr() ) {

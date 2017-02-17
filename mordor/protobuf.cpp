@@ -2,8 +2,8 @@
 
 #include "protobuf.h"
 
-#include "mordor/assert.h"
-#include "mordor/streams/buffer.h"
+#include "assert.h"
+#include "streams/buffer.h"
 
 #ifdef MSVC
 // Disable some warnings, but only while

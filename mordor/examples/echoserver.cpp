@@ -1,20 +1,20 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include "mordor/predef.h"
+#include "../predef.h"
 
 
-#include "mordor/config.h"
-#include "mordor/daemon.h"
-#include "mordor/http/multipart.h"
-#include "mordor/http/server.h"
-#include "mordor/iomanager.h"
-#include "mordor/main.h"
-#include "mordor/socket.h"
+#include "../config.h"
+#include "../daemon.h"
+#include "../http/multipart.h"
+#include "../http/server.h"
+#include "../iomanager.h"
+#include "../main.h"
+#include "../socket.h"
 #ifdef WINDOWS
-#include "mordor/streams/namedpipe.h"
+#include "../streams/namedpipe.h"
 #endif
-#include "mordor/streams/socket.h"
-#include "mordor/streams/transfer.h"
+#include "../streams/socket.h"
+#include "../streams/transfer.h"
 
 using namespace Mordor;
 

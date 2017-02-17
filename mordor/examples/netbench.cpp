@@ -1,6 +1,6 @@
 #include "netbench.h"
 
-#include "mordor/version.h"
+#include "../version.h"
 
 #include <stdio.h>
 #ifndef WINDOWS

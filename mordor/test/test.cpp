@@ -1,6 +1,6 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include "mordor/predef.h"
+#include "../predef.h"
 
 #include "test.h"
 
@@ -8,9 +8,9 @@
 
 #include <boost/regex.hpp>
 
-#include "mordor/config.h"
-#include "mordor/sleep.h"
-#include "mordor/timer.h"
+#include "../config.h"
+#include "../sleep.h"
+#include "../timer.h"
 
 #ifdef WINDOWS
 #include <windows.h>

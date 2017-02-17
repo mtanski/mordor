@@ -1,12 +1,12 @@
 // Copyright (c) 2010 - Mozy, Inc.
 
-#include "mordor/predef.h"
+#include "../predef.h"
 
-#include "mordor/assert.h"
-#include "mordor/iomanager.h"
-#include "mordor/log.h"
-#include "mordor/streams/buffer.h"
-#include "mordor/streams/stream.h"
+#include "../assert.h"
+#include "../iomanager.h"
+#include "../log.h"
+#include "../streams/buffer.h"
+#include "../streams/stream.h"
 
 #include "connection.h"
 #include "exception.h"

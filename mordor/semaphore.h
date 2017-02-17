@@ -21,7 +21,7 @@ class Semaphore
 public:
     Semaphore(unsigned int count = 0);
     Semaphore(const Semaphore& rhs) = delete;
-    ~Semaphore();
+    ~Semaphore() noexcept(false);
 
     void wait();
 

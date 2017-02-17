@@ -1,10 +1,10 @@
 // Copyright (c) 2013 - Cody Cutrer
 
 
-#include "mordor/rate_limiter.h"
-#include "mordor/iomanager.h"
-#include "mordor/sleep.h"
-#include "mordor/test/test.h"
+#include "../rate_limiter.h"
+#include "../iomanager.h"
+#include "../sleep.h"
+#include "../test/test.h"
 
 using namespace Mordor;
 using namespace Mordor::Test;

@@ -1,13 +1,13 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
 
-#include "mordor/http/parser.h"
-#include "mordor/streams/buffered.h"
-#include "mordor/streams/duplex.h"
-#include "mordor/streams/memory.h"
-#include "mordor/streams/null.h"
-#include "mordor/test/test.h"
-#include "mordor/util.h"
+#include "../http/parser.h"
+#include "../streams/buffered.h"
+#include "../streams/duplex.h"
+#include "../streams/memory.h"
+#include "../streams/null.h"
+#include "../test/test.h"
+#include "../util.h"
 
 using namespace Mordor;
 using namespace Mordor::HTTP;

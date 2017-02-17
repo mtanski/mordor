@@ -2,8 +2,8 @@
 
 #include "digest.h"
 
-#include "mordor/string.h"
-#include "mordor/timer.h"
+#include "../string.h"
+#include "../timer.h"
 #include "parser.h"
 
 namespace Mordor {

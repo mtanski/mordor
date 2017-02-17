@@ -7,9 +7,9 @@
 #include <openssl/err.h>
 #include <openssl/x509v3.h>
 
-#include "mordor/assert.h"
-#include "mordor/log.h"
-#include "mordor/util.h"
+#include "../assert.h"
+#include "../log.h"
+#include "../util.h"
 
 #ifdef MSVC
 #pragma comment(lib, "libeay32")

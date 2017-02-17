@@ -6,7 +6,7 @@
 
 #include <boost/shared_array.hpp>
 
-#include "mordor/socket.h"
+#include "../socket.h"
 
 namespace Mordor {
 

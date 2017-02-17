@@ -1,8 +1,8 @@
-#include "mordor/http/http.h"
-#include "mordor/http/parser.h"
-#include "mordor/streams/buffer.h"
-#include "mordor/streams/memory.h"
-#include "mordor/test/test.h"
+#include "../http/http.h"
+#include "../http/parser.h"
+#include "../streams/buffer.h"
+#include "../streams/memory.h"
+#include "../test/test.h"
 
 using namespace Mordor;
 using namespace Mordor::Test;

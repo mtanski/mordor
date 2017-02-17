@@ -1,6 +1,6 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include "mordor/pch.h"
+#include "../pch.h"
 
 #include "fd.h"
 
@@ -12,8 +12,8 @@
 #include <sys/uio.h>
 
 #include "buffer.h"
-#include "mordor/assert.h"
-#include "mordor/iomanager.h"
+#include "../assert.h"
+#include "../iomanager.h"
 
 namespace Mordor {
 

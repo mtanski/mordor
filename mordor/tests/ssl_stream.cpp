@@ -1,16 +1,16 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include "mordor/iomanager.h"
-#include "mordor/parallel.h"
-#include "mordor/streams/buffered.h"
-#include "mordor/streams/hash.h"
-#include "mordor/streams/null.h"
-#include "mordor/streams/pipe.h"
-#include "mordor/streams/random.h"
-#include "mordor/streams/ssl.h"
-#include "mordor/streams/transfer.h"
-#include "mordor/test/test.h"
-#include "mordor/workerpool.h"
+#include "../iomanager.h"
+#include "../parallel.h"
+#include "../streams/buffered.h"
+#include "../streams/hash.h"
+#include "../streams/null.h"
+#include "../streams/pipe.h"
+#include "../streams/random.h"
+#include "../streams/ssl.h"
+#include "../streams/transfer.h"
+#include "../test/test.h"
+#include "../workerpool.h"
 
 using namespace Mordor;
 

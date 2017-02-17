@@ -33,7 +33,7 @@
 #   and this notice are preserved. This file is offered as-is, without any
 #   warranty.
 
-#serial 18
+#serial 26
 
 AC_DEFUN([AX_BOOST_BASE],
 [
@@ -59,7 +59,7 @@ AC_ARG_WITH([boost],
 
 AC_ARG_WITH([boost-libdir],
         AS_HELP_STRING([--with-boost-libdir=LIB_DIR],
-        [Force given directory for boost libraries. Note that this will overwrite library path detection, so use this parameter only if default library detection fails and you know exactly where your boost libraries are located.]),
+        [Force given directory for boost libraries. Note that this will override library path detection, so use this parameter only if default library detection fails and you know exactly where your boost libraries are located.]),
         [
         if test -d "$withval"
         then
@@ -84,15 +84,33 @@ if test "x$want_boost" = "xyes"; then
     AC_MSG_CHECKING(for boostlib >= $boost_lib_version_req)
     succeeded=no
 
-    dnl On x86_64 systems check for system libraries in both lib64 and lib.
+    dnl On 64-bit systems check for system libraries in both lib64 and lib.
     dnl The former is specified by FHS, but e.g. Debian does not adhere to
     dnl this (as it rises problems for generic multi-arch support).
     dnl The last entry in the list is chosen by default when no libraries
     dnl are found, e.g. when only header-only libraries are installed!
     libsubdirs="lib"
-    if test `uname -m` = x86_64; then
-        libsubdirs="lib64 lib lib64"
-    fi
+    ax_arch=`uname -m`
+    case $ax_arch in
+      x86_64)
+        libsubdirs="lib64 libx32 lib lib64"
+        ;;
+      ppc64|s390x|sparc64|aarch64|ppc64le)
+        libsubdirs="lib64 lib lib64 ppc64le"
+        ;;
+    esac
+
+    dnl allow for real multi-arch paths e.g. /usr/lib/x86_64-linux-gnu. Give
+    dnl them priority over the other paths since, if libs are found there, they
+    dnl are almost assuredly the ones desired.
+    AC_REQUIRE([AC_CANONICAL_HOST])
+    libsubdirs="lib/${host_cpu}-${host_os} $libsubdirs"
+
+    case ${host_cpu} in
+      i?86)
+        libsubdirs="lib/i386-${host_os} $libsubdirs"
+        ;;
+    esac
 
     dnl first we check the system location for boost libraries
     dnl this location ist chosen if boost libraries are installed with the --layout=system option
@@ -155,6 +173,10 @@ if test "x$want_boost" = "xyes"; then
     dnl if we found no boost with system layout we search for boost libraries
     dnl built and installed without the --layout=system option or for a staged(not installed) version
     if test "x$succeeded" != "xyes"; then
+        CPPFLAGS="$CPPFLAGS_SAVED"
+        LDFLAGS="$LDFLAGS_SAVED"
+        BOOST_CPPFLAGS=
+        BOOST_LDFLAGS=
         _version=0
         if test "$ac_boost_path" != ""; then
             if test -d "$ac_boost_path" && test -r "$ac_boost_path"; then
@@ -167,6 +189,12 @@ if test "x$want_boost" = "xyes"; then
                     VERSION_UNDERSCORE=`echo $_version | sed 's/\./_/'`
                     BOOST_CPPFLAGS="-I$ac_boost_path/include/boost-$VERSION_UNDERSCORE"
                 done
+                dnl if nothing found search for layout used in Windows distributions
+                if test -z "$BOOST_CPPFLAGS"; then
+                    if test -d "$ac_boost_path/boost" && test -r "$ac_boost_path/boost"; then
+                        BOOST_CPPFLAGS="-I$ac_boost_path"
+                    fi
+                fi
             fi
         else
             if test "$cross_compiling" != yes; then

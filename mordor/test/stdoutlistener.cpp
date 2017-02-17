@@ -1,7 +1,7 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include "mordor/predef.h"
-#include "mordor/config.h"
+#include "../predef.h"
+#include "../config.h"
 #include "stdoutlistener.h"
 
 #include <iostream>

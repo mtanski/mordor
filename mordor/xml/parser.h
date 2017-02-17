@@ -3,7 +3,7 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
 
-#include "mordor/ragel.h"
+#include "../ragel.h"
 
 namespace Mordor {
 

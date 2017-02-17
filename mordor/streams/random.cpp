@@ -5,8 +5,8 @@
 #include "ssl.h"
 #endif
 
-#include "mordor/endian.h"
-#include "mordor/exception.h"
+#include "../endian.h"
+#include "../exception.h"
 
 namespace Mordor {
 

@@ -7,7 +7,7 @@
 
 
 #include "assert.h"
-#include "mordor/string.h"
+#include "string.h"
 
 namespace Mordor {
 

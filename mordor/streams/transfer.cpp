@@ -3,12 +3,12 @@
 #include "transfer.h"
 
 
-#include "mordor/assert.h"
-#include "mordor/config.h"
-#include "mordor/fiber.h"
-#include "mordor/parallel.h"
-#include "mordor/streams/buffer.h"
-#include "mordor/streams/null.h"
+#include "../assert.h"
+#include "../config.h"
+#include "../fiber.h"
+#include "../parallel.h"
+#include "../streams/buffer.h"
+#include "../streams/null.h"
 #include "stream.h"
 
 namespace Mordor {

@@ -30,7 +30,7 @@ private:
     struct AsyncState
     {
         AsyncState();
-        ~AsyncState();
+        ~AsyncState() noexcept(false);
 	AsyncState(const AsyncState& rhs) = delete;
 
         struct EventContext
@@ -59,7 +59,7 @@ public:
     /// @note @p autoStart provides a more friendly behavior for derived class
     ///      that inherits from IOManager
     IOManager(size_t threads = 1, bool useCaller = true, bool autoStart = true);
-    ~IOManager();
+    ~IOManager() noexcept(false);
 
     bool stopping();
 

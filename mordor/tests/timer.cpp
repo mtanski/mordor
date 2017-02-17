@@ -1,9 +1,9 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
 
-#include "mordor/timer.h"
-#include "mordor/workerpool.h"
-#include "mordor/test/test.h"
+#include "../timer.h"
+#include "../workerpool.h"
+#include "../test/test.h"
 
 using namespace Mordor;
 using namespace Mordor::Test;

@@ -9,7 +9,7 @@
 #include <boost/thread/mutex.hpp>
 
 // Mordor
-#include "mordor/anymap.h"
+#include "../anymap.h"
 #include "http.h"
 
 namespace Mordor {

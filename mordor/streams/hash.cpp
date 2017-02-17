@@ -3,8 +3,8 @@
 #include "hash.h"
 
 #include "buffer.h"
-#include "mordor/assert.h"
-#include "mordor/endian.h"
+#include "../assert.h"
+#include "../endian.h"
 
 namespace barg = std::placeholders;
 

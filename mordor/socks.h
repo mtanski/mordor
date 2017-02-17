@@ -3,7 +3,7 @@
 // Copyright (c) 2010 - Mozy, Inc.
 
 
-#include "mordor/exception.h"
+#include "exception.h"
 
 namespace Mordor {
 

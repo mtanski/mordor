@@ -1,8 +1,8 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
-#include "mordor/uri.h"
-#include "mordor/streams/buffer.h"
-#include "mordor/test/test.h"
+#include "../uri.h"
+#include "../streams/buffer.h"
+#include "../test/test.h"
 
 using namespace Mordor;
 using namespace Mordor::Test;
@@ -500,7 +500,7 @@ MORDOR_UNITTEST(URI, userinfoWithColon)
     MORDOR_TEST_ASSERT(uri.authority.hostDefined());
     MORDOR_TEST_ASSERT(uri.authority.host().empty());
     MORDOR_TEST_ASSERT(uri.authority.portDefined());
-    MORDOR_TEST_ASSERT_EQUAL(uri.authority.port(), 15432u);
+    MORDOR_TEST_ASSERT_EQUAL(uri.authority.port(), 15432);
 
     uri = "postgres://:password@/";
     MORDOR_TEST_ASSERT(uri.authority.userinfoDefined());

@@ -1,8 +1,8 @@
 // Copyright (c) 2009 - Mozy, Inc.
 
 #include <boost/algorithm/string.hpp>
-#include "mordor/assert.h"
-#include "mordor/xml/dom_parser.h"
+#include "../assert.h"
+#include "../xml/dom_parser.h"
 
 namespace Mordor {
 namespace DOM {

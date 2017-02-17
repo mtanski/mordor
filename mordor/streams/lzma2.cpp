@@ -1,8 +1,8 @@
 #include "lzma2.h"
 
-#include "mordor/assert.h"
-#include "mordor/exception.h"
-#include "mordor/log.h"
+#include "../assert.h"
+#include "../exception.h"
+#include "../log.h"
 
 #ifdef MSVC
 #pragma comment(lib, "liblzma")

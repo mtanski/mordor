@@ -2,9 +2,9 @@
 
 #include "handle.h"
 
-#include "mordor/assert.h"
-#include "mordor/log.h"
-#include "mordor/runtime_linking.h"
+#include "../assert.h"
+#include "../log.h"
+#include "../runtime_linking.h"
 
 namespace Mordor {
 

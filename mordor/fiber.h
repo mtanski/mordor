@@ -52,7 +52,7 @@ public:
     /// are touched by the Fiber executing
     /// @post state() == INIT
     Fiber(std::function<void ()> dg, size_t stacksize = 0);
-    ~Fiber();
+    ~Fiber() noexcept(false);
 
     /// @brief Reset a Fiber to be used again, with a different initial function
     /// @param dg The new initial function

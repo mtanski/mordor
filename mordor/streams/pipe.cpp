@@ -6,9 +6,9 @@
 
 #include "buffer.h"
 #include "file.h"
-#include "mordor/assert.h"
-#include "mordor/fiber.h"
-#include "mordor/scheduler.h"
+#include "../assert.h"
+#include "../fiber.h"
+#include "../scheduler.h"
 #include "stream.h"
 
 #ifdef OSX

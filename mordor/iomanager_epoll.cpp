@@ -99,7 +99,7 @@ IOManager::AsyncState::AsyncState()
       m_events(NONE)
 {}
 
-IOManager::AsyncState::~AsyncState()
+IOManager::AsyncState::~AsyncState() noexcept(false)
 {
     boost::mutex::scoped_lock lock(m_mutex);
     MORDOR_ASSERT(!m_events);
@@ -218,7 +218,7 @@ IOManager::IOManager(size_t threads, bool useCaller, bool autoStart)
     }
 }
 
-IOManager::~IOManager()
+IOManager::~IOManager() noexcept(false)
 {
     stop();
     close(m_epfd);

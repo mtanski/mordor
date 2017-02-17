@@ -3,7 +3,7 @@
 // Copyright (c) 2010 - Mozy, Inc.
 
 #include "filter.h"
-#include "mordor/fibersynchronization.h"
+#include "../fibersynchronization.h"
 
 namespace Mordor {
 

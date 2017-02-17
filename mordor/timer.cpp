@@ -169,7 +169,7 @@ TimerManager::TimerManager()
   m_previousTime(0ull)
 {}
 
-TimerManager::~TimerManager()
+TimerManager::~TimerManager() noexcept(false)
 {
 #ifndef NDEBUG
     boost::mutex::scoped_lock lock(m_mutex);

@@ -4,7 +4,7 @@
 // Can act as both the client and the server.
 //
 
-#include "mordor/predef.h"
+#include "../predef.h"
 
 #include "netbench.h"
 
@@ -12,12 +12,12 @@
 
 #include <boost/scoped_array.hpp>
 
-#include "mordor/config.h"
-#include "mordor/fibersynchronization.h"
-#include "mordor/iomanager.h"
-#include "mordor/log.h"
-#include "mordor/main.h"
-#include "mordor/socket.h"
+#include "../config.h"
+#include "../fibersynchronization.h"
+#include "../iomanager.h"
+#include "../log.h"
+#include "../main.h"
+#include "../socket.h"
 
 using namespace Mordor;
 
@@ -303,6 +303,8 @@ MORDOR_MAIN(int argc, char *argv[])
         NetBench bench(argc, argv);
 
         Config::loadFromEnvironment();
+
+	MORDOR_LOG_INFO(g_log) << "Running " << g_iomThreads->val() << " threads";
         IOManager iom(g_iomThreads->val());
 
         IOMBenchServer server(iom);

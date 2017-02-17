@@ -5,7 +5,7 @@
 #include <openssl/ssl.h>
 
 #include "http.h"
-#include "mordor/fibersynchronization.h"
+#include "../fibersynchronization.h"
 
 #include <atomic>
 #include <memory>
@@ -115,7 +115,7 @@ public:
           m_sslCtx(NULL),
           m_timerManager(NULL)
     {}
-    virtual ~ConnectionBroker() {}
+    virtual ~ConnectionBroker() noexcept(false) {}
 
     virtual std::pair<std::shared_ptr<ClientConnection>, bool>
         getConnection(const URI &uri, bool forceNewConnection = false) = 0;

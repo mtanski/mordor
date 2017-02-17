@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <iostream>
 
-#include "mordor/assert.h"
+#include "../assert.h"
 
 namespace Mordor {
 namespace HTTP {

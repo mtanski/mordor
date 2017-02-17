@@ -2,7 +2,7 @@
 #define __MORDOR_PCH_H__
 
 #ifdef HAVE_CONFIG_H
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #include "version.h"

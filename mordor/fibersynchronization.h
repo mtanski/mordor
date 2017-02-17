@@ -87,7 +87,7 @@ public:
 
 public:
     FiberMutex() = default;
-    ~FiberMutex();
+    ~FiberMutex() noexcept(false);
 
     /// @brief Locks the mutex
     /// Note that it is possible for this Fiber to switch threads after this
@@ -128,7 +128,7 @@ struct FiberSemaphore
 {
 public:
     FiberSemaphore(size_t initialConcurrency = 0);
-    ~FiberSemaphore();
+    ~FiberSemaphore() noexcept(false);
 
     /// @brief Waits for the semaphore
     /// Decreases the amount of concurrency.  If concurrency is already at
@@ -162,7 +162,7 @@ public:
     FiberCondition(FiberMutex &mutex)
         : m_fiberMutex(mutex)
     {}
-    ~FiberCondition();
+    ~FiberCondition() noexcept(false);
 
     /// @brief Wait for the Condition to be signalled
     /// @details
@@ -201,7 +201,7 @@ public:
         : m_signalled(false),
           m_autoReset(autoReset)
     {}
-    ~FiberEvent();
+    ~FiberEvent() noexcept(false);
 
     /// @brief Wait for the Event to become set
     /// @pre Scheduler::getThis() != NULL
