@@ -1,5 +1,5 @@
 #ifndef __MORDOR_RATE_LIMITER_H__
-#define __MODOR_RATE_LIMITER_H__
+#define __MORDOR_RATE_LIMITER_H__
 // Copyright (c) 2013 - Cody Cutrer
 
 #include <list>
