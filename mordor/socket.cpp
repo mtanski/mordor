@@ -1564,6 +1564,10 @@ Address::getInterfaceAddresses(int family)
         for (next = results; next; next = next->ifa_next) {
             Address::ptr address, baddress;
             unsigned int prefixLength = ~0u;
+            // some unusual interfaces (like teql0) show up, but don't have
+            // any address associated with them
+            if (!next->ifa_addr)
+                continue;
             if (family != AF_UNSPEC && family != next->ifa_addr->sa_family)
                 continue;
             switch (next->ifa_addr->sa_family) {
