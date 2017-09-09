@@ -8,9 +8,9 @@
 
 #include <sstream>
 
-#include "mordor/ragel.h"
-#include "mordor/string.h"
-#include "mordor/version.h"
+#include "ragel.h"
+#include "string.h"
+#include "version.h"
 
 namespace Mordor {
 
